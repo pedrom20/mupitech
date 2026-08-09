@@ -59,7 +59,7 @@ class MediaFileViewSet(viewsets.ModelViewSet):
             try:
                 cctv_config = instance.cctv_config
                 if cctv_config.is_active:
-                    from deploy.cctv_service import stop_stream
+                    from cctv.services import stop_stream
                     stop_stream(str(cctv_config.id))
                 cctv_config.delete()
             except Exception:

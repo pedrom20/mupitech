@@ -86,8 +86,8 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 def cctv_player_view(request, config_id):
     from django.utils import timezone
 
-    from deploy.cctv_service import get_stream_status, start_stream
-    from deploy.models import CctvConfig
+    from cctv.services import get_stream_status, start_stream
+    from cctv.models import CctvConfig
     config = get_object_or_404(CctvConfig.objects.prefetch_related('cameras'), pk=config_id)
     # Track that someone is watching — prevents Celery auto-stop
     CctvConfig.objects.filter(pk=config.pk).update(last_requested_at=timezone.now())
@@ -99,7 +99,7 @@ def cctv_player_view(request, config_id):
         except Exception:
             logger.warning('Failed to auto-start CCTV stream %s', config_id, exc_info=True)
 
-    from deploy.cctv_service import has_web_sources, _calc_grid
+    from cctv.services import has_web_sources, _calc_grid
     import json
 
     grid_mode = config.display_mode == 'mosaic' and has_web_sources(config)
@@ -145,6 +145,7 @@ urlpatterns = [
     path('api/audit/', audit_list),
     path('api/', include('groups.urls')),
     path('api/', include('content.urls')),
+    path('api/', include('cctv.urls')),
     path('api/', include('players.urls')),
     path('api/', include('deploy.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),

@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from content.models import MediaFile
+from deploy.audit import log_action
 
 from .models import CctvCamera, CctvConfig
 
@@ -107,7 +108,6 @@ def cctv_list(request):
     serializer = CctvConfigWriteSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     config = serializer.save()
-    from .audit import log_action
     log_action(request, 'create', 'cctv', target_id=config.id, target_name=config.name)
     return Response(
         CctvConfigSerializer(config).data,
@@ -126,10 +126,9 @@ def cctv_detail(request, config_id):
         return Response(CctvConfigSerializer(config).data)
 
     if request.method == 'DELETE':
-        from .audit import log_action
         log_action(request, 'delete', 'cctv', target_id=config.id, target_name=config.name)
         if config.is_active:
-            from .cctv_service import stop_stream
+            from .services import stop_stream
             stop_stream(str(config.id))
         # Delete linked MediaFile first
         if config.media_file:
@@ -140,12 +139,11 @@ def cctv_detail(request, config_id):
     serializer = CctvConfigWriteSerializer(config, data=request.data)
     serializer.is_valid(raise_exception=True)
     config = serializer.save()
-    from .audit import log_action
     log_action(request, 'update', 'cctv', target_id=config.id, target_name=config.name)
 
     # Restart stream with new config if it was active
     if config.is_active:
-        from .cctv_service import start_stream, stop_stream
+        from .services import start_stream, stop_stream
         stop_stream(str(config.id))
         try:
             start_stream(str(config.id))
@@ -170,7 +168,7 @@ def cctv_start(request, config_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    from .cctv_service import start_stream, stitch_grid_snapshot, update_thumbnail
+    from .services import start_stream, stitch_grid_snapshot, update_thumbnail
     try:
         start_stream(str(config.id))
         config.is_active = True
@@ -188,7 +186,6 @@ def cctv_start(request, config_id):
 
         threading.Thread(target=_delayed_thumbnail, daemon=True).start()
 
-        from .audit import log_action
         log_action(request, 'start', 'cctv', target_id=config.id, target_name=config.name)
         return Response({'success': True, 'status': 'running'})
     except Exception as e:
@@ -206,11 +203,10 @@ def cctv_stop(request, config_id):
     except CctvConfig.DoesNotExist:
         return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    from .cctv_service import stop_stream
+    from .services import stop_stream
     stop_stream(str(config.id))
     config.is_active = False
     config.save(update_fields=['is_active'])
-    from .audit import log_action
     log_action(request, 'stop', 'cctv', target_id=config.id, target_name=config.name)
     return Response({'success': True, 'status': 'stopped'})
 
@@ -222,7 +218,7 @@ def cctv_status(request, config_id):
     except CctvConfig.DoesNotExist:
         return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    from .cctv_service import get_stream_status
+    from .services import get_stream_status
     stream_status = get_stream_status(str(config.id))
     return Response(stream_status)
 
@@ -247,7 +243,7 @@ def cctv_request_start(request, config_id):
     config.last_requested_at = timezone.now()
     config.save(update_fields=['last_requested_at'])
 
-    from .cctv_service import get_stream_status, start_stream, stitch_grid_snapshot, update_thumbnail
+    from .services import get_stream_status, start_stream, stitch_grid_snapshot, update_thumbnail
     stream_status = get_stream_status(str(config.id))
 
     if stream_status['status'] == 'running':

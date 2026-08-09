@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'channels',
     'groups',
     'content',
+    'cctv',
     'players',
     'deploy',
 ]

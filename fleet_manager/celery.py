@@ -21,5 +21,5 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @app.task
 def check_cctv_schedules_task():
-    from deploy.tasks import check_cctv_schedules
+    from cctv.tasks import check_cctv_schedules
     check_cctv_schedules()

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from deploy.models import CctvCamera, CctvConfig
+from cctv.models import CctvCamera, CctvConfig
 
 from .models import MediaFile, MediaFolder
 
