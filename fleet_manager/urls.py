@@ -143,6 +143,7 @@ urlpatterns = [
     path('api/system/tailscale/', tailscale_settings),
     path('api/', include(user_router.urls)),
     path('api/audit/', audit_list),
+    path('api/', include('groups.urls')),
     path('api/', include('players.urls')),
     path('api/', include('deploy.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),

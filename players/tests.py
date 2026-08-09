@@ -5,7 +5,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import Group, PlaybackLog, Player, PlayerSnapshot
+from .models import PlaybackLog, Player, PlayerSnapshot
 from .services import AnthiasAPIClient, PlayerConnectionError
 
 

@@ -16,8 +16,8 @@ from rest_framework.views import APIView
 from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
 
 from deploy.models import MediaFile
-from .models import Group, PlaybackLog, Player, PlayerSnapshot
-from .serializers import GroupSerializer, PlaybackLogSerializer, PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
+from .models import PlaybackLog, Player, PlayerSnapshot
+from .serializers import PlaybackLogSerializer, PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
 from .services import AnthiasAPIClient, PlayerConnectionError
 
 logger = logging.getLogger(__name__)
@@ -147,14 +147,6 @@ def _update_player_status(player, online, info=None):
     if info:
         player.last_status = info
     player.save(update_fields=['is_online', 'last_seen', 'last_status'])
-
-
-class GroupViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing player groups."""
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
-    pagination_class = None
-    permission_classes = [IsEditorOrReadOnly]
 
 
 class PlayerViewSet(viewsets.ModelViewSet):

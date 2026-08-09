@@ -16,20 +16,6 @@ def _get_fernet():
     return Fernet(base64.urlsafe_b64encode(key))
 
 
-class Group(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100)
-    color = models.CharField(max_length=7, default='#8819C7')
-    description = models.TextField(blank=True, default='')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-
 DEVICE_TYPE_CHOICES = [
     ('pi4', 'Raspberry Pi 4'),
     ('pi5', 'Raspberry Pi 5'),
@@ -56,7 +42,7 @@ class Player(models.Model):
         help_text='Detected hardware type (pi4, pi5).',
     )
     group = models.ForeignKey(
-        Group,
+        'groups.Group',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

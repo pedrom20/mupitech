@@ -3,11 +3,10 @@ from rest_framework.routers import DefaultRouter
 
 from .bulk_views import bulk_detail, bulk_list, bulk_scan, bulk_start
 from .provision_views import provision_create, provision_detail, provision_retry
-from .views import BulkActionView, GroupViewSet, PlayerViewSet, install_phonehome, playback_log, playback_stats, register_player
+from .views import BulkActionView, PlayerViewSet, install_phonehome, playback_log, playback_stats, register_player
 
 router = DefaultRouter()
 router.register('players', PlayerViewSet)
-router.register('groups', GroupViewSet)
 
 urlpatterns = [
     path('players/register/', register_player, name='register-player'),

@@ -3,7 +3,9 @@ from urllib.parse import urlparse
 
 from rest_framework import serializers
 
-from .models import Group, PlaybackLog, Player, PlayerSnapshot
+from groups.serializers import GroupSerializer
+
+from .models import PlaybackLog, Player, PlayerSnapshot
 
 # Tailscale uses CGNAT range 100.64.0.0/10
 TAILSCALE_NETWORK = ipaddress.ip_network('100.64.0.0/10')
@@ -18,13 +20,6 @@ def _extract_tailscale_ip(url):
     except (ValueError, TypeError):
         pass
     return None
-
-
-class GroupSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Group
-        fields = '__all__'
-        read_only_fields = ['id', 'created_at']
 
 
 class PlayerSerializer(serializers.ModelSerializer):
