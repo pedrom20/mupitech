@@ -24,7 +24,11 @@ logger = logging.getLogger(__name__)
 
 PLAYER_VERSION_CACHE_KEY = 'player:latest_version'
 PLAYER_VERSION_CACHE_TTL = 300  # 5 minutes
-PLAYER_GHCR_REPO = 'alex1981-tech/anthias-server'
+
+
+def _player_ghcr_repo():
+    """Org/repo path (no host) for the configured Anthias player image registry."""
+    return settings.ANTHIAS_IMAGE_REGISTRY.removeprefix('ghcr.io/') + '/anthias-server'
 
 
 def _get_latest_player_version(device_type='pi4'):
@@ -39,7 +43,7 @@ def _get_latest_player_version(device_type='pi4'):
     if cached:
         return cached
 
-    image_name = PLAYER_GHCR_REPO  # alex1981-tech/anthias-server
+    image_name = _player_ghcr_repo()  # e.g. alex1981-tech/anthias-server
     try:
         # Step 1: get anonymous bearer token
         token_resp = http_requests.get(

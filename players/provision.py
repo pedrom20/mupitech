@@ -125,11 +125,17 @@ def _render_compose(ip_address, ssh_user, watchtower_token, mac_address='', devi
     )
     with open(template_path) as f:
         template = Template(f.read())
+    tag_suffix = (
+        settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI5 if device_type == 'pi5'
+        else settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI4
+    )
     return template.safe_substitute(
         PI_IP=ip_address,
         PI_USER=ssh_user,
         WATCHTOWER_TOKEN=watchtower_token,
         MAC_ADDRESS=mac_address,
+        ANTHIAS_REGISTRY=settings.ANTHIAS_IMAGE_REGISTRY,
+        ANTHIAS_TAG_SUFFIX=tag_suffix,
     )
 
 
@@ -478,15 +484,19 @@ try:
             _append_log(task, '[Step 7] Pulling Docker images (this may take a while)...')
 
             # Pull images one-by-one instead of `docker compose pull` which can hang
-            tag = f'latest-{device_type}-64'
+            registry = settings.ANTHIAS_IMAGE_REGISTRY
+            tag = (
+                settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI5 if device_type == 'pi5'
+                else settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI4
+            )
             images = [
-                ('redis', f'ghcr.io/alex1981-tech/anthias-redis:{tag}'),
+                ('redis', f'{registry}/anthias-redis:{tag}'),
                 ('watchtower', 'containrrr/watchtower:latest'),
-                ('nginx', f'ghcr.io/alex1981-tech/anthias-nginx:{tag}'),
-                ('websocket', f'ghcr.io/alex1981-tech/anthias-websocket:{tag}'),
-                ('server', f'ghcr.io/alex1981-tech/anthias-server:{tag}'),
-                ('celery', f'ghcr.io/alex1981-tech/anthias-celery:{tag}'),
-                ('viewer', f'ghcr.io/alex1981-tech/anthias-viewer:{tag}'),
+                ('nginx', f'{registry}/anthias-nginx:{tag}'),
+                ('websocket', f'{registry}/anthias-websocket:{tag}'),
+                ('server', f'{registry}/anthias-server:{tag}'),
+                ('celery', f'{registry}/anthias-celery:{tag}'),
+                ('viewer', f'{registry}/anthias-viewer:{tag}'),
             ]
             for idx, (name, image) in enumerate(images, 1):
                 task = ProvisionTask.objects.get(id=task_id)
@@ -507,7 +517,7 @@ try:
             _update_step(task, 7, 'docker_pull', 'success', f'All {len(images)} images pulled')
 
             # Extract bind-mounted files from viewer image (placeholders would break viewer)
-            viewer_image = f'ghcr.io/alex1981-tech/anthias-viewer:{tag}'
+            viewer_image = f'{registry}/anthias-viewer:{tag}'
             _ssh_run(ssh, (
                 f'docker run --rm {viewer_image} cat /usr/src/app/viewer/__init__.py'
                 f' > {home}/screenly/viewer/__init__.py'

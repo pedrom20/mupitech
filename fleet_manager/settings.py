@@ -188,6 +188,13 @@ CELERY_TASK_ROUTES = {
 PLAYER_POLL_INTERVAL = int(os.environ.get('PLAYER_POLL_INTERVAL', '60'))
 PLAYER_REQUEST_TIMEOUT = int(os.environ.get('PLAYER_REQUEST_TIMEOUT', '10'))
 
+# Registo/tags das imagens Anthias usadas no provisioning dos players.
+# Ver docs/anthias-version-analysis.md para o porquê de, por omissão, ainda
+# apontarem para o fork alex1981-tech em vez do Anthias oficial.
+ANTHIAS_IMAGE_REGISTRY = os.environ.get('ANTHIAS_IMAGE_REGISTRY', 'ghcr.io/alex1981-tech')
+ANTHIAS_IMAGE_TAG_SUFFIX_PI4 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'latest-pi4-64')
+ANTHIAS_IMAGE_TAG_SUFFIX_PI5 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'latest-pi5-64')
+
 # Shared secret for player phone-home registration (empty = open mode)
 PLAYER_REGISTER_TOKEN = os.environ.get('PLAYER_REGISTER_TOKEN', '')
 

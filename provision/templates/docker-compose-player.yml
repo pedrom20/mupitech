@@ -1,6 +1,6 @@
 services:
   anthias-server:
-    image: ghcr.io/alex1981-tech/anthias-server:latest-pi4-64
+    image: $ANTHIAS_REGISTRY/anthias-server:$ANTHIAS_TAG_SUFFIX
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -29,7 +29,7 @@ services:
       - redis
 
   anthias-nginx:
-    image: ghcr.io/alex1981-tech/anthias-nginx:latest-pi4-64
+    image: $ANTHIAS_REGISTRY/anthias-nginx:$ANTHIAS_TAG_SUFFIX
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -47,7 +47,7 @@ services:
       - anthias-websocket
 
   anthias-viewer:
-    image: ghcr.io/alex1981-tech/anthias-viewer:latest-pi4-64
+    image: $ANTHIAS_REGISTRY/anthias-viewer:$ANTHIAS_TAG_SUFFIX
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -80,7 +80,7 @@ services:
       - anthias-websocket
 
   anthias-celery:
-    image: ghcr.io/alex1981-tech/anthias-celery:latest-pi4-64
+    image: $ANTHIAS_REGISTRY/anthias-celery:$ANTHIAS_TAG_SUFFIX
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -100,7 +100,7 @@ services:
       - redis
 
   anthias-websocket:
-    image: ghcr.io/alex1981-tech/anthias-websocket:latest-pi4-64
+    image: $ANTHIAS_REGISTRY/anthias-websocket:$ANTHIAS_TAG_SUFFIX
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -116,7 +116,7 @@ services:
       - redis
 
   redis:
-    image: ghcr.io/alex1981-tech/anthias-redis:latest-pi4-64
+    image: $ANTHIAS_REGISTRY/anthias-redis:$ANTHIAS_TAG_SUFFIX
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
