@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'channels',
     'groups',
+    'content',
     'players',
     'deploy',
 ]
@@ -181,8 +182,8 @@ CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_RESULT_EXPIRES = 3600
 CELERY_TASK_ROUTES = {
-    'deploy.tasks.transcode_video': {'queue': 'transcode'},
-    'deploy.tasks.generate_image_thumbnail': {'queue': 'transcode'},
+    'content.tasks.transcode_video': {'queue': 'transcode'},
+    'content.tasks.generate_image_thumbnail': {'queue': 'transcode'},
 }
 
 # Fleet Manager settings

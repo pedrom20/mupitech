@@ -7,7 +7,9 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import CctvCamera, CctvConfig, MediaFile
+from content.models import MediaFile
+
+from .models import CctvCamera, CctvConfig
 
 logger = logging.getLogger(__name__)
 

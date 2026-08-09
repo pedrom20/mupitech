@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 
 from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
 
-from deploy.models import MediaFile
+from content.models import MediaFile
 from .models import PlaybackLog, Player, PlayerSnapshot
 from .serializers import PlaybackLogSerializer, PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
 from .services import AnthiasAPIClient, PlayerConnectionError

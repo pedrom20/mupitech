@@ -2,12 +2,10 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .cctv_views import cctv_detail, cctv_list, cctv_request_start, cctv_start, cctv_status, cctv_stop
-from .views import DeployTaskViewSet, MediaFileViewSet, MediaFolderViewSet
+from .views import DeployTaskViewSet
 
 router = DefaultRouter()
 router.register('deploy', DeployTaskViewSet)
-router.register('media', MediaFileViewSet, basename='media')
-router.register('folders', MediaFolderViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

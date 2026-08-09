@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
-from deploy.models import MediaFile
-from deploy.tasks import (
+from content.models import MediaFile
+from content.tasks import (
     _generate_image_thumbnail,
     _generate_video_thumbnail,
     _save_thumbnail,
