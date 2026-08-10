@@ -14,11 +14,11 @@ from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
-GITHUB_REPO = 'Alex1981-tech/Anthias-fleet-manager'
+GITHUB_REPO = os.environ.get('UPDATE_CHECK_GITHUB_REPO', 'pedrom20/mupiteck')
 UPDATE_CHECK_CACHE_KEY = 'system:latest_version'
 UPDATE_CHECK_CACHE_TTL = 300  # 5 minutes
 AUTO_UPDATE_CACHE_KEY = 'system:auto_update'
-UPDATER_CONTAINER = 'anthias-fleet-manager-updater-1'
+UPDATER_CONTAINER = 'mupitech-fleet-manager-updater-1'
 
 # Tailscale settings keys
 TS_ENABLED_KEY = 'system:tailscale_enabled'

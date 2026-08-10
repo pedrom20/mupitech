@@ -12,17 +12,25 @@ const Footer: React.FC = () => {
         <p className="footer-text">
           &copy; {currentYear}{' '}
           <a
-            href="https://github.com/Alex1981-tech/Anthias-fleet-manager"
+            href="https://github.com/pedrom20/mupiteck"
             target="_blank"
             rel="noopener noreferrer"
           >
             {t('footer.copyright')}
           </a>
+          {' — '}
+          <a
+            href="https://github.com/Screenly/Anthias"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('footer.upstream')}
+          </a>
         </p>
         <ul className="footer-links">
           <li>
             <a
-              href="https://github.com/Alex1981-tech/Anthias-fleet-manager"
+              href="https://github.com/pedrom20/mupiteck"
               target="_blank"
               rel="noopener noreferrer"
             >

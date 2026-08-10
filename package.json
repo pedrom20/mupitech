@@ -1,7 +1,7 @@
 {
-  "name": "anthias-fleet-manager",
+  "name": "mupitech-fleet-manager",
   "version": "1.0.0",
-  "description": "Fleet management dashboard for Anthias digital signage players",
+  "description": "MupiTech Fleet Manager — dashboard de gestão centralizada de dispositivos de sinalética digital, para a Câmara Municipal de Odemira",
   "scripts": {
     "build": "webpack --config webpack.prod.js",
     "dev": "webpack --config webpack.dev.js --watch",

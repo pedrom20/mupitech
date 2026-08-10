@@ -1,3 +1,5 @@
+name: mupitech-fleet-manager
+
 services:
   db:
     image: postgres:16-alpine
@@ -123,7 +125,7 @@ services:
     restart: unless-stopped
     entrypoint: ["sh", "-c", "trap 'exit 0' TERM INT; while sleep 86400 & wait; do :; done"]
     environment:
-      COMPOSE_PROJECT_NAME: anthias-fleet-manager
+      COMPOSE_PROJECT_NAME: mupitech-fleet-manager
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/project:ro

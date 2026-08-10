@@ -535,7 +535,8 @@
     "camera": "Kamera"
   },
   "footer": {
-    "copyright": "Anthias Fleet Manager"
+    "copyright": "MupiTech Fleet Manager",
+    "upstream": "Oparte na projekcie Anthias"
   },
   "apiErrors": {
     "slotNotFound": "Nie znaleziono slotu",

@@ -11,7 +11,7 @@ COOLDOWN=5  # seconds to wait after change before rebuilding (debounce)
 cd "$PROJECT_DIR"
 
 echo "========================================"
-echo "  Anthias Fleet Manager — Auto Deploy"
+echo "  MupiTech Fleet Manager — Auto Deploy"
 echo "========================================"
 echo "Watching: $PROJECT_DIR"
 echo "Cooldown: ${COOLDOWN}s"

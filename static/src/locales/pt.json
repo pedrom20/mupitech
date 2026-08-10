@@ -607,7 +607,8 @@
     "camera": "Câmara"
   },
   "footer": {
-    "copyright": "MupiTech Gestor de Mupis"
+    "copyright": "MupiTech Gestor de Mupis",
+    "upstream": "Baseado no projeto Anthias"
   },
   "apiErrors": {
     "slotNotFound": "Intervalo não encontrado",
