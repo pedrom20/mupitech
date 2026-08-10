@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaSync, FaClipboardList } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaSync, FaClipboardList, FaLayerGroup } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { APP_VERSION } from '../changelog'
 import { system } from '@/services/api'
@@ -39,6 +39,7 @@ const Navbar: React.FC = () => {
 
   const navItems = [
     { to: '/', icon: <FaThLarge className="nav-icon" />, label: t('nav.dashboard'), end: true },
+    { to: '/groups', icon: <FaLayerGroup className="nav-icon" />, label: t('nav.groups'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },
     ...(role === 'admin' ? [{ to: '/audit', icon: <FaClipboardList className="nav-icon" />, label: t('nav.audit'), end: false }] : []),
