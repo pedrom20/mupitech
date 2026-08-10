@@ -143,7 +143,7 @@ const PlayerList: React.FC = () => {
         </div>
       ) : (
         <div className="fm-card">
-          <div className="fm-card-body p-0">
+          <div className="fm-card-body p-0 table-responsive">
             <table className="fm-table">
               <thead>
                 <tr>

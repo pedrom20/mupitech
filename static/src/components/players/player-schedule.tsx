@@ -358,6 +358,7 @@ export const PlayerSchedule = ({ playerId, isOnline, onScheduleChange, onSlotsLo
         {slot.items.length === 0 ? (
           <p className="text-muted mb-2">{t('schedule.noItems')}</p>
         ) : (
+          <div className="table-responsive">
           <table className="fm-table mb-2" style={{ width: '100%' }}>
             <thead>
               <tr>
@@ -494,6 +495,7 @@ export const PlayerSchedule = ({ playerId, isOnline, onScheduleChange, onSlotsLo
                 ))}
             </tbody>
           </table>
+          </div>
         )}
         <button
           className="fm-btn-outline fm-btn-sm"
