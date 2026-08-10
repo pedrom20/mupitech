@@ -1,0 +1,145 @@
+// =============================================================================
+// Easter egg — "Modo Arquivo 2016" retro theme
+// Triggered by the Konami code (see static/src/hooks/use-konami-code.ts).
+// Deliberately ugly: flat maroon ribbon, hard corners, visible gridlines,
+// Segoe UI, no shadows/radius/transitions anywhere. Scoped entirely under
+// [data-retro-theme="true"] so it never affects the normal theme.
+// =============================================================================
+
+[data-retro-theme='true'] {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  background: #ece9d8 !important;
+
+  * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+    text-shadow: none !important;
+  }
+
+  // Ribbon-style navbar
+  .fm-navbar {
+    background: #a4373a !important;
+    background-image: none !important;
+    border-bottom: 3px solid #6e2426 !important;
+
+    .navbar-brand img {
+      filter: grayscale(0.3) contrast(1.1);
+    }
+
+    .nav-link {
+      font-size: 0.78rem !important;
+      border: 1px solid transparent;
+
+      &:hover {
+        background: #c96063 !important;
+        border: 1px solid #6e2426 !important;
+      }
+
+      &.active {
+        background: #ece9d8 !important;
+        color: #6e2426 !important;
+        border: 1px solid #6e2426 !important;
+      }
+    }
+  }
+
+  .fm-content {
+    background: #ece9d8 !important;
+  }
+
+  // Datasheet-style cards
+  .fm-card {
+    background: #ffffe1 !important;
+    border: 1px solid #808080 !important;
+  }
+
+  .fm-card-header {
+    background: #d4d0c8 !important;
+    border-bottom: 1px solid #808080 !important;
+    color: #000 !important;
+  }
+
+  // Chunky Windows-95-ish buttons
+  .btn,
+  .fm-btn-primary,
+  .fm-btn-outline,
+  .fm-btn-accent,
+  .fm-btn-icon,
+  button {
+    background: #d4d0c8 !important;
+    color: #000 !important;
+    border: 2px outset #fff !important;
+
+    &:active {
+      border-style: inset !important;
+    }
+  }
+
+  .fm-btn-primary,
+  .btn-primary {
+    background: #a4373a !important;
+    color: #fff !important;
+    border: 2px outset #c96063 !important;
+  }
+
+  // Access datasheet gridlines
+  .fm-table,
+  table {
+    border-collapse: collapse !important;
+
+    th,
+    td {
+      border: 1px solid #808080 !important;
+      font-size: 0.78rem !important;
+    }
+
+    thead th {
+      background: #d4d0c8 !important;
+      color: #000 !important;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f0f0e0 !important;
+    }
+  }
+
+  // Flat, thin-bordered inputs — no focus glow
+  .form-control,
+  .form-select {
+    border: 1px solid #808080 !important;
+    background: #fff !important;
+
+    &:focus {
+      outline: 2px solid #000080 !important;
+      box-shadow: none !important;
+    }
+  }
+
+  // Modals lose their soft edges too
+  .modal-content {
+    border: 2px solid #808080 !important;
+    background: #ece9d8 !important;
+  }
+
+  .modal-header {
+    background: #d4d0c8 !important;
+  }
+}
+
+// Small "still in retro mode" badge, always visible so it's easy to find
+// the way back out even after navigating away from where it was triggered.
+.fm-retro-badge {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  z-index: 2000;
+  background: #a4373a;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border: 2px outset #c96063;
+  cursor: pointer;
+}

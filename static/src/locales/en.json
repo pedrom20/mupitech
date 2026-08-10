@@ -859,5 +859,11 @@
     "fr": "Français",
     "de": "Deutsch",
     "pl": "Polski"
+  },
+  "easterEgg": {
+    "activated": "Archive Mode 2016 activated",
+    "deactivated": "Archive Mode 2016 deactivated",
+    "badge": "Archive Mode 2016",
+    "exitHint": "Click to exit Archive Mode 2016"
   }
 }

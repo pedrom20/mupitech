@@ -860,5 +860,11 @@
     "de": "Deutsch",
     "pl": "Polski",
     "pt": "Português"
+  },
+  "easterEgg": {
+    "activated": "Modo Arquivo 2016 ativado",
+    "deactivated": "Modo Arquivo 2016 desativado",
+    "badge": "Modo Arquivo 2016",
+    "exitHint": "Clique para sair do Modo Arquivo 2016"
   }
 }
