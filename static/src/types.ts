@@ -1,8 +1,18 @@
+export interface Location {
+  id: string
+  name: string
+  color: string
+  description: string
+  created_at: string
+}
+
 export interface Group {
   id: string
   name: string
   color: string
   description: string
+  location: string | null
+  location_detail?: Location | null
   created_at: string
 }
 
@@ -13,6 +23,9 @@ export interface Player {
   username: string
   group: Group | null
   group_detail?: Group | null
+  location?: string | null
+  location_detail?: Location | null
+  effective_location_detail?: Location | null
   is_online: boolean
   last_seen: string | null
   last_status: Record<string, unknown>

@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "players": "Player",
     "groups": "Gruppen",
+    "locations": "Standorte",
     "content": "Inhalte",
     "history": "Verlauf",
     "settings": "Einstellungen"
@@ -86,6 +87,18 @@
     "players": "Player",
     "confirmDelete": "Möchten Sie diese Gruppe wirklich löschen?",
     "deleted": "Gruppe gelöscht"
+  },
+  "locations": {
+    "title": "Standorte",
+    "addLocation": "Standort hinzufügen",
+    "editLocation": "Standort bearbeiten",
+    "name": "Name",
+    "color": "Farbe",
+    "description": "Beschreibung",
+    "groups": "Gruppen",
+    "ungroupedPlayers": "Player ohne Gruppe",
+    "confirmDelete": "Möchten Sie diesen Standort wirklich löschen?",
+    "deleted": "Standort gelöscht"
   },
   "history": {
     "title": "Wiedergabeverlauf",

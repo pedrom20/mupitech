@@ -3,12 +3,14 @@ import { useDispatch, useSelector } from 'react-redux'
 import type { TypedUseSelectorHook } from 'react-redux'
 import playersReducer from './playersSlice'
 import groupsReducer from './groupsSlice'
+import locationsReducer from './locationsSlice'
 import deployReducer from './deploySlice'
 
 export const store = configureStore({
   reducer: {
     players: playersReducer,
     groups: groupsReducer,
+    locations: locationsReducer,
     deploy: deployReducer,
   },
 })

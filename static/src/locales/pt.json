@@ -3,6 +3,7 @@
     "dashboard": "Painel",
     "players": "Dispositivos",
     "groups": "Grupos",
+    "locations": "Localizações",
     "content": "Conteúdo",
     "history": "Histórico",
     "settings": "Definições",
@@ -98,8 +99,22 @@
     "color": "Cor",
     "description": "Descrição",
     "players": "Dispositivos",
+    "location": "Localização",
+    "noLocation": "Sem localização",
     "confirmDelete": "Tem a certeza que quer eliminar este grupo?",
     "deleted": "Grupo eliminado"
+  },
+  "locations": {
+    "title": "Localizações",
+    "addLocation": "Adicionar Localização",
+    "editLocation": "Editar Localização",
+    "name": "Nome",
+    "color": "Cor",
+    "description": "Descrição",
+    "groups": "Grupos",
+    "ungroupedPlayers": "Dispositivos sem Grupo",
+    "confirmDelete": "Tem a certeza que quer eliminar esta localização?",
+    "deleted": "Localização eliminada"
   },
   "history": {
     "title": "Histórico de Reprodução",

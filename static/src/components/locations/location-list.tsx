@@ -1,69 +1,68 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  FaLayerGroup,
+  FaMapMarkerAlt,
   FaPlus,
   FaEdit,
   FaTrash,
-  FaMapMarkerAlt,
+  FaLayerGroup,
+  FaDesktop,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
-import { fetchGroups, createGroup, updateGroup, deleteGroup } from '@/store/groupsSlice'
+import { fetchLocations, createLocation, updateLocation, deleteLocation } from '@/store/locationsSlice'
+import { fetchGroups } from '@/store/groupsSlice'
 import { fetchPlayers } from '@/store/playersSlice'
-import { fetchLocations } from '@/store/locationsSlice'
-import type { Group } from '@/types'
+import type { Location } from '@/types'
 
-const GroupList: React.FC = () => {
+const LocationList: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
-  const { groups, loading } = useAppSelector((state) => state.groups)
+  const { locations, loading } = useAppSelector((state) => state.locations)
+  const { groups } = useAppSelector((state) => state.groups)
   const { players } = useAppSelector((state) => state.players)
-  const { locations } = useAppSelector((state) => state.locations)
 
   const [showForm, setShowForm] = useState(false)
-  const [editingGroup, setEditingGroup] = useState<Group | null>(null)
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [formName, setFormName] = useState('')
-  const [formColor, setFormColor] = useState('#0082C8')
+  const [formColor, setFormColor] = useState('#005096')
   const [formDescription, setFormDescription] = useState('')
-  const [formLocation, setFormLocation] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    dispatch(fetchLocations())
     dispatch(fetchGroups())
     dispatch(fetchPlayers())
-    dispatch(fetchLocations())
   }, [dispatch])
 
-  const getPlayersInGroup = (groupId: string) => {
-    return players.filter((p) => {
-      const pGroupId = p.group_detail?.id || p.group?.id
-      return pGroupId === groupId
-    })
+  const getGroupsInLocation = (locationId: string) => {
+    return groups.filter((g) => g.location === locationId)
+  }
+
+  const getUngroupedPlayersInLocation = (locationId: string) => {
+    return players.filter((p) => !p.group && p.location_detail?.id === locationId)
   }
 
   const handleAdd = () => {
-    setEditingGroup(null)
+    setEditingLocation(null)
     setFormName('')
-    setFormColor('#0082C8')
+    setFormColor('#005096')
     setFormDescription('')
-    setFormLocation('')
     setShowForm(true)
   }
 
-  const handleEdit = (group: Group) => {
-    setEditingGroup(group)
-    setFormName(group.name)
-    setFormColor(group.color || '#0082C8')
-    setFormDescription(group.description || '')
-    setFormLocation(group.location || '')
+  const handleEdit = (location: Location) => {
+    setEditingLocation(location)
+    setFormName(location.name)
+    setFormColor(location.color || '#005096')
+    setFormDescription(location.description || '')
     setShowForm(true)
   }
 
-  const handleDelete = async (group: Group) => {
+  const handleDelete = async (location: Location) => {
     const result = await Swal.fire({
       title: t('common.confirm'),
-      text: t('groups.confirmDelete'),
+      text: t('locations.confirmDelete'),
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: t('common.delete'),
@@ -72,10 +71,10 @@ const GroupList: React.FC = () => {
 
     if (result.isConfirmed) {
       try {
-        await dispatch(deleteGroup(group.id)).unwrap()
+        await dispatch(deleteLocation(location.id)).unwrap()
         Swal.fire({
           icon: 'success',
-          title: t('groups.deleted'),
+          title: t('locations.deleted'),
           timer: 1500,
           showConfirmButton: false,
         })
@@ -91,7 +90,7 @@ const GroupList: React.FC = () => {
 
   const handleFormClose = () => {
     setShowForm(false)
-    setEditingGroup(null)
+    setEditingLocation(null)
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -102,14 +101,13 @@ const GroupList: React.FC = () => {
       name: formName,
       color: formColor,
       description: formDescription,
-      location: formLocation || null,
     }
 
     try {
-      if (editingGroup) {
-        await dispatch(updateGroup({ id: editingGroup.id, data })).unwrap()
+      if (editingLocation) {
+        await dispatch(updateLocation({ id: editingLocation.id, data })).unwrap()
       } else {
-        await dispatch(createGroup(data)).unwrap()
+        await dispatch(createLocation(data)).unwrap()
       }
       Swal.fire({
         icon: 'success',
@@ -118,7 +116,7 @@ const GroupList: React.FC = () => {
         showConfirmButton: false,
       })
       setShowForm(false)
-      setEditingGroup(null)
+      setEditingLocation(null)
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -135,14 +133,14 @@ const GroupList: React.FC = () => {
       <div className="fm-page-header">
         <div>
           <h1 className="page-title">
-            <FaLayerGroup className="page-icon" />
-            {t('groups.title')}
+            <FaMapMarkerAlt className="page-icon" />
+            {t('locations.title')}
           </h1>
         </div>
         <div className="page-actions">
           <button className="fm-btn-primary" onClick={handleAdd}>
             <FaPlus />
-            {t('groups.addGroup')}
+            {t('locations.addLocation')}
           </button>
         </div>
       </div>
@@ -151,23 +149,24 @@ const GroupList: React.FC = () => {
         <div className="fm-loading">
           <div className="spinner" />
         </div>
-      ) : groups.length === 0 ? (
+      ) : locations.length === 0 ? (
         <div className="fm-empty-state">
           <div className="empty-icon">
-            <FaLayerGroup />
+            <FaMapMarkerAlt />
           </div>
           <h3 className="empty-title">{t('common.noResults')}</h3>
           <button className="fm-btn-primary" onClick={handleAdd}>
             <FaPlus />
-            {t('groups.addGroup')}
+            {t('locations.addLocation')}
           </button>
         </div>
       ) : (
         <div className="row g-3">
-          {groups.map((group) => {
-            const groupPlayers = getPlayersInGroup(group.id)
+          {locations.map((location) => {
+            const locationGroups = getGroupsInLocation(location.id)
+            const ungroupedPlayers = getUngroupedPlayersInLocation(location.id)
             return (
-              <div key={group.id} className="col-sm-6 col-lg-4">
+              <div key={location.id} className="col-sm-6 col-lg-4">
                 <div className="fm-card fm-card-accent">
                   <div className="fm-card-header">
                     <div className="d-flex align-items-center gap-2">
@@ -176,23 +175,23 @@ const GroupList: React.FC = () => {
                           width: '16px',
                           height: '16px',
                           borderRadius: '4px',
-                          backgroundColor: group.color || '#0082C8',
+                          backgroundColor: location.color || '#005096',
                           flexShrink: 0,
                         }}
                       />
-                      <h5 className="card-title mb-0">{group.name}</h5>
+                      <h5 className="card-title mb-0">{location.name}</h5>
                     </div>
                     <div className="card-actions">
                       <button
                         className="fm-btn-icon"
-                        onClick={() => handleEdit(group)}
+                        onClick={() => handleEdit(location)}
                         title={t('common.edit')}
                       >
                         <FaEdit />
                       </button>
                       <button
                         className="fm-btn-icon"
-                        onClick={() => handleDelete(group)}
+                        onClick={() => handleDelete(location)}
                         title={t('common.delete')}
                         style={{ color: '#dc3545' }}
                       >
@@ -201,58 +200,21 @@ const GroupList: React.FC = () => {
                     </div>
                   </div>
                   <div className="fm-card-body">
-                    {group.description && (
+                    {location.description && (
                       <p className="text-muted mb-2" style={{ fontSize: '0.875rem' }}>
-                        {group.description}
+                        {location.description}
                       </p>
                     )}
-                    {group.location_detail && (
-                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>
-                        <FaMapMarkerAlt style={{ marginRight: '0.3rem' }} />
-                        {group.location_detail.name}
-                      </p>
-                    )}
-                    <div className="d-flex align-items-center gap-2">
-                      <span
-                        className="fm-group-tag"
-                        style={{
-                          backgroundColor: group.color ? `${group.color}20` : undefined,
-                          color: group.color || undefined,
-                        }}
-                      >
-                        {groupPlayers.length} {t('groups.players')}
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                      <span className="fm-group-tag">
+                        <FaLayerGroup style={{ marginRight: '0.3rem' }} />
+                        {locationGroups.length} {t('locations.groups')}
+                      </span>
+                      <span className="fm-group-tag">
+                        <FaDesktop style={{ marginRight: '0.3rem' }} />
+                        {ungroupedPlayers.length} {t('locations.ungroupedPlayers')}
                       </span>
                     </div>
-                    {groupPlayers.length > 0 && (
-                      <div className="mt-2">
-                        {groupPlayers.slice(0, 5).map((p) => (
-                          <div
-                            key={p.id}
-                            className="d-flex align-items-center gap-2 py-1"
-                            style={{ fontSize: '0.8rem' }}
-                          >
-                            <span
-                              className={`status-dot ${
-                                p.is_online ? 'status-online' : 'status-offline'
-                              }`}
-                              style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                backgroundColor: p.is_online ? '#28a745' : '#dc3545',
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span className="text-muted">{p.name}</span>
-                          </div>
-                        ))}
-                        {groupPlayers.length > 5 && (
-                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                            +{groupPlayers.length - 5} more
-                          </span>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -261,7 +223,7 @@ const GroupList: React.FC = () => {
         </div>
       )}
 
-      {/* Group Form Modal */}
+      {/* Location Form Modal */}
       {showForm && (
         <div
           className="modal d-block"
@@ -276,7 +238,7 @@ const GroupList: React.FC = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title fw-bold text-purple-dark">
-                  {editingGroup ? t('groups.editGroup') : t('groups.addGroup')}
+                  {editingLocation ? t('locations.editLocation') : t('locations.addLocation')}
                 </h5>
                 <button
                   type="button"
@@ -289,7 +251,7 @@ const GroupList: React.FC = () => {
                 <div className="modal-body">
                   <div className="mb-3">
                     <label className="form-label fw-semibold">
-                      {t('groups.name')}
+                      {t('locations.name')}
                     </label>
                     <input
                       type="text"
@@ -297,13 +259,13 @@ const GroupList: React.FC = () => {
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
                       required
-                      placeholder="1st Floor"
+                      placeholder="Odemira"
                     />
                   </div>
 
                   <div className="mb-3">
                     <label className="form-label fw-semibold">
-                      {t('groups.color')}
+                      {t('locations.color')}
                     </label>
                     <div className="d-flex align-items-center gap-2">
                       <input
@@ -318,7 +280,7 @@ const GroupList: React.FC = () => {
                         className="form-control"
                         value={formColor}
                         onChange={(e) => setFormColor(e.target.value)}
-                        placeholder="#0082C8"
+                        placeholder="#005096"
                         style={{ maxWidth: '120px' }}
                       />
                     </div>
@@ -326,31 +288,15 @@ const GroupList: React.FC = () => {
 
                   <div className="mb-3">
                     <label className="form-label fw-semibold">
-                      {t('groups.description')}
+                      {t('locations.description')}
                     </label>
                     <textarea
                       className="form-control"
                       value={formDescription}
                       onChange={(e) => setFormDescription(e.target.value)}
                       rows={3}
-                      placeholder={t('groups.description')}
+                      placeholder={t('locations.description')}
                     />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold">
-                      {t('groups.location')}
-                    </label>
-                    <select
-                      className="form-select"
-                      value={formLocation}
-                      onChange={(e) => setFormLocation(e.target.value)}
-                    >
-                      <option value="">{t('groups.noLocation')}</option>
-                      {locations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>{loc.name}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
 
@@ -379,4 +325,4 @@ const GroupList: React.FC = () => {
   )
 }
 
-export default GroupList
+export default LocationList

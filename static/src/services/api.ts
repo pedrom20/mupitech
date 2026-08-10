@@ -1,4 +1,4 @@
-import type { Player, Group, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, ScheduleSlot, ScheduleSlotItem, ScheduleStatus, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
+import type { Player, Group, Location, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, ScheduleSlot, ScheduleSlotItem, ScheduleStatus, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -243,6 +243,28 @@ export const groups = {
   },
 }
 
+export const locations = {
+  list(): Promise<Location[]> {
+    return apiRequest<Location[]>('GET', '/locations/')
+  },
+
+  get(id: string): Promise<Location> {
+    return apiRequest<Location>('GET', `/locations/${id}/`)
+  },
+
+  create(data: Partial<Location>): Promise<Location> {
+    return apiRequest<Location>('POST', '/locations/', data)
+  },
+
+  update(id: string, data: Partial<Location>): Promise<Location> {
+    return apiRequest<Location>('PUT', `/locations/${id}/`, data)
+  },
+
+  delete(id: string): Promise<void> {
+    return apiRequest<void>('DELETE', `/locations/${id}/`)
+  },
+}
+
 export const media = {
   async list(): Promise<MediaFile[]> {
     const data = await apiRequest<{ results: MediaFile[] } | MediaFile[]>('GET', '/media/?page_size=10000')
@@ -473,6 +495,12 @@ export const system = {
 
   getTelemetry(): Promise<ServerTelemetry> {
     return apiRequest<ServerTelemetry>('GET', '/system/telemetry/')
+  },
+}
+
+export const auth = {
+  logout(): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/auth/logout/')
   },
 }
 

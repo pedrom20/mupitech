@@ -3,6 +3,7 @@
     "dashboard": "Панель керування",
     "players": "Плеєри",
     "groups": "Групи",
+    "locations": "Локації",
     "content": "Контент",
     "history": "Історія",
     "settings": "Налаштування",
@@ -100,6 +101,18 @@
     "players": "Плеєри",
     "confirmDelete": "Ви впевнені, що хочете видалити цю групу?",
     "deleted": "Групу видалено"
+  },
+  "locations": {
+    "title": "Локації",
+    "addLocation": "Додати локацію",
+    "editLocation": "Редагувати локацію",
+    "name": "Назва",
+    "color": "Колір",
+    "description": "Опис",
+    "groups": "Групи",
+    "ungroupedPlayers": "Пристрої без групи",
+    "confirmDelete": "Ви впевнені, що хочете видалити цю локацію?",
+    "deleted": "Локацію видалено"
   },
   "history": {
     "title": "Історія відтворення",

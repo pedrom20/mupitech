@@ -3,6 +3,7 @@
     "dashboard": "Tableau de bord",
     "players": "Lecteurs",
     "groups": "Groupes",
+    "locations": "Emplacements",
     "content": "Contenu",
     "history": "Historique",
     "settings": "Paramètres"
@@ -86,6 +87,18 @@
     "players": "Lecteurs",
     "confirmDelete": "Voulez-vous vraiment supprimer ce groupe ?",
     "deleted": "Groupe supprimé"
+  },
+  "locations": {
+    "title": "Emplacements",
+    "addLocation": "Ajouter un emplacement",
+    "editLocation": "Modifier l'emplacement",
+    "name": "Nom",
+    "color": "Couleur",
+    "description": "Description",
+    "groups": "Groupes",
+    "ungroupedPlayers": "Lecteurs sans groupe",
+    "confirmDelete": "Voulez-vous vraiment supprimer cet emplacement ?",
+    "deleted": "Emplacement supprimé"
   },
   "history": {
     "title": "Historique de lecture",
