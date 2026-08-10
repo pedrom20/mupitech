@@ -16,6 +16,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         'items__media_file', 'target_players', 'target_groups', 'target_locations',
     ).all()
     serializer_class = PlaylistSerializer
+    pagination_class = None
     permission_classes = [IsEditorOrReadOnly]
 
     def perform_create(self, serializer):
