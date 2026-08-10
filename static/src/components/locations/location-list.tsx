@@ -7,6 +7,8 @@ import {
   FaTrash,
   FaLayerGroup,
   FaDesktop,
+  FaSitemap,
+  FaCircle,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -28,6 +30,8 @@ const LocationList: React.FC = () => {
   const [formColor, setFormColor] = useState('#005096')
   const [formDescription, setFormDescription] = useState('')
   const [saving, setSaving] = useState(false)
+  const [detailLocation, setDetailLocation] = useState<Location | null>(null)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     dispatch(fetchLocations())
@@ -41,6 +45,14 @@ const LocationList: React.FC = () => {
 
   const getUngroupedPlayersInLocation = (locationId: string) => {
     return players.filter((p) => !p.group && p.location_detail?.id === locationId)
+  }
+
+  const getPlayersInGroup = (groupId: string) => {
+    return players.filter((p) => p.group?.id === groupId)
+  }
+
+  const toggleGroupCollapsed = (groupId: string) => {
+    setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }))
   }
 
   const handleAdd = () => {
@@ -184,6 +196,13 @@ const LocationList: React.FC = () => {
                     <div className="card-actions">
                       <button
                         className="fm-btn-icon"
+                        onClick={() => setDetailLocation(location)}
+                        title={t('locations.viewDetails')}
+                      >
+                        <FaSitemap />
+                      </button>
+                      <button
+                        className="fm-btn-icon"
                         onClick={() => handleEdit(location)}
                         title={t('common.edit')}
                       >
@@ -199,7 +218,7 @@ const LocationList: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="fm-card-body">
+                  <div className="fm-card-body" style={{ cursor: 'pointer' }} onClick={() => setDetailLocation(location)}>
                     {location.description && (
                       <p className="text-muted mb-2" style={{ fontSize: '0.875rem' }}>
                         {location.description}
@@ -317,6 +336,128 @@ const LocationList: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Detail Modal — tree of groups/devices */}
+      {detailLocation && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setDetailLocation(null)}
+        >
+          <div
+            className="modal-dialog modal-dialog-centered modal-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
+                  <span
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '4px',
+                      backgroundColor: detailLocation.color || '#005096',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {detailLocation.name}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setDetailLocation(null)}
+                  aria-label={t('common.close')}
+                />
+              </div>
+              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                {getGroupsInLocation(detailLocation.id).length === 0
+                  && getUngroupedPlayersInLocation(detailLocation.id).length === 0 ? (
+                  <p className="text-muted mb-0">{t('common.noResults')}</p>
+                ) : (
+                  <>
+                    {getGroupsInLocation(detailLocation.id).map((group) => {
+                      const groupPlayers = getPlayersInGroup(group.id)
+                      const isCollapsed = collapsedGroups[group.id]
+                      return (
+                        <div key={group.id} className="mb-2">
+                          <div
+                            className="d-flex align-items-center gap-2 p-2 rounded"
+                            style={{ background: 'var(--bs-tertiary-bg, #f5f5f5)', cursor: 'pointer' }}
+                            onClick={() => toggleGroupCollapsed(group.id)}
+                          >
+                            <FaLayerGroup style={{ color: group.color || '#0082C8' }} />
+                            <strong>{group.name}</strong>
+                            <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                              ({groupPlayers.length})
+                            </span>
+                          </div>
+                          {!isCollapsed && (
+                            <ul className="list-unstyled ps-4 mt-2 mb-0">
+                              {groupPlayers.length === 0 ? (
+                                <li className="text-muted" style={{ fontSize: '0.85rem' }}>
+                                  {t('locations.noDevices')}
+                                </li>
+                              ) : (
+                                groupPlayers.map((p) => (
+                                  <li key={p.id} className="d-flex align-items-center gap-2 py-1">
+                                    <FaCircle
+                                      style={{
+                                        fontSize: '0.5rem',
+                                        color: p.is_online ? '#2ecc71' : '#adb5bd',
+                                      }}
+                                    />
+                                    <FaDesktop className="text-muted" />
+                                    {p.name}
+                                  </li>
+                                ))
+                              )}
+                            </ul>
+                          )}
+                        </div>
+                      )
+                    })}
+
+                    {getUngroupedPlayersInLocation(detailLocation.id).length > 0 && (
+                      <div className="mb-2">
+                        <div
+                          className="d-flex align-items-center gap-2 p-2 rounded"
+                          style={{ background: 'var(--bs-tertiary-bg, #f5f5f5)' }}
+                        >
+                          <FaDesktop className="text-muted" />
+                          <strong>{t('locations.ungroupedPlayers')}</strong>
+                          <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                            ({getUngroupedPlayersInLocation(detailLocation.id).length})
+                          </span>
+                        </div>
+                        <ul className="list-unstyled ps-4 mt-2 mb-0">
+                          {getUngroupedPlayersInLocation(detailLocation.id).map((p) => (
+                            <li key={p.id} className="d-flex align-items-center gap-2 py-1">
+                              <FaCircle
+                                style={{
+                                  fontSize: '0.5rem',
+                                  color: p.is_online ? '#2ecc71' : '#adb5bd',
+                                }}
+                              />
+                              <FaDesktop className="text-muted" />
+                              {p.name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setDetailLocation(null)}>
+                  {t('common.close')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

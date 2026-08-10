@@ -7,6 +7,7 @@ import {
   FaTrash,
   FaMapMarkerAlt,
   FaSyncAlt,
+  FaDesktop,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -35,6 +36,7 @@ const GroupList: React.FC = () => {
   const [rotationGroup, setRotationGroup] = useState<Group | null>(null)
   const [rotationValue, setRotationValue] = useState<0 | 90 | 180 | 270>(0)
   const [applyingRotation, setApplyingRotation] = useState(false)
+  const [detailGroup, setDetailGroup] = useState<Group | null>(null)
 
   useEffect(() => {
     dispatch(fetchGroups())
@@ -248,7 +250,7 @@ const GroupList: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="fm-card-body">
+                  <div className="fm-card-body" style={{ cursor: 'pointer' }} onClick={() => setDetailGroup(group)}>
                     {group.description && (
                       <p className="text-muted mb-2" style={{ fontSize: '0.875rem' }}>
                         {group.description}
@@ -295,9 +297,14 @@ const GroupList: React.FC = () => {
                           </div>
                         ))}
                         {groupPlayers.length > 5 && (
-                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                            +{groupPlayers.length - 5} more
-                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-link btn-sm p-0"
+                            style={{ fontSize: '0.8rem' }}
+                            onClick={(e) => { e.stopPropagation(); setDetailGroup(group) }}
+                          >
+                            {t('groups.viewAllDevices', { count: groupPlayers.length })}
+                          </button>
                         )}
                       </div>
                     )}
@@ -474,6 +481,79 @@ const GroupList: React.FC = () => {
                   disabled={applyingRotation}
                 >
                   {applyingRotation ? t('common.loading') : t('groups.apply')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Detail Modal — full device list */}
+      {detailGroup && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setDetailGroup(null)}
+        >
+          <div
+            className="modal-dialog modal-dialog-centered modal-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
+                  <span
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '4px',
+                      backgroundColor: detailGroup.color || '#0082C8',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {detailGroup.name}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setDetailGroup(null)}
+                  aria-label={t('common.close')}
+                />
+              </div>
+              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                {detailGroup.location_detail && (
+                  <p className="text-muted mb-3" style={{ fontSize: '0.85rem' }}>
+                    <FaMapMarkerAlt style={{ marginRight: '0.3rem' }} />
+                    {detailGroup.location_detail.name}
+                  </p>
+                )}
+                {getPlayersInGroup(detailGroup.id).length === 0 ? (
+                  <p className="text-muted mb-0">{t('common.noResults')}</p>
+                ) : (
+                  <ul className="list-unstyled mb-0">
+                    {getPlayersInGroup(detailGroup.id).map((p) => (
+                      <li key={p.id} className="d-flex align-items-center gap-2 py-1">
+                        <span
+                          className={`status-dot ${p.is_online ? 'status-online' : 'status-offline'}`}
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: p.is_online ? '#28a745' : '#dc3545',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <FaDesktop className="text-muted" />
+                        {p.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setDetailGroup(null)}>
+                  {t('common.close')}
                 </button>
               </div>
             </div>
