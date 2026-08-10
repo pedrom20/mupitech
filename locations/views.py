@@ -14,6 +14,10 @@ class LocationViewSet(viewsets.ModelViewSet):
     pagination_class = None
     permission_classes = [IsEditorOrReadOnly]
 
+    def get_queryset(self):
+        from access.scoping import filter_locations
+        return filter_locations(super().get_queryset(), self.request.user)
+
     def perform_create(self, serializer):
         location = serializer.save()
         log_action(self.request, 'create', 'location', target_id=location.id, target_name=location.name)

@@ -19,6 +19,10 @@ class GroupViewSet(viewsets.ModelViewSet):
     pagination_class = None
     permission_classes = [IsEditorOrReadOnly]
 
+    def get_queryset(self):
+        from access.scoping import filter_groups
+        return filter_groups(super().get_queryset(), self.request.user)
+
     @action(detail=True, methods=['post'], url_path='apply-rotation')
     def apply_rotation(self, request, pk=None):
         """Apply the same screen_rotation to every player in this group."""

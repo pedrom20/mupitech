@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'players',
     'deploy',
     'playlists',
+    'access',
 ]
 
 MIDDLEWARE = [

@@ -113,6 +113,10 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
     pagination_class = None
     permission_classes = [IsEditorOrReadOnly]
 
+    def get_queryset(self):
+        from access.scoping import filter_players
+        return filter_players(super().get_queryset(), self.request.user)
+
     def get_permissions(self):
         if self.action == 'destroy':
             return [IsAdmin()]

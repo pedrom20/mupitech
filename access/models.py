@@ -1,0 +1,34 @@
+from django.conf import settings
+from django.db import models
+
+
+class UserAccessScope(models.Model):
+    """Restricts a user to specific locations/groups/players.
+
+    Access cascades downward only: a location grants its groups and
+    players, a group grants its players. A directly-scoped player does
+    not grant access to its group or location. An empty scope (no rows
+    in any of the three M2Ms) means unrestricted access — the default,
+    matching pre-existing behaviour for every current user.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='access_scope',
+    )
+    locations = models.ManyToManyField(
+        'locations.Location', blank=True, related_name='scoped_users',
+    )
+    groups = models.ManyToManyField(
+        'groups.Group', blank=True, related_name='scoped_users',
+    )
+    players = models.ManyToManyField(
+        'players.Player', blank=True, related_name='scoped_users',
+    )
+
+    def __str__(self):
+        return f'Access scope for {self.user}'
+
+    def is_restricted(self):
+        return self.locations.exists() or self.groups.exists() or self.players.exists()
