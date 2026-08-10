@@ -21,7 +21,7 @@ const GroupList: React.FC = () => {
   const [showForm, setShowForm] = useState(false)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
   const [formName, setFormName] = useState('')
-  const [formColor, setFormColor] = useState('#8819C7')
+  const [formColor, setFormColor] = useState('#0082C8')
   const [formDescription, setFormDescription] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -40,7 +40,7 @@ const GroupList: React.FC = () => {
   const handleAdd = () => {
     setEditingGroup(null)
     setFormName('')
-    setFormColor('#8819C7')
+    setFormColor('#0082C8')
     setFormDescription('')
     setShowForm(true)
   }
@@ -48,7 +48,7 @@ const GroupList: React.FC = () => {
   const handleEdit = (group: Group) => {
     setEditingGroup(group)
     setFormName(group.name)
-    setFormColor(group.color || '#8819C7')
+    setFormColor(group.color || '#0082C8')
     setFormDescription(group.description || '')
     setShowForm(true)
   }
@@ -168,7 +168,7 @@ const GroupList: React.FC = () => {
                           width: '16px',
                           height: '16px',
                           borderRadius: '4px',
-                          backgroundColor: group.color || '#8819C7',
+                          backgroundColor: group.color || '#0082C8',
                           flexShrink: 0,
                         }}
                       />
@@ -304,7 +304,7 @@ const GroupList: React.FC = () => {
                         className="form-control"
                         value={formColor}
                         onChange={(e) => setFormColor(e.target.value)}
-                        placeholder="#8819C7"
+                        placeholder="#0082C8"
                         style={{ maxWidth: '120px' }}
                       />
                     </div>

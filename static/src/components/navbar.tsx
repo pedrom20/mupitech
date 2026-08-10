@@ -66,7 +66,7 @@ const Navbar: React.FC = () => {
           </button>
 
           <div className={`flex-grow-1 d-lg-flex align-items-center justify-content-center ${isOpen ? 'd-flex flex-column flex-lg-row position-absolute start-0 end-0 bg-purple-dark p-3 p-lg-0' : 'd-none'}`}
-            style={isOpen ? { top: '85px', zIndex: 1030, backgroundColor: '#270035' } : {}}>
+            style={isOpen ? { top: '85px', zIndex: 1030, backgroundColor: '#04182B' } : {}}>
             <ul className="navbar-nav d-flex flex-column flex-lg-row list-unstyled mb-0 gap-1">
               {navItems.map((item) => (
                 <li key={item.to}>
