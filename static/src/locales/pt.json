@@ -64,6 +64,7 @@
     "screenshotLoading": "A capturar ecrã...",
     "screenshotError": "Falha ao capturar o ecrã",
     "screenshotUnavailable": "Captura de ecrã não disponível",
+    "screenshotNotSupported": "Este dispositivo não suporta capturas de ecrã",
     "cpu": "CPU",
     "disk": "Disco",
     "throttleUnderVoltage": "Subtensão!",

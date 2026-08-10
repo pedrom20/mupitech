@@ -284,6 +284,16 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
             )
         except PlayerConnectionError as exc:
             logger.warning('Screenshot failed for %s: %s', player.name, exc)
+            if exc.status_code == 404:
+                # The player itself has no /v2/screenshot route — e.g. it's
+                # running official Anthias instead of the fork this project
+                # depends on for that endpoint (see docs/anthias-version-analysis.md).
+                # Not a connectivity failure: distinguish it so the frontend
+                # can show "unsupported" instead of a transient error.
+                return Response(
+                    {'error': str(exc), 'code': 'not_supported'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             return Response(
                 {'error': str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,

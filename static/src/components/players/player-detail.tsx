@@ -174,6 +174,7 @@ const PlayerDetail: React.FC = () => {
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
   const [screenshotLoading, setScreenshotLoading] = useState(false)
   const [screenshotFullscreen, setScreenshotFullscreen] = useState(false)
+  const [screenshotUnsupported, setScreenshotUnsupported] = useState(false)
 
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
@@ -439,15 +440,18 @@ const PlayerDetail: React.FC = () => {
       playersApi.getCecStatus(id).then(setCecStatus).catch(() => setCecStatus(null))
     }
     // Auto-request screenshot on page load
-    if (player.is_online) {
+    if (player.is_online && !screenshotUnsupported) {
       const loadScreenshot = async () => {
         setScreenshotLoading(true)
         try {
           const url = await playersApi.getScreenshot(id)
           setScreenshotUrl(url)
           setHasScreenshot(true)
-        } catch {
+        } catch (err) {
           setHasScreenshot(false)
+          if (err instanceof Error && (err as Error & { notSupported?: boolean }).notSupported) {
+            setScreenshotUnsupported(true)
+          }
         } finally {
           setScreenshotLoading(false)
         }
@@ -662,9 +666,11 @@ const PlayerDetail: React.FC = () => {
       setScreenshotUrl(url)
       setHasScreenshot(true)
     } catch (err) {
-      if (hasScreenshot === null) {
-        setHasScreenshot(false)
-      } else {
+      setHasScreenshot(false)
+      const notSupported = err instanceof Error && (err as Error & { notSupported?: boolean }).notSupported
+      if (notSupported) {
+        setScreenshotUnsupported(true)
+      } else if (hasScreenshot !== null) {
         const message = err instanceof Error ? err.message : undefined
         Swal.fire({ icon: 'error', title: t('common.error'), text: translateApiError(message, t) })
       }
@@ -1401,9 +1407,11 @@ const PlayerDetail: React.FC = () => {
                 >
                   <FaCamera style={{ fontSize: '2rem', opacity: 0.4 }} />
                   <small>
-                    {player.is_online
-                      ? t('players.screenshotUnavailable')
-                      : t('players.offline')}
+                    {screenshotUnsupported
+                      ? t('players.screenshotNotSupported')
+                      : player.is_online
+                        ? t('players.screenshotUnavailable')
+                        : t('players.offline')}
                   </small>
                 </div>
               )}
@@ -1423,8 +1431,8 @@ const PlayerDetail: React.FC = () => {
                 <button
                   className="fm-btn-primary fm-btn-sm"
                   onClick={handleScreenshot}
-                  disabled={screenshotLoading || !player.is_online}
-                  title={t('players.takeScreenshot')}
+                  disabled={screenshotLoading || !player.is_online || screenshotUnsupported}
+                  title={screenshotUnsupported ? t('players.screenshotNotSupported') : t('players.takeScreenshot')}
                 >
                   {screenshotLoading ? (
                     <span className="spinner-border spinner-border-sm me-1" />

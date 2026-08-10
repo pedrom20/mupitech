@@ -64,6 +64,7 @@
     "screenshotLoading": "Capturing screenshot...",
     "screenshotError": "Failed to capture screenshot",
     "screenshotUnavailable": "Screenshot not available",
+    "screenshotNotSupported": "This device doesn't support screenshots",
     "cpu": "CPU",
     "disk": "Disk",
     "throttleUnderVoltage": "Under-voltage!",

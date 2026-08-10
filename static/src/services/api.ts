@@ -151,13 +151,17 @@ export const players = {
     })
     if (!res.ok) {
       let message = 'Screenshot failed'
+      let notSupported = false
       try {
         const errorData = await res.json()
         message = errorData.error || errorData.detail || message
+        notSupported = errorData.code === 'not_supported'
       } catch {
         // response wasn't JSON, keep generic message
       }
-      throw new Error(message)
+      const err = new Error(message) as Error & { notSupported?: boolean }
+      err.notSupported = notSupported
+      throw err
     }
     const blob = await res.blob()
     return URL.createObjectURL(blob)
