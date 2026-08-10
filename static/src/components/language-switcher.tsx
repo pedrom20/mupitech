@@ -10,10 +10,6 @@ interface LanguageOption {
 const languages: LanguageOption[] = [
   { code: 'pt', label: 'Português' },
   { code: 'en', label: 'English' },
-  { code: 'uk', label: 'Ukrainian' },
-  { code: 'fr', label: 'Français' },
-  { code: 'de', label: 'Deutsch' },
-  { code: 'pl', label: 'Polski' },
 ]
 
 /* Inline SVG flags — work on all platforms including Windows */
@@ -21,7 +17,12 @@ const flags: Record<string, React.ReactNode> = {
   pt: (
     <svg viewBox="0 0 60 30" width="28" height="18" style={{ display: 'block', borderRadius: '2px' }}>
       <rect width="60" height="30" fill="#FF0000"/>
-      <rect width="24" height="30" fill="#006600"/>
+      <rect width="24" height="30" fill="#046A38"/>
+      <circle cx="24" cy="15" r="7.5" fill="#FFCC00" stroke="#B8860B" strokeWidth="0.5"/>
+      <path d="M24,9.5 c3,0 5,2.2 5,5.2 c0,3.4 -2.6,5.8 -5,6.8 c-2.4,-1 -5,-3.4 -5,-6.8 c0,-3 2,-5.2 5,-5.2 z" fill="#fff" stroke="#B22234" strokeWidth="0.6"/>
+      <circle cx="22" cy="13" r="0.7" fill="#B22234"/>
+      <circle cx="26" cy="13" r="0.7" fill="#B22234"/>
+      <circle cx="24" cy="16" r="0.7" fill="#B22234"/>
     </svg>
   ),
   en: (
@@ -35,32 +36,6 @@ const flags: Record<string, React.ReactNode> = {
         <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10"/>
         <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6"/>
       </g>
-    </svg>
-  ),
-  uk: (
-    <svg viewBox="0 0 60 30" width="28" height="18" style={{ display: 'block', borderRadius: '2px' }}>
-      <rect width="60" height="15" fill="#005BBB"/>
-      <rect y="15" width="60" height="15" fill="#FFD500"/>
-    </svg>
-  ),
-  fr: (
-    <svg viewBox="0 0 60 30" width="28" height="18" style={{ display: 'block', borderRadius: '2px' }}>
-      <rect width="20" height="30" fill="#002395"/>
-      <rect x="20" width="20" height="30" fill="#fff"/>
-      <rect x="40" width="20" height="30" fill="#ED2939"/>
-    </svg>
-  ),
-  de: (
-    <svg viewBox="0 0 60 30" width="28" height="18" style={{ display: 'block', borderRadius: '2px' }}>
-      <rect width="60" height="10" fill="#000"/>
-      <rect y="10" width="60" height="10" fill="#DD0000"/>
-      <rect y="20" width="60" height="10" fill="#FFCC00"/>
-    </svg>
-  ),
-  pl: (
-    <svg viewBox="0 0 60 30" width="28" height="18" style={{ display: 'block', borderRadius: '2px' }}>
-      <rect width="60" height="15" fill="#fff"/>
-      <rect y="15" width="60" height="15" fill="#DC143C"/>
     </svg>
   ),
 }

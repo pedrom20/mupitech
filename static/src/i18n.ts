@@ -4,18 +4,13 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 
 import pt from '@/locales/pt.json'
 import en from '@/locales/en.json'
-import uk from '@/locales/uk.json'
-import fr from '@/locales/fr.json'
-import de from '@/locales/de.json'
-import pl from '@/locales/pl.json'
 
+// uk/fr/de/pl translations still exist under @/locales for a possible future
+// re-enable, but aren't loaded or selectable — pt is primary, en the only
+// secondary option for now.
 const resources = {
   pt: { translation: pt },
   en: { translation: en },
-  uk: { translation: uk },
-  fr: { translation: fr },
-  de: { translation: de },
-  pl: { translation: pl },
 }
 
 i18n
@@ -24,7 +19,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'pt',
-    supportedLngs: ['pt', 'en', 'uk', 'fr', 'de', 'pl'],
+    supportedLngs: ['pt', 'en'],
     interpolation: {
       escapeValue: false,
     },
