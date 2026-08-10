@@ -1,139 +1,178 @@
 <p align="center">
-  <img src="Logo.svg" alt="Anthias Fleet Manager" width="600">
+  <img src="Logo.svg" alt="MupiTech Fleet Manager" width="600">
 </p>
 
 <p align="center">
-  Web-based management dashboard for <a href="https://github.com/Screenly/Anthias">Anthias</a> digital signage players.<br>
-  Control your entire fleet of Raspberry Pi displays from a single interface.
+  Painel de gestão para redes de mupis digitais baseados em <a href="https://github.com/Screenly/Anthias">Anthias</a>.<br>
+  Controlo centralizado de todo o parque de ecrãs Raspberry Pi a partir de uma única interface.
 </p>
 
 ![Dashboard](screenshots/dashboard.png)
 
-## Features
+## Sobre o projeto
 
-### Player Management
-Monitor all your Anthias players in real time. See online/offline status, CPU/disk usage, throttling warnings, and take live screenshots — including video frame capture.
+O **MupiTech Fleet Manager** é um fork do "Anthias Fleet Manager", adaptado e traduzido para uso interno em redes municipais de sinalização digital (mupis). Mantém total compatibilidade com o protocolo do [Anthias](https://github.com/Screenly/Anthias) — o software open-source que corre em cada dispositivo Raspberry Pi — e comunica com os players através da respetiva API HTTP.
+
+Os dispositivos correm atualmente uma imagem de um fork do Anthias com funcionalidades adicionais (registo de reprodução, capturas de ecrã, agendamento por faixas horárias, CEC e infravermelhos) que ainda não existem na versão oficial. Os detalhes desta análise, incluindo o que seria perdido ao migrar para as imagens oficiais, estão documentados em [docs/anthias-version-analysis.md](docs/anthias-version-analysis.md). A origem e a tag das imagens usadas no provisionamento dos dispositivos são configuráveis por variável de ambiente, para facilitar uma futura migração.
+
+## Funcionalidades
+
+### Gestão de dispositivos
+Monitorização em tempo real de todos os players: estado online/offline, utilização de CPU/disco, avisos de throttling e capturas de ecrã ao vivo (incluindo vídeo). Suporta rotação remota do ecrã (0°/90°/180°/270°), individualmente ou em massa por grupo.
 
 ![Players](screenshots/players.png)
 
-### Content Library
-Upload images, videos, and web pages. Organize content into folders, filter by type, and deploy to players with one click.
+### Biblioteca de conteúdos
+Carregamento de imagens, vídeos e páginas web. Organização em pastas, filtragem por tipo e implementação num único clique.
 
 ![Content](screenshots/content.png)
 
-### Schedule Slots
-Create flexible playback schedules for each player:
-- **Default slot** — plays when nothing else is scheduled
-- **Time slots** — play during specific hours on selected days
-- **Event slots** — one-time or recurring events with highest priority
+### Agendamento
+Agendas de reprodução flexíveis por dispositivo:
+- **Faixa por omissão** — reproduz quando não há mais nada agendado
+- **Faixas horárias** — reproduz em horas e dias específicos
+- **Eventos** — pontuais ou recorrentes, com prioridade máxima
 
-Visual timeline shows the full schedule at a glance.
+Linha do tempo visual com a agenda completa.
 
 ![Schedule](screenshots/schedule.png)
 
-### CCTV Surveillance
-Add RTSP camera streams directly from the Content page. Fleet Manager converts RTSP feeds into a browser-viewable mosaic or rotating view using ffmpeg (HLS + JPEG snapshot). Streams auto-start when a player needs them and auto-stop after 5 minutes of inactivity.
+### Playlists
+Conjuntos de conteúdos que podem ser aplicados diretamente a dispositivos, grupos ou localizações, sem necessidade de configurar cada player individualmente.
 
-- **Mosaic mode** — all cameras on a single grid
-- **Rotation mode** — cameras switch one by one at a set interval
-- **Live preview** — watch the stream right from the content library
-- **Player integration** — deploy as a web asset; the player requests stream start automatically
+### Localizações e grupos
+Organização hierárquica do parque: localizações físicas (ex. edifícios, freguesias), com grupos de dispositivos dentro de cada uma, ou equipamentos avulsos sem grupo. Grupos com cor identificativa para facilitar a gestão visual.
+
+### Videovigilância (CCTV)
+Funcionalidade opcional (ativada por variável de ambiente) que integra câmaras RTSP na página de conteúdos, convertendo o stream para mosaico ou rotação visualizáveis no navegador via ffmpeg.
 
 ![CCTV](screenshots/cctv.png)
 
-### Remote Deploy
-Push content to one or multiple players simultaneously. Track deployment progress in real time.
+### Implementação remota
+Envio de conteúdo para um ou vários dispositivos em simultâneo, com acompanhamento do progresso em tempo real.
 
-### Playback History
-Track what content played on each player and when. Filter by player, date/time range, or content name.
+### Histórico de reprodução
+Registo do que foi reproduzido em cada dispositivo e quando, com filtros por dispositivo, intervalo de datas ou nome de conteúdo.
 
 ![History](screenshots/history.png)
 
-### Player Groups
-Organize players into color-coded groups for easier management and bulk operations.
-
-### Dark Mode
-Full dark and light theme support with automatic detection.
+### Modo escuro
+Suporte total a tema claro e escuro, com deteção automática.
 
 ![Dark Mode](screenshots/dark-mode.png)
 
-### Multi-language
-Available in English, Ukrainian, French, German, and Polish.
+### Multi-idioma
+Interface principal em português, com inglês como alternativa.
 
-## Tech Stack
+## Arquitetura
 
-| Layer | Technology |
-|-------|-----------|
+```
+┌──────────────┐     HTTP API      ┌──────────────────┐
+│  Dispositivo │◄──────────────────│  MupiTech        │
+│  (Anthias)   │   /api/v2/*       │  Fleet Manager   │
+│  Raspberry Pi│──────────────────►│  Django + React  │
+│              │   phone-home      │  Docker Compose  │
+└──────────────┘                   └──────────────────┘
+```
+
+O backend está organizado em apps Django modulares, uma por funcionalidade:
+
+| App | Responsabilidade |
+|-----|-------------------|
+| `players` | Dispositivos, provisionamento, comunicação com a API do Anthias |
+| `groups` | Grupos de dispositivos, ações em massa (incluindo rotação de ecrã) |
+| `locations` | Localizações físicas e a sua hierarquia com grupos/dispositivos |
+| `content` | Biblioteca de conteúdos (pastas e ficheiros) |
+| `playlists` | Playlists de conteúdos aplicáveis a dispositivos, grupos ou localizações |
+| `scheduling` | Faixas horárias, eventos e agendamento de reprodução |
+| `deploy` | Tarefas de implementação de conteúdo nos dispositivos |
+| `history` | Registo de auditoria e histórico de reprodução |
+| `cctv` | Videovigilância RTSP (opcional, por feature flag) |
+
+Cada funcionalidade opcional (como o CCTV) é controlada por uma flag em `FEATURES` (`fleet_manager/settings.py`), exposta ao frontend via `GET /api/system/features/` e consumida através de `useFeatures()`.
+
+## Stack técnica
+
+| Camada | Tecnologia |
+|--------|-----------|
 | Backend | Django 4.2 + Django REST Framework |
 | Frontend | React 19 + TypeScript |
 | UI | Bootstrap 5.3 + SASS |
-| Task Queue | Celery + Redis |
-| Database | PostgreSQL 16 |
-| Deployment | Docker Compose |
+| Fila de tarefas | Celery + Redis |
+| Base de dados | PostgreSQL 16 |
+| Implementação | Docker Compose |
 
-## Quick Start
+## Instalação rápida
 
-### Prerequisites
+### Pré-requisitos
 
-- Docker and Docker Compose
+- Docker e Docker Compose
 - Git
 
-### Installation
+### Passos
 
 ```bash
-git clone https://github.com/Alex1981-tech/Anthias-fleet-manager.git
-cd Anthias-fleet-manager
+git clone https://github.com/pedrom20/mupiteck.git
+cd mupiteck
 cp .env.example .env
 docker compose up -d --build
 ```
 
-The application will be available at `http://localhost:9000`.
+A aplicação fica disponível em `http://localhost:9000`.
 
-### Default Credentials
+### Credenciais por omissão
 
-- **Username:** admin
-- **Password:** admin
+- **Utilizador:** admin
+- **Palavra-passe:** admin
 
-Change the password after first login.
+Alterar a palavra-passe após o primeiro início de sessão.
 
-### Environment Variables
+### Variáveis de ambiente
 
-| Variable | Default | Description |
+| Variável | Omissão | Descrição |
 |----------|---------|-------------|
-| `DJANGO_SECRET_KEY` | auto-generated | Secret key (required in production) |
-| `DJANGO_DEBUG` | `True` | Debug mode |
-| `WEB_PORT` | `9000` | Host port for web interface |
-| `DB_PASSWORD` | `fleet_manager_secret` | PostgreSQL password |
-| `PLAYER_POLL_INTERVAL` | `60` | Player polling interval (seconds) |
-| `ALLOWED_HOSTS` | `*` | Comma-separated allowed hosts |
-| `CSRF_TRUSTED_ORIGINS` | — | Comma-separated trusted origins |
+| `DJANGO_SECRET_KEY` | — (obrigatória se `DJANGO_DEBUG=False`) | Chave secreta do Django |
+| `DJANGO_DEBUG` | `False` | Modo de depuração |
+| `LANGUAGE_CODE` | `pt` | Idioma por omissão do backend |
+| `TIME_ZONE` | `Europe/Lisbon` | Fuso horário |
+| `WEB_PORT` | `9000` | Porta do anfitrião para a interface web |
+| `DB_PASSWORD` | `fleet_manager_secret` | Palavra-passe do PostgreSQL |
+| `PLAYER_POLL_INTERVAL` | `60` | Intervalo de sondagem dos dispositivos (segundos) |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Hosts permitidos, separados por vírgula |
+| `CSRF_TRUSTED_ORIGINS` | — | Origens de confiança para CSRF |
+| `PLAYER_REGISTER_TOKEN` | vazio (registo aberto) | Segredo partilhado para registo automático de dispositivos |
+| `ANTHIAS_IMAGE_REGISTRY` / `ANTHIAS_IMAGE_TAG_SUFFIX_PI4` / `_PI5` | ver `docs/anthias-version-analysis.md` | Origem das imagens Anthias usadas no provisionamento |
+| `UPDATE_CHECK_GITHUB_REPO` | `pedrom20/mupiteck` | Repositório usado pela verificação de atualizações da própria dashboard |
+| `FEATURE_CCTV_ENABLED` | `False` | Ativa a funcionalidade opcional de videovigilância |
 
-## Connecting Players
+Ver [.env.example](.env.example) para a lista completa.
 
-### Auto-Registration (Recommended)
+## Ligar dispositivos
 
-Run this command on any Anthias player to enable automatic registration:
+### Registo automático (recomendado)
+
+Executar no dispositivo Anthias:
 
 ```bash
-curl -s "http://YOUR_FM_SERVER:9000/api/players/install-phonehome/?server=http://YOUR_FM_SERVER:9000" | bash
+curl -s "http://SERVIDOR_MUPITECH:9000/api/players/install-phonehome/?server=http://SERVIDOR_MUPITECH:9000" | bash
 ```
 
-The player will appear in Fleet Manager within 30 seconds.
+O dispositivo aparece no Fleet Manager em cerca de 30 segundos.
 
-### Manual Registration
+### Registo manual
 
-1. Go to **Players** > **Add Player**
-2. Enter the player's URL (e.g., `http://192.168.1.10`)
-3. Enter credentials if the player has authentication enabled
+1. Ir a **Dispositivos** > **Adicionar Dispositivo**
+2. Introduzir o URL do dispositivo (ex.: `http://192.168.1.10`)
+3. Introduzir credenciais, se o dispositivo tiver autenticação ativa
 
-## Development
+## Desenvolvimento
 
 ### Frontend
 
 ```bash
 npm install
-npm run dev     # Watch mode with source maps
-npm run build   # Production build
+npm run dev     # Modo de observação com source maps
+npm run build   # Compilação de produção
 npm run lint    # ESLint
 ```
 
@@ -145,38 +184,21 @@ python manage.py migrate
 python manage.py runserver 0.0.0.0:9000
 ```
 
-### Docker (rebuild after changes)
+### Docker (reconstruir após alterações)
 
 ```bash
 docker compose build web
 docker compose up -d
 ```
 
-## Architecture
+## Histórico de versões
 
-```
-┌──────────────┐     HTTP API      ┌──────────────────┐
-│  Anthias     │◄──────────────────│  Fleet Manager   │
-│  Player(s)   │   /api/v2/*       │                  │
-│  Raspberry Pi│──────────────────►│  Django + React  │
-│              │   phone-home      │  Docker Compose  │
-└──────────────┘                   └──────────────────┘
-```
+Ver o histórico completo na aplicação em **Definições > Changelog**, acessível a partir do rodapé.
 
-Fleet Manager communicates with Anthias players via their HTTP API (`/api/v2/*`). Players can optionally phone home to register automatically.
+## Origem e atribuição
 
-## Changelog
+Este projeto é um fork adaptado do "Anthias Fleet Manager". O software que corre nos dispositivos é o [Anthias](https://github.com/Screenly/Anthias), projeto open-source mantido pela Screenly — a este projeto agradecemos o trabalho original. Ver [docs/anthias-version-analysis.md](docs/anthias-version-analysis.md) para o detalhe de compatibilidade entre a versão usada nos dispositivos e a versão oficial do Anthias.
 
-See the full version history in the app at **Settings > Changelog**, or view the [GitHub Releases](https://github.com/Alex1981-tech/Anthias-fleet-manager/releases).
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| 1.4.0 | 2026-02-15 | CCTV live preview, snapshot thumbnails, player deploy with full URL |
-| 1.3.0 | 2026-02-15 | CCTV streams integrated into Content page, auto-start from player |
-| 1.2.0 | 2026-02-15 | CCTV surveillance (mosaic/rotation), history page filters |
-| 1.1.0 | 2026-02-15 | Auto-deploy via GHCR + Watchtower, update management UI |
-| 1.0.0 | 2026-02-15 | Initial release — dashboard, content library, deploy, schedule, screenshots, i18n |
-
-## License
+## Licença
 
 [MIT](LICENSE)
