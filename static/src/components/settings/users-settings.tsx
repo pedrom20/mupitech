@@ -59,8 +59,9 @@ const UsersSettings: React.FC = () => {
     setEditUser(null)
   }
 
-  const selectedValues = (e: React.ChangeEvent<HTMLSelectElement>) =>
-    Array.from(e.target.selectedOptions).map((o) => o.value)
+  const toggleId = (ids: string[], setIds: (ids: string[]) => void, id: string) => {
+    setIds(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id])
+  }
 
   const openCreate = () => {
     resetForm()
@@ -251,45 +252,66 @@ const UsersSettings: React.FC = () => {
                       </p>
                       <div className="mb-2">
                         <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
-                        <select
-                          multiple
-                          className="form-select form-select-sm"
-                          size={Math.min(4, Math.max(2, allLocations.length))}
-                          value={scopeLocationIds}
-                          onChange={(e) => setScopeLocationIds(selectedValues(e))}
-                        >
-                          {allLocations.map((l) => (
-                            <option key={l.id} value={l.id}>{l.name}</option>
+                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                          {allLocations.length === 0 ? (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                          ) : allLocations.map((l) => (
+                            <div className="form-check" key={l.id}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`scope-loc-${l.id}`}
+                                checked={scopeLocationIds.includes(l.id)}
+                                onChange={() => toggleId(scopeLocationIds, setScopeLocationIds, l.id)}
+                              />
+                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-loc-${l.id}`}>
+                                {l.name}
+                              </label>
+                            </div>
                           ))}
-                        </select>
+                        </div>
                       </div>
                       <div className="mb-2">
                         <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('groups.title')}</label>
-                        <select
-                          multiple
-                          className="form-select form-select-sm"
-                          size={Math.min(4, Math.max(2, allGroups.length))}
-                          value={scopeGroupIds}
-                          onChange={(e) => setScopeGroupIds(selectedValues(e))}
-                        >
-                          {allGroups.map((g) => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
+                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                          {allGroups.length === 0 ? (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                          ) : allGroups.map((g) => (
+                            <div className="form-check" key={g.id}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`scope-group-${g.id}`}
+                                checked={scopeGroupIds.includes(g.id)}
+                                onChange={() => toggleId(scopeGroupIds, setScopeGroupIds, g.id)}
+                              />
+                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-group-${g.id}`}>
+                                {g.name}
+                              </label>
+                            </div>
                           ))}
-                        </select>
+                        </div>
                       </div>
                       <div className="mb-2">
                         <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('players.title')}</label>
-                        <select
-                          multiple
-                          className="form-select form-select-sm"
-                          size={Math.min(4, Math.max(2, allPlayers.length))}
-                          value={scopePlayerIds}
-                          onChange={(e) => setScopePlayerIds(selectedValues(e))}
-                        >
-                          {allPlayers.map((p) => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
+                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                          {allPlayers.length === 0 ? (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                          ) : allPlayers.map((p) => (
+                            <div className="form-check" key={p.id}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`scope-player-${p.id}`}
+                                checked={scopePlayerIds.includes(p.id)}
+                                onChange={() => toggleId(scopePlayerIds, setScopePlayerIds, p.id)}
+                              />
+                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-player-${p.id}`}>
+                                {p.name}
+                              </label>
+                            </div>
                           ))}
-                        </select>
+                        </div>
                       </div>
                     </>
                   )}
