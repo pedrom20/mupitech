@@ -13,6 +13,7 @@ import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchPlayers, deletePlayer } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
+import { fetchLocations } from '@/store/locationsSlice'
 import AddPlayerModal from './add-player-modal'
 import BulkProvision from './bulk-provision'
 import { RoleContext } from '@/components/app'
@@ -24,6 +25,7 @@ const PlayerList: React.FC = () => {
   const role = useContext(RoleContext)
   const { players, loading } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
+  const { locations } = useAppSelector((state) => state.locations)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -33,6 +35,7 @@ const PlayerList: React.FC = () => {
   useEffect(() => {
     dispatch(fetchPlayers())
     dispatch(fetchGroups())
+    dispatch(fetchLocations())
   }, [dispatch])
 
   const filteredPlayers = players.filter((player) => {
@@ -252,6 +255,7 @@ const PlayerList: React.FC = () => {
         <AddPlayerModal
           editingPlayer={editingPlayer}
           groups={groups}
+          locations={locations}
           onClose={handleFormClose}
           onSaved={handleFormSaved}
         />

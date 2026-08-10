@@ -5,17 +5,18 @@ import Swal from 'sweetalert2'
 import { useAppDispatch } from '@/store/index'
 import { createPlayer, updatePlayer } from '@/store/playersSlice'
 import { players as playersApi } from '@/services/api'
-import type { Player, Group } from '@/types'
+import type { Player, Group, Location } from '@/types'
 
 interface PlayerFormProps {
   player: Player | null
   groups: Group[]
+  locations: Location[]
   onClose: () => void
   onSaved: () => void
   embedded?: boolean
 }
 
-const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, onClose, onSaved, embedded }) => {
+const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onClose, onSaved, embedded }) => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const isEditing = player !== null
@@ -27,8 +28,13 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, onClose, onSave
   const [groupId, setGroupId] = useState(
     player?.group_detail?.id || player?.group?.id || '',
   )
+  const [locationId, setLocationId] = useState(
+    player?.location_detail?.id || player?.location || '',
+  )
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+
+  const groupHasLocation = !!groups.find((g) => g.id === groupId)?.location
 
   const handleTestConnection = async () => {
     if (!player) return
@@ -69,6 +75,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, onClose, onSave
       url,
       username,
       group: groupId || null,
+      location: locationId || null,
     }
 
     if (password) {
@@ -146,6 +153,28 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, onClose, onSave
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label fw-semibold">
+            {t('players.location')}
+          </label>
+          <select
+            className="form-select"
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+            disabled={groupHasLocation}
+          >
+            <option value="">{t('players.noLocation')}</option>
+            {locations.map((location) => (
+              <option key={location.id} value={location.id}>
+                {location.name}
+              </option>
+            ))}
+          </select>
+          {groupHasLocation && (
+            <small className="text-muted">{t('players.locationFromGroupHint')}</small>
+          )}
         </div>
 
         <div className="mb-3">

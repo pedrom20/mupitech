@@ -14,7 +14,7 @@ import {
   FaExternalLinkAlt,
 } from 'react-icons/fa'
 import { provision as provisionApi } from '@/services/api'
-import type { Player, Group, ProvisionTask, ProvisionStep } from '@/types'
+import type { Player, Group, Location, ProvisionTask, ProvisionStep } from '@/types'
 import PlayerForm from './player-form'
 
 type ModalView = 'choice' | 'manual' | 'instructions' | 'provision-form' | 'provision-progress'
@@ -22,6 +22,7 @@ type ModalView = 'choice' | 'manual' | 'instructions' | 'provision-form' | 'prov
 interface AddPlayerModalProps {
   editingPlayer: Player | null
   groups: Group[]
+  locations: Location[]
   onClose: () => void
   onSaved: () => void
 }
@@ -62,7 +63,7 @@ function StepIcon({ status }: { status: string }) {
   }
 }
 
-const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, onClose, onSaved }) => {
+const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, locations, onClose, onSaved }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -508,6 +509,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
             <PlayerForm
               player={editingPlayer}
               groups={groups}
+              locations={locations}
               onClose={onClose}
               onSaved={onSaved}
               embedded

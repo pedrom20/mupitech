@@ -12,6 +12,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
+import { fetchLocations } from '@/store/locationsSlice'
 import PlayerCard from './player-card'
 import ServerTelemetryCard from './server-telemetry'
 import AddPlayerModal from '../players/add-player-modal'
@@ -21,6 +22,7 @@ const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch()
   const { players, loading } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
+  const { locations } = useAppSelector((state) => state.locations)
 
   const [filterGroup, setFilterGroup] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -30,6 +32,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     dispatch(fetchPlayers())
     dispatch(fetchGroups())
+    dispatch(fetchLocations())
   }, [dispatch])
 
   const stats = useMemo(() => {
@@ -197,6 +200,7 @@ const Dashboard: React.FC = () => {
         <AddPlayerModal
           editingPlayer={null}
           groups={groups}
+          locations={locations}
           onClose={() => setShowPlayerForm(false)}
           onSaved={() => {
             setShowPlayerForm(false)
