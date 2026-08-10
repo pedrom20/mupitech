@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "fleet": "Fleet",
     "players": "Players",
     "groups": "Groups",
     "locations": "Locations",
@@ -748,6 +749,27 @@
     "authKeySet": "Auth key is configured",
     "saved": "Tailscale settings saved",
     "saveFailed": "Failed to save Tailscale settings"
+  },
+  "branding": {
+    "title": "Device Branding",
+    "description": "The logo shown on the idle splash screen of your devices. Applies fleet-wide — push it to a device from its detail page, or to a whole group from the groups page.",
+    "upload": "Upload logo",
+    "formatHint": "Only SVG, PNG or JPEG files are supported",
+    "confirmDelete": "Revert to the default MupiTech logo?",
+    "customSet": "Custom logo set",
+    "usingDefault": "Using default MupiTech logo",
+    "revertToDefault": "Revert to default",
+    "pushHint": "Uploading here only stages the logo — it isn't sent to devices automatically. Push it from a device's settings or from a group's actions.",
+    "pushTitle": "Push splash logo",
+    "pushDesc": "Replaces the MupiTech logo shown on this device's idle screen. Uses SSH once — the password isn't stored.",
+    "pushDescGroup": "Replaces the splash logo on every device in this group. Uses SSH once with the same credentials for all — the password isn't stored.",
+    "sshUser": "SSH username",
+    "sshPassword": "SSH password",
+    "sshPort": "SSH port",
+    "push": "Push",
+    "pushed": "Logo pushed",
+    "pushFailed": "Failed to push logo",
+    "pushPartial": "Failed on some devices"
   },
   "users": {
     "title": "Users",

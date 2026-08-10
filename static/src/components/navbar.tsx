@@ -1,10 +1,75 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi } from '@/services/api'
 import { RoleContext, AuthContext } from '@/components/app'
+
+const FLEET_ROUTES = ['/players', '/groups', '/locations']
+
+const FleetMenu: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
+  const { t } = useTranslation()
+  const location = useLocation()
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLLIElement>(null)
+
+  const isActive = FLEET_ROUTES.some((r) => location.pathname.startsWith(r))
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const items = [
+    { to: '/players', icon: <FaDesktop className="nav-icon" />, label: t('nav.players') },
+    { to: '/groups', icon: <FaLayerGroup className="nav-icon" />, label: t('nav.groups') },
+    { to: '/locations', icon: <FaMapMarkerAlt className="nav-icon" />, label: t('nav.locations') },
+  ]
+
+  return (
+    <li className="position-relative" ref={dropdownRef}>
+      <button
+        type="button"
+        className={`nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}
+        style={{ border: 'none', background: 'transparent', font: 'inherit' }}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+      >
+        <FaServer className="nav-icon" />
+        {t('nav.fleet')}
+        <FaChevronDown style={{ fontSize: '0.7em' }} />
+      </button>
+      {isOpen && (
+        <div
+          className="position-absolute start-0 mt-1 py-1 bg-white rounded shadow-lg"
+          style={{ minWidth: '190px', zIndex: 1060 }}
+        >
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive: itemActive }) =>
+                `d-flex align-items-center gap-2 px-3 py-2 text-decoration-none ${itemActive ? 'fw-bold' : ''}`
+              }
+              style={{ fontSize: '0.875rem', color: '#1a1a2e' }}
+              onClick={() => { setIsOpen(false); onNavigate() }}
+            >
+              {item.icon}
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </li>
+  )
+}
 
 const UserMenu: React.FC = () => {
   const { t } = useTranslation()
@@ -86,10 +151,10 @@ const Navbar: React.FC = () => {
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
 
-  const navItems = [
+  const navItemsBefore = [
     { to: '/', icon: <FaThLarge className="nav-icon" />, label: t('nav.dashboard'), end: true },
-    { to: '/groups', icon: <FaLayerGroup className="nav-icon" />, label: t('nav.groups'), end: false },
-    { to: '/locations', icon: <FaMapMarkerAlt className="nav-icon" />, label: t('nav.locations'), end: false },
+  ]
+  const navItemsAfter = [
     { to: '/playlists', icon: <FaListUl className="nav-icon" />, label: t('nav.playlists'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },
@@ -122,7 +187,23 @@ const Navbar: React.FC = () => {
             <div className={`flex-grow-1 d-lg-flex align-items-center justify-content-center ${isOpen ? 'd-flex flex-column flex-lg-row position-absolute start-0 end-0 bg-purple-dark p-3 p-lg-0' : 'd-none'}`}
               style={isOpen ? { top: '85px', zIndex: 1030, backgroundColor: '#04182B' } : {}}>
               <ul className="navbar-nav d-flex flex-column flex-lg-row list-unstyled mb-0 gap-1">
-                {navItems.map((item) => (
+                {navItemsBefore.map((item) => (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      className={({ isActive }) =>
+                        `nav-link ${isActive ? 'active' : ''}`
+                      }
+                      onClick={closeMenu}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </NavLink>
+                  </li>
+                ))}
+                <FleetMenu onNavigate={closeMenu} />
+                {navItemsAfter.map((item) => (
                   <li key={item.to}>
                     <NavLink
                       to={item.to}

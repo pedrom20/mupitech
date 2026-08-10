@@ -8,6 +8,7 @@ import type { TailscaleSettings } from '@/types'
 import { APP_VERSION } from '../../changelog'
 import { RoleContext } from '@/components/app'
 import UsersSettings from './users-settings'
+import BrandingSettings from './branding-settings'
 
 const UPDATE_POLL_INTERVAL = 5000 // 5s
 const UPDATE_TIMEOUT = 120000 // 120s
@@ -246,11 +247,8 @@ const Settings: React.FC = () => {
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                 >
+                  <option value="pt">Português</option>
                   <option value="en">English</option>
-                  <option value="uk">Українська</option>
-                  <option value="fr">Français</option>
-                  <option value="de">Deutsch</option>
-                  <option value="pl">Polski</option>
                 </select>
               </div>
 
@@ -513,6 +511,15 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Branding — admin only */}
+      {role === 'admin' && (
+        <div className="row g-3 mt-1">
+          <div className="col-12">
+            <BrandingSettings />
+          </div>
+        </div>
+      )}
 
       {/* Users Management — admin only */}
       {role === 'admin' && (

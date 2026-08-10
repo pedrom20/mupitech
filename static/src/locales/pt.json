@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Painel",
+    "fleet": "Parque",
     "players": "Dispositivos",
     "groups": "Grupos",
     "locations": "Localizações",
@@ -748,6 +749,27 @@
     "authKeySet": "A chave de autenticação está configurada",
     "saved": "Definições do Tailscale guardadas",
     "saveFailed": "Falha ao guardar as definições do Tailscale"
+  },
+  "branding": {
+    "title": "Marca dos Dispositivos",
+    "description": "O logótipo mostrado no ecrã de repouso (splash) dos dispositivos. Aplica-se a todo o parque — envie-o a partir da página de detalhe de um dispositivo, ou a um grupo inteiro a partir da página de grupos.",
+    "upload": "Carregar logótipo",
+    "formatHint": "Só são suportados ficheiros SVG, PNG ou JPEG",
+    "confirmDelete": "Reverter para o logótipo MupiTech por omissão?",
+    "customSet": "Logótipo personalizado definido",
+    "usingDefault": "A usar o logótipo MupiTech por omissão",
+    "revertToDefault": "Reverter para omissão",
+    "pushHint": "Carregar aqui só prepara o logótipo — não é enviado automaticamente para os dispositivos. Envie a partir das definições de um dispositivo ou das ações de um grupo.",
+    "pushTitle": "Enviar logótipo do splash",
+    "pushDesc": "Substitui o logótipo MupiTech mostrado no ecrã de repouso deste dispositivo. Usa SSH uma vez — a palavra-passe não é guardada.",
+    "pushDescGroup": "Substitui o logótipo do splash em todos os dispositivos deste grupo. Usa SSH uma vez com as mesmas credenciais para todos — a palavra-passe não é guardada.",
+    "sshUser": "Utilizador SSH",
+    "sshPassword": "Palavra-passe SSH",
+    "sshPort": "Porta SSH",
+    "push": "Enviar",
+    "pushed": "Logótipo enviado",
+    "pushFailed": "Falha ao enviar o logótipo",
+    "pushPartial": "Falhou em alguns dispositivos"
   },
   "users": {
     "title": "Utilizadores",
