@@ -8,6 +8,7 @@ interface LanguageOption {
 }
 
 const languages: LanguageOption[] = [
+  { code: 'pt', label: 'Português' },
   { code: 'en', label: 'English' },
   { code: 'uk', label: 'Ukrainian' },
   { code: 'fr', label: 'Français' },
@@ -17,6 +18,12 @@ const languages: LanguageOption[] = [
 
 /* Inline SVG flags — work on all platforms including Windows */
 const flags: Record<string, React.ReactNode> = {
+  pt: (
+    <svg viewBox="0 0 60 30" width="28" height="18" style={{ display: 'block', borderRadius: '2px' }}>
+      <rect width="60" height="30" fill="#FF0000"/>
+      <rect width="24" height="30" fill="#006600"/>
+    </svg>
+  ),
   en: (
     <svg viewBox="0 0 60 30" width="28" height="18" style={{ display: 'block', borderRadius: '2px' }}>
       <clipPath id="s"><path d="M0,0 v30 h60 v-30 z"/></clipPath>
