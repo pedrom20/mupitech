@@ -84,6 +84,8 @@ services:
     volumes:
       - deploy_files:/app/deploy_files
       - media_files:/app/media
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   celery-transcode:
     image: ghcr.io/pedrom20/mupiteck:latest
@@ -98,6 +100,8 @@ services:
     volumes:
       - deploy_files:/app/deploy_files
       - media_files:/app/media
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   celery-beat:
     image: ghcr.io/pedrom20/mupiteck:latest
@@ -109,6 +113,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   cloudflared:
     image: cloudflare/cloudflared:latest
