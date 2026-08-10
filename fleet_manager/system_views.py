@@ -9,8 +9,10 @@ import psutil
 import requests
 from django.conf import settings
 from django.core.cache import cache
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+
+from fleet_manager.permissions import IsAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -349,3 +351,70 @@ def tailscale_settings(request):
         'detected_ip': detected_ip,
         'status': _get_tailscale_status(),
     })
+
+
+# Fleet-wide custom splash logo, pushed to devices via SSH (players/branding.py).
+# Stored as a plain file on the shared media volume — no DB model needed for
+# a single fleet-wide asset. Constants live in players.branding; imported
+# here rather than redefined so the two never drift apart.
+from players.branding import BRANDING_DIR, BRANDING_LOGO_FILENAME, wrap_raster_as_svg
+
+
+def _branding_logo_path():
+    return os.path.join(BRANDING_DIR, BRANDING_LOGO_FILENAME)
+
+
+@api_view(['GET'])
+def branding_settings(request):
+    """Whether a custom splash logo is set (vs. the bundled MupiTech default), and its URL for preview."""
+    exists = os.path.isfile(_branding_logo_path())
+    return Response({
+        'has_custom_logo': exists,
+        'logo_url': f'{settings.MEDIA_URL}branding/{BRANDING_LOGO_FILENAME}' if exists else '/static/img/logo.svg',
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def branding_upload_logo(request):
+    """Upload the fleet-wide custom splash logo (SVG, PNG or JPEG)."""
+    logo = request.FILES.get('logo')
+    if not logo:
+        return Response({'error': 'logo file is required'}, status=400)
+
+    name_lower = logo.name.lower()
+    os.makedirs(BRANDING_DIR, exist_ok=True)
+
+    if name_lower.endswith('.svg'):
+        with open(_branding_logo_path(), 'wb') as f:
+            for chunk in logo.chunks():
+                f.write(chunk)
+    elif name_lower.endswith(('.png', '.jpg', '.jpeg')):
+        try:
+            svg_bytes = wrap_raster_as_svg(logo, logo.name)
+        except Exception as exc:
+            return Response({'error': f'Could not process image: {exc}'}, status=400)
+        with open(_branding_logo_path(), 'wb') as f:
+            f.write(svg_bytes)
+    else:
+        return Response({'error': 'Only SVG, PNG or JPEG files are supported'}, status=400)
+
+    from history.logging import log_action
+    log_action(request, 'upload', 'branding_logo')
+
+    return Response({
+        'success': True,
+        'logo_url': f'{settings.MEDIA_URL}branding/{BRANDING_LOGO_FILENAME}',
+    })
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdmin])
+def branding_delete_logo(request):
+    """Remove the fleet-wide custom splash logo (does not affect devices it was already pushed to)."""
+    path = _branding_logo_path()
+    if os.path.isfile(path):
+        os.remove(path)
+        from history.logging import log_action
+        log_action(request, 'delete', 'branding_logo')
+    return Response(status=204)

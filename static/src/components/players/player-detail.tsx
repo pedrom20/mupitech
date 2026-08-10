@@ -176,6 +176,13 @@ const PlayerDetail: React.FC = () => {
   const [screenshotFullscreen, setScreenshotFullscreen] = useState(false)
   const [screenshotUnsupported, setScreenshotUnsupported] = useState(false)
 
+  // Push splash logo (branding)
+  const [showPushLogoModal, setShowPushLogoModal] = useState(false)
+  const [pushLogoSshUser, setPushLogoSshUser] = useState('pi')
+  const [pushLogoSshPassword, setPushLogoSshPassword] = useState('')
+  const [pushLogoSshPort, setPushLogoSshPort] = useState(22)
+  const [pushingLogo, setPushingLogo] = useState(false)
+
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
   const [liveViewEnabled, setLiveViewEnabled] = useState(false)
@@ -598,6 +605,21 @@ const PlayerDetail: React.FC = () => {
       } catch {
         Swal.fire({ icon: 'error', title: t('common.error') })
       }
+    }
+  }
+
+  const handlePushSplashLogo = async () => {
+    if (!id || !pushLogoSshPassword) return
+    setPushingLogo(true)
+    try {
+      await playersApi.pushSplashLogo(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
+      Swal.fire({ icon: 'success', title: t('branding.pushed'), timer: 1500, showConfirmButton: false })
+      setShowPushLogoModal(false)
+      setPushLogoSshPassword('')
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('branding.pushFailed'), text: String(err) })
+    } finally {
+      setPushingLogo(false)
     }
   }
 
@@ -1303,6 +1325,15 @@ const PlayerDetail: React.FC = () => {
             >
               <FaSyncAlt />
             </button>
+            {role === 'admin' && (
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={() => setShowPushLogoModal(true)}
+                title={t('branding.pushTitle')}
+              >
+                <FaImage />
+              </button>
+            )}
             {role === 'admin' && player.is_online && (
               <button
                 className="fm-btn-outline fm-btn-sm"
@@ -2649,6 +2680,77 @@ const PlayerDetail: React.FC = () => {
                     <span className="spinner-border spinner-border-sm me-1" />
                   ) : null}
                   {t('playerSettings.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Push splash logo modal */}
+      {showPushLogoModal && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowPushLogoModal(false)}
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold">{t('branding.pushTitle')}</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowPushLogoModal(false)}
+                  aria-label={t('common.close')}
+                />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('branding.pushDesc')}</p>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshUser}
+                    onChange={e => setPushLogoSshUser(e.target.value)}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPassword')}</label>
+                  <input
+                    type="password"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshPassword}
+                    onChange={e => setPushLogoSshPassword(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPort')}</label>
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshPort}
+                    onChange={e => setPushLogoSshPort(Number(e.target.value))}
+                    min={1}
+                    max={65535}
+                    style={{ maxWidth: '120px' }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPushLogoModal(false)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn-primary"
+                  onClick={handlePushSplashLogo}
+                  disabled={pushingLogo || !pushLogoSshPassword}
+                >
+                  {pushingLogo ? t('common.loading') : t('branding.push')}
                 </button>
               </div>
             </div>

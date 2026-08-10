@@ -171,6 +171,12 @@ export const players = {
     return apiRequest<PlayerUpdateCheckResult>('GET', `/players/${id}/update-check/`)
   },
 
+  pushSplashLogo(id: string, sshUser: string, sshPassword: string, sshPort?: number): Promise<{ success: boolean }> {
+    return apiRequest('POST', `/players/${id}/push-splash-logo/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+    })
+  },
+
   triggerUpdate(id: string): Promise<{ success: boolean }> {
     return apiRequest<{ success: boolean }>('POST', `/players/${id}/update/`)
   },
@@ -261,6 +267,15 @@ export const groups = {
     results: Record<string, { name: string; success: boolean; error?: string }>
   }> {
     return apiRequest('POST', `/groups/${id}/apply-rotation/`, { screen_rotation: screenRotation })
+  },
+
+  pushSplashLogo(id: string, sshUser: string, sshPassword: string, sshPort?: number): Promise<{
+    success: boolean
+    results: Record<string, { name: string; success: boolean; error?: string }>
+  }> {
+    return apiRequest('POST', `/groups/${id}/push-splash-logo/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+    })
   },
 }
 
@@ -546,6 +561,20 @@ export const system = {
 
   getTelemetry(): Promise<ServerTelemetry> {
     return apiRequest<ServerTelemetry>('GET', '/system/telemetry/')
+  },
+
+  getBranding(): Promise<{ has_custom_logo: boolean; logo_url: string | null }> {
+    return apiRequest('GET', '/system/branding/')
+  },
+
+  uploadBrandingLogo(file: File): Promise<{ success: boolean; logo_url: string }> {
+    const data = new FormData()
+    data.append('logo', file)
+    return apiRequest('POST', '/system/branding/logo/', data)
+  },
+
+  deleteBrandingLogo(): Promise<void> {
+    return apiRequest('DELETE', '/system/branding/logo/delete/')
   },
 }
 

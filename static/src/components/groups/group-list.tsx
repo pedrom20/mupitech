@@ -8,6 +8,7 @@ import {
   FaMapMarkerAlt,
   FaSyncAlt,
   FaDesktop,
+  FaImage,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -37,6 +38,11 @@ const GroupList: React.FC = () => {
   const [rotationValue, setRotationValue] = useState<0 | 90 | 180 | 270>(0)
   const [applyingRotation, setApplyingRotation] = useState(false)
   const [detailGroup, setDetailGroup] = useState<Group | null>(null)
+  const [pushLogoGroup, setPushLogoGroup] = useState<Group | null>(null)
+  const [pushLogoSshUser, setPushLogoSshUser] = useState('pi')
+  const [pushLogoSshPassword, setPushLogoSshPassword] = useState('')
+  const [pushLogoSshPort, setPushLogoSshPort] = useState(22)
+  const [pushingLogo, setPushingLogo] = useState(false)
 
   useEffect(() => {
     dispatch(fetchGroups())
@@ -129,6 +135,35 @@ const GroupList: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
     } finally {
       setApplyingRotation(false)
+    }
+  }
+
+  const handlePushLogo = async () => {
+    if (!pushLogoGroup || !pushLogoSshPassword) return
+    setPushingLogo(true)
+    try {
+      const res = await groupsApi.pushSplashLogo(pushLogoGroup.id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
+      const failed = Object.values(res.results).filter((r) => !r.success)
+      if (failed.length === 0) {
+        Swal.fire({
+          icon: 'success',
+          title: t('branding.pushed'),
+          timer: 2000,
+          showConfirmButton: false,
+        })
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: t('branding.pushPartial'),
+          text: failed.map((f) => f.name).join(', '),
+        })
+      }
+      setPushLogoGroup(null)
+      setPushLogoSshPassword('')
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
+    } finally {
+      setPushingLogo(false)
     }
   }
 
@@ -232,6 +267,13 @@ const GroupList: React.FC = () => {
                         title={t('groups.applyRotation')}
                       >
                         <FaSyncAlt />
+                      </button>
+                      <button
+                        className="fm-btn-icon"
+                        onClick={() => setPushLogoGroup(group)}
+                        title={t('branding.pushTitle')}
+                      >
+                        <FaImage />
                       </button>
                       <button
                         className="fm-btn-icon"
@@ -481,6 +523,79 @@ const GroupList: React.FC = () => {
                   disabled={applyingRotation}
                 >
                   {applyingRotation ? t('common.loading') : t('groups.apply')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Push splash logo modal */}
+      {pushLogoGroup && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setPushLogoGroup(null)}
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold">
+                  {t('branding.pushTitle')} — {pushLogoGroup.name}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setPushLogoGroup(null)}
+                  aria-label={t('common.close')}
+                />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('branding.pushDescGroup')}</p>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshUser}
+                    onChange={e => setPushLogoSshUser(e.target.value)}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPassword')}</label>
+                  <input
+                    type="password"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshPassword}
+                    onChange={e => setPushLogoSshPassword(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPort')}</label>
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshPort}
+                    onChange={e => setPushLogoSshPort(Number(e.target.value))}
+                    min={1}
+                    max={65535}
+                    style={{ maxWidth: '120px' }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setPushLogoGroup(null)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn-primary"
+                  onClick={handlePushLogo}
+                  disabled={pushingLogo || !pushLogoSshPassword}
+                >
+                  {pushingLogo ? t('common.loading') : t('branding.push')}
                 </button>
               </div>
             </div>

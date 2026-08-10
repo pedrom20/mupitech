@@ -7,6 +7,7 @@ __pycache__/
 .env
 *.egg-info/
 deploy_files/
+media/
 *.log
 .DS_Store
 AUDIT.md

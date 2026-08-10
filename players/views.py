@@ -305,6 +305,25 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+    @action(detail=True, methods=['post'], url_path='push-splash-logo')
+    def push_splash_logo(self, request, pk=None):
+        """SSH into the device once and replace its Anthias splash-page logo."""
+        player = self.get_object()
+        ssh_password = request.data.get('ssh_password')
+        if not ssh_password:
+            return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ssh_user = request.data.get('ssh_user') or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port'), 22, 'ssh_port')
+
+        from .branding import BrandingPushError, push_splash_logo_to_player
+        try:
+            push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+        except BrandingPushError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        from history.logging import log_action
+        log_action(request, 'push_splash_logo', 'player', target_id=player.id, target_name=player.name)
+        return Response({'success': True})
 
     @action(detail=True, methods=['post'], url_path='playback-control')
     def playback_control(self, request, pk=None):
