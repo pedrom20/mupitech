@@ -28,6 +28,7 @@ import Swal from 'sweetalert2'
 import { media as mediaApi, folders as foldersApi, playbackLog, cctv as cctvApi } from '@/services/api'
 import { CctvFormContent } from '@/components/cctv/cctv-form-modal'
 import CctvFormModal from '@/components/cctv/cctv-form-modal'
+import { useFeatures } from '@/context/features-context'
 import type { MediaFile, MediaFolder, CctvConfig } from '@/types'
 
 function formatFileSize(bytes: number): string {
@@ -436,6 +437,7 @@ function AddContentModal({
   onCctvCreated: () => void
 }) {
   const { t } = useTranslation()
+  const { cctv: cctvEnabled } = useFeatures()
   const [activeTab, setActiveTab] = useState<'file' | 'url' | 'cctv'>('file')
   const [dragOver, setDragOver] = useState(false)
   const [urlValue, setUrlValue] = useState('')
@@ -509,13 +511,15 @@ function AddContentModal({
                 <FaGlobe className="me-1" />
                 {t('content.tabUrl')}
               </button>
-              <button
-                className={`btn btn-link flex-fill py-2 text-decoration-none rounded-0 ${activeTab === 'cctv' ? 'fw-bold border-bottom border-2 border-primary text-primary' : 'text-muted'}`}
-                onClick={() => setActiveTab('cctv')}
-              >
-                <FaVideo className="me-1" />
-                {t('content.tabCctv')}
-              </button>
+              {cctvEnabled && (
+                <button
+                  className={`btn btn-link flex-fill py-2 text-decoration-none rounded-0 ${activeTab === 'cctv' ? 'fw-bold border-bottom border-2 border-primary text-primary' : 'text-muted'}`}
+                  onClick={() => setActiveTab('cctv')}
+                >
+                  <FaVideo className="me-1" />
+                  {t('content.tabCctv')}
+                </button>
+              )}
             </div>
 
             <div className="p-3" style={{ minHeight: '320px', maxHeight: '65vh', overflowY: 'auto' }}>
@@ -604,6 +608,7 @@ type FilterType = 'all' | 'video' | 'image' | 'web' | 'cctv'
 
 const ContentPage: React.FC = () => {
   const { t } = useTranslation()
+  const { cctv: cctvEnabled } = useFeatures()
 
   const [files, setFiles] = useState<MediaFile[]>([])
   const [loadingFiles, setLoadingFiles] = useState(true)
@@ -912,7 +917,7 @@ const ContentPage: React.FC = () => {
     { key: 'video', icon: <FaVideo />, label: t('content.filterVideo') },
     { key: 'image', icon: <FaImage />, label: t('content.filterImage') },
     { key: 'web', icon: <FaGlobe />, label: t('content.filterWeb') },
-    { key: 'cctv', icon: <FaVideo />, label: 'CCTV' },
+    ...(cctvEnabled ? [{ key: 'cctv' as FilterType, icon: <FaVideo />, label: 'CCTV' }] : []),
   ]
 
   return (

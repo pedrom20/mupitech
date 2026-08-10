@@ -87,6 +87,12 @@ def system_version(request):
 
 
 @api_view(['GET'])
+def system_features(request):
+    """Return which optional features are enabled for this deployment."""
+    return Response(settings.FEATURES)
+
+
+@api_view(['GET'])
 def system_update_check(request):
     """Check GitHub for newer version. Cached for 5 minutes."""
     force = request.query_params.get('force', '').lower() in ('1', 'true')

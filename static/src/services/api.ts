@@ -487,6 +487,10 @@ export const system = {
     return apiRequest('GET', '/system/version/')
   },
 
+  getFeatures(): Promise<Record<string, boolean>> {
+    return apiRequest('GET', '/system/features/')
+  },
+
   checkForUpdate(force?: boolean): Promise<{
     current_version: string
     latest_version: string | null

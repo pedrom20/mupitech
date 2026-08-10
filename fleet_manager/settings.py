@@ -206,6 +206,13 @@ ANTHIAS_IMAGE_TAG_SUFFIX_PI5 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'l
 # Shared secret for player phone-home registration (empty = open mode)
 PLAYER_REGISTER_TOKEN = os.environ.get('PLAYER_REGISTER_TOKEN', '')
 
+# Feature flags — lets a deployment turn off functionality it doesn't need
+# (e.g. CCTV) without removing the code. Read by the frontend via
+# GET /api/system/features/.
+FEATURES = {
+    'cctv': os.environ.get('FEATURE_CCTV_ENABLED', 'False').lower() in ('true', '1'),
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # App version (set via Docker build args, fallback to changelog.ts)

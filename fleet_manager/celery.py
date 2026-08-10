@@ -11,6 +11,11 @@ app.autodiscover_tasks()
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
+    from django.conf import settings
+
+    if not settings.FEATURES.get('cctv'):
+        return
+
     # Check CCTV schedules every 30 seconds
     sender.add_periodic_task(
         30.0,

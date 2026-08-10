@@ -17,6 +17,7 @@ import AuditLog from '@/components/settings/audit-log'
 import Login from '@/components/auth/login'
 import ChangelogPage from '@/components/changelog-page'
 import { users as usersApi } from '@/services/api'
+import { FeaturesProvider } from '@/context/features-context'
 import type { User } from '@/types'
 
 export type UserRole = 'viewer' | 'editor' | 'admin' | null
@@ -66,25 +67,27 @@ const App: React.FC = () => {
   return (
     <AuthContext.Provider value={{ user, checked, refresh, clear }}>
       <RoleContext.Provider value={user?.role ?? null}>
-        <Navbar />
-        <main className="fm-content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/players" element={<PlayerList />} />
-            <Route path="/players/:id" element={<PlayerDetail />} />
-            <Route path="/groups" element={<GroupList />} />
-            <Route path="/locations" element={<LocationList />} />
-            <Route path="/playlists" element={<PlaylistList />} />
-            <Route path="/content" element={<ContentPage />} />
-            <Route path="/deploy/history" element={<DeployHistory />} />
-            <Route path="/deploy/:id" element={<DeployProgress />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/audit" element={<AuditLog />} />
-            <Route path="/changelog" element={<ChangelogPage />} />
-            <Route path="/login" element={<Login />} />
-          </Routes>
-        </main>
-        <Footer />
+        <FeaturesProvider>
+          <Navbar />
+          <main className="fm-content">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/players" element={<PlayerList />} />
+              <Route path="/players/:id" element={<PlayerDetail />} />
+              <Route path="/groups" element={<GroupList />} />
+              <Route path="/locations" element={<LocationList />} />
+              <Route path="/playlists" element={<PlaylistList />} />
+              <Route path="/content" element={<ContentPage />} />
+              <Route path="/deploy/history" element={<DeployHistory />} />
+              <Route path="/deploy/:id" element={<DeployProgress />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/audit" element={<AuditLog />} />
+              <Route path="/changelog" element={<ChangelogPage />} />
+              <Route path="/login" element={<Login />} />
+            </Routes>
+          </main>
+          <Footer />
+        </FeaturesProvider>
       </RoleContext.Provider>
     </AuthContext.Provider>
   )

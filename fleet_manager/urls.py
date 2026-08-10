@@ -23,6 +23,7 @@ from rest_framework.routers import DefaultRouter
 
 from fleet_manager.permissions import _user_role
 from fleet_manager.system_views import (
+    system_features,
     system_settings,
     system_telemetry,
     system_update,
@@ -135,6 +136,7 @@ urlpatterns = [
     path('api/auth/status/', auth_status),
     path('api/auth/token/', obtain_auth_token, name='api-token'),
     path('api/system/version/', system_version),
+    path('api/system/features/', system_features),
     path('api/system/update-check/', system_update_check),
     path('api/system/update/', system_update),
     path('api/system/settings/', system_settings),
