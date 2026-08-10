@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 
 import requests as http_requests
 from django.conf import settings
@@ -19,7 +18,7 @@ from content.models import MediaFile
 from scheduling.mixins import ScheduleActionsMixin
 from .models import Player, PlayerSnapshot
 from .serializers import PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
-from .services import AnthiasAPIClient, PlayerConnectionError, format_player_error
+from .services import AnthiasAPIClient, PlayerConnectionError, deploy_media_file_to_player, format_player_error
 
 logger = logging.getLogger(__name__)
 
@@ -446,7 +445,6 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
     def asset_upload(self, request, pk=None):
         """Upload a MediaFile to the player as an asset."""
         player = self.get_object()
-        client = self._get_client(player)
         media_file_id = request.data.get('media_file_id')
         if not media_file_id:
             return Response(
@@ -463,69 +461,15 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
 
         name = request.data.get('name', media_file.name)
         duration = _safe_int(request.data.get('duration'), 10, 'duration')
-
-        now = timezone.now()
-        default_start = now.strftime('%Y-%m-%dT%H:%M:%S.000Z')
-        default_end = (now + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
-        start_date = request.data.get('start_date') or default_start
-        end_date = request.data.get('end_date') or default_end
-
-        # Map file_type to Anthias mimetype
-        MIMETYPE_MAP = {
-            'image': 'image',
-            'video': 'video',
-            'web': 'webpage',
-        }
+        start_date = request.data.get('start_date') or None
+        end_date = request.data.get('end_date') or None
 
         try:
-            if media_file.file:
-                # Step 1: Upload file to player → returns {uri, ext}
-                old_timeout = client.timeout
-                client.timeout = 60
-                try:
-                    media_file.file.open('rb')
-                    upload_result = client.upload_file(media_file.file)
-                    media_file.file.close()
-                finally:
-                    client.timeout = old_timeout
-
-                # Step 2: Create asset with the uploaded file's uri
-                mimetype = MIMETYPE_MAP.get(media_file.file_type, 'image')
-                # Video duration must be 0 — Anthias auto-detects it
-                asset_duration = 0 if mimetype == 'video' else duration
-                asset_data = {
-                    'name': name,
-                    'uri': upload_result.get('uri', ''),
-                    'ext': upload_result.get('ext', ''),
-                    'mimetype': mimetype,
-                    'is_enabled': True,
-                    'nocache': False,
-                    'start_date': start_date,
-                    'end_date': end_date,
-                    'duration': asset_duration,
-                    'skip_asset_check': False,
-                }
-                data = client.create_asset(asset_data)
-            else:
-                # URL-based media — create asset with webpage mimetype
-                uri = media_file.source_url
-                # CCTV: relative URL → build absolute using FM server address
-                if media_file.file_type == 'cctv' and uri.startswith('/'):
-                    scheme = request.scheme
-                    host = request.get_host()
-                    uri = f'{scheme}://{host}{uri}'
-                asset_data = {
-                    'name': name,
-                    'uri': uri,
-                    'mimetype': 'webpage',
-                    'is_enabled': True,
-                    'nocache': False,
-                    'start_date': start_date,
-                    'end_date': end_date,
-                    'duration': duration,
-                    'skip_asset_check': False,
-                }
-                data = client.create_asset(asset_data)
+            data = deploy_media_file_to_player(
+                player, media_file, name=name, duration=duration,
+                start_date=start_date, end_date=end_date,
+                base_url=f'{request.scheme}://{request.get_host()}',
+            )
 
             from history.logging import log_action
             log_action(request, 'deploy', 'asset', target_id=str(media_file.id), target_name=f"{player.name}: {name}")

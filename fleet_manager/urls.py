@@ -143,6 +143,7 @@ urlpatterns = [
     path('api/', include(user_router.urls)),
     path('api/', include('history.urls')),
     path('api/', include('locations.urls')),
+    path('api/', include('playlists.urls')),
     path('api/', include('groups.urls')),
     path('api/', include('content.urls')),
     path('api/', include('cctv.urls')),

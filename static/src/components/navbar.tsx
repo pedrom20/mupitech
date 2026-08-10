@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaSync, FaClipboardList, FaLayerGroup, FaMapMarkerAlt, FaUserCircle, FaSignOutAlt } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaSync, FaClipboardList, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { APP_VERSION } from '../changelog'
 import { system, auth as authApi } from '@/services/api'
@@ -115,6 +115,7 @@ const Navbar: React.FC = () => {
     { to: '/', icon: <FaThLarge className="nav-icon" />, label: t('nav.dashboard'), end: true },
     { to: '/groups', icon: <FaLayerGroup className="nav-icon" />, label: t('nav.groups'), end: false },
     { to: '/locations', icon: <FaMapMarkerAlt className="nav-icon" />, label: t('nav.locations'), end: false },
+    { to: '/playlists', icon: <FaListUl className="nav-icon" />, label: t('nav.playlists'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },
     ...(role === 'admin' ? [{ to: '/audit', icon: <FaClipboardList className="nav-icon" />, label: t('nav.audit'), end: false }] : []),

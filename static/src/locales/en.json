@@ -4,6 +4,7 @@
     "players": "Players",
     "groups": "Groups",
     "locations": "Locations",
+    "playlists": "Playlists",
     "content": "Content",
     "history": "History",
     "settings": "Settings",
@@ -115,6 +116,24 @@
     "ungroupedPlayers": "Ungrouped Players",
     "confirmDelete": "Are you sure you want to delete this location?",
     "deleted": "Location deleted"
+  },
+  "playlists": {
+    "title": "Playlists",
+    "addPlaylist": "Add Playlist",
+    "editPlaylist": "Edit Playlist",
+    "name": "Name",
+    "description": "Description",
+    "content": "Content",
+    "selectContent": "Select content to add...",
+    "noItemsYet": "No items yet — add content above.",
+    "items": "items",
+    "durationSec": "sec",
+    "noTargets": "No targets set",
+    "deploy": "Deploy",
+    "deployStarted": "Deployment started",
+    "deployStartedDesc": "Pushing this playlist to {{count}} player(s).",
+    "lastDeployed": "Last deployed",
+    "confirmDelete": "Are you sure you want to delete this playlist?"
   },
   "history": {
     "title": "Playback History",

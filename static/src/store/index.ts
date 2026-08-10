@@ -4,6 +4,7 @@ import type { TypedUseSelectorHook } from 'react-redux'
 import playersReducer from './playersSlice'
 import groupsReducer from './groupsSlice'
 import locationsReducer from './locationsSlice'
+import playlistsReducer from './playlistsSlice'
 import deployReducer from './deploySlice'
 
 export const store = configureStore({
@@ -11,6 +12,7 @@ export const store = configureStore({
     players: playersReducer,
     groups: groupsReducer,
     locations: locationsReducer,
+    playlists: playlistsReducer,
     deploy: deployReducer,
   },
 })

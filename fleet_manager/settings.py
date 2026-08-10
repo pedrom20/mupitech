@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'scheduling',
     'players',
     'deploy',
+    'playlists',
 ]
 
 MIDDLEWARE = [

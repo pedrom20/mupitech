@@ -4,6 +4,7 @@
     "players": "Dispositivos",
     "groups": "Grupos",
     "locations": "Localizações",
+    "playlists": "Listas de Reprodução",
     "content": "Conteúdo",
     "history": "Histórico",
     "settings": "Definições",
@@ -115,6 +116,24 @@
     "ungroupedPlayers": "Dispositivos sem Grupo",
     "confirmDelete": "Tem a certeza que quer eliminar esta localização?",
     "deleted": "Localização eliminada"
+  },
+  "playlists": {
+    "title": "Listas de Reprodução",
+    "addPlaylist": "Adicionar Lista",
+    "editPlaylist": "Editar Lista",
+    "name": "Nome",
+    "description": "Descrição",
+    "content": "Conteúdo",
+    "selectContent": "Selecione conteúdo para adicionar...",
+    "noItemsYet": "Ainda sem itens — adicione conteúdo acima.",
+    "items": "itens",
+    "durationSec": "seg",
+    "noTargets": "Sem destinos definidos",
+    "deploy": "Publicar",
+    "deployStarted": "Publicação iniciada",
+    "deployStartedDesc": "A publicar esta lista em {{count}} dispositivo(s).",
+    "lastDeployed": "Última publicação",
+    "confirmDelete": "Tem a certeza que quer eliminar esta lista de reprodução?"
   },
   "history": {
     "title": "Histórico de Reprodução",

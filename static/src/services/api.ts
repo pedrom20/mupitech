@@ -1,4 +1,4 @@
-import type { Player, Group, Location, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, ScheduleSlot, ScheduleSlotItem, ScheduleStatus, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, ScheduleSlot, ScheduleSlotItem, ScheduleStatus, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -262,6 +262,32 @@ export const locations = {
 
   delete(id: string): Promise<void> {
     return apiRequest<void>('DELETE', `/locations/${id}/`)
+  },
+}
+
+export const playlists = {
+  list(): Promise<Playlist[]> {
+    return apiRequest<Playlist[]>('GET', '/playlists/')
+  },
+
+  get(id: string): Promise<Playlist> {
+    return apiRequest<Playlist>('GET', `/playlists/${id}/`)
+  },
+
+  create(data: Partial<Playlist>): Promise<Playlist> {
+    return apiRequest<Playlist>('POST', '/playlists/', data)
+  },
+
+  update(id: string, data: Partial<Playlist>): Promise<Playlist> {
+    return apiRequest<Playlist>('PUT', `/playlists/${id}/`, data)
+  },
+
+  delete(id: string): Promise<void> {
+    return apiRequest<void>('DELETE', `/playlists/${id}/`)
+  },
+
+  deploy(id: string): Promise<{ success: boolean; target_count: number }> {
+    return apiRequest('POST', `/playlists/${id}/deploy/`)
   },
 }
 

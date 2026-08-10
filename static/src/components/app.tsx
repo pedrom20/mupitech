@@ -8,6 +8,7 @@ import PlayerList from '@/components/players/player-list'
 import PlayerDetail from '@/components/players/player-detail'
 import GroupList from '@/components/groups/group-list'
 import LocationList from '@/components/locations/location-list'
+import PlaylistList from '@/components/playlists/playlist-list'
 import ContentPage from '@/components/deploy/deploy-form'
 import DeployHistory from '@/components/deploy/deploy-history'
 import DeployProgress from '@/components/deploy/deploy-progress'
@@ -73,6 +74,7 @@ const App: React.FC = () => {
             <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/groups" element={<GroupList />} />
             <Route path="/locations" element={<LocationList />} />
+            <Route path="/playlists" element={<PlaylistList />} />
             <Route path="/content" element={<ContentPage />} />
             <Route path="/deploy/history" element={<DeployHistory />} />
             <Route path="/deploy/:id" element={<DeployProgress />} />

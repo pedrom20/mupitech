@@ -341,3 +341,74 @@ class AnthiasAPIClient:
         })
         return response.json()
 
+
+# Anthias asset mimetypes, keyed by content.MediaFile.file_type
+ASSET_MIMETYPE_MAP = {
+    'image': 'image',
+    'video': 'video',
+    'web': 'webpage',
+}
+
+
+def deploy_media_file_to_player(player, media_file, name=None, duration=10,
+                                 start_date=None, end_date=None, base_url=''):
+    """Create an asset on `player` from a content.MediaFile.
+
+    Shared by the single-item "asset upload" endpoint and playlist
+    deployment: uploads the file to the player first (local media), or
+    uses the source URL directly (web pages, CCTV streams). Raises
+    PlayerConnectionError on failure.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+
+    client = AnthiasAPIClient(player)
+    name = name or media_file.name
+
+    now = timezone.now()
+    start_date = start_date or now.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    end_date = end_date or (now + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+    if media_file.file:
+        old_timeout = client.timeout
+        client.timeout = 60
+        try:
+            media_file.file.open('rb')
+            upload_result = client.upload_file(media_file.file)
+            media_file.file.close()
+        finally:
+            client.timeout = old_timeout
+
+        mimetype = ASSET_MIMETYPE_MAP.get(media_file.file_type, 'image')
+        # Video duration must be 0 — Anthias auto-detects it
+        asset_duration = 0 if mimetype == 'video' else duration
+        asset_data = {
+            'name': name,
+            'uri': upload_result.get('uri', ''),
+            'ext': upload_result.get('ext', ''),
+            'mimetype': mimetype,
+            'is_enabled': True,
+            'nocache': False,
+            'start_date': start_date,
+            'end_date': end_date,
+            'duration': asset_duration,
+            'skip_asset_check': False,
+        }
+    else:
+        uri = media_file.source_url
+        if media_file.file_type == 'cctv' and uri.startswith('/') and base_url:
+            uri = f'{base_url}{uri}'
+        asset_data = {
+            'name': name,
+            'uri': uri,
+            'mimetype': 'webpage',
+            'is_enabled': True,
+            'nocache': False,
+            'start_date': start_date,
+            'end_date': end_date,
+            'duration': duration,
+            'skip_asset_check': False,
+        }
+
+    return client.create_asset(asset_data)
+

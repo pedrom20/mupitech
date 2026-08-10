@@ -313,3 +313,33 @@ export interface ProvisionTask {
   created_at: string
   updated_at: string
 }
+
+export interface PlaylistItem {
+  id?: number
+  media_file: string
+  media_file_detail?: MediaFile
+  order: number
+  duration: number | null
+}
+
+export interface PlaylistDeployResult {
+  name: string
+  success: boolean
+  items: { media_file: string; status: 'success' | 'failed'; error?: string }[]
+}
+
+export interface Playlist {
+  id: string
+  name: string
+  description: string
+  items: PlaylistItem[]
+  target_players: string[]
+  target_players_detail?: Player[]
+  target_groups: string[]
+  target_groups_detail?: Group[]
+  target_locations: string[]
+  target_locations_detail?: Location[]
+  last_deploy_status: Record<string, PlaylistDeployResult>
+  last_deployed_at: string | null
+  created_at: string
+}
