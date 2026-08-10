@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from content.models import MediaFile
-from deploy.audit import log_action
+from history.logging import log_action
 
 from .models import CctvCamera, CctvConfig
 

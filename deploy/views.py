@@ -3,7 +3,7 @@ import logging
 from rest_framework import viewsets
 
 from fleet_manager.permissions import IsEditorOrReadOnly
-from deploy.audit import log_action
+from history.logging import log_action
 
 from .models import DeployTask
 from .serializers import DeployTaskSerializer

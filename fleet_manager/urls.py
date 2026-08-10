@@ -30,7 +30,6 @@ from fleet_manager.system_views import (
     system_version,
     tailscale_settings,
 )
-from deploy.audit_views import audit_list
 from fleet_manager.user_views import UserViewSet
 
 user_router = DefaultRouter()
@@ -41,7 +40,7 @@ user_router.register('users', UserViewSet)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_login(request):
-    from deploy.audit import log_action
+    from history.logging import log_action
     data = request.data
     user = authenticate(
         request,
@@ -61,7 +60,7 @@ def auth_login(request):
 
 @api_view(['POST'])
 def auth_logout(request):
-    from deploy.audit import log_action
+    from history.logging import log_action
     log_action(request, 'logout', 'session', target_name=request.user.username)
     logout(request)
     return Response({'success': True})
@@ -142,7 +141,7 @@ urlpatterns = [
     path('api/system/telemetry/', system_telemetry),
     path('api/system/tailscale/', tailscale_settings),
     path('api/', include(user_router.urls)),
-    path('api/audit/', audit_list),
+    path('api/', include('history.urls')),
     path('api/', include('groups.urls')),
     path('api/', include('content.urls')),
     path('api/', include('cctv.urls')),

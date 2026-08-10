@@ -147,41 +147,6 @@ class PlayerSnapshot(models.Model):
         return f'{self.player.name} @ {self.timestamp}'
 
 
-class PlaybackLog(models.Model):
-    """Log of asset playback events detected during polling."""
-    id = models.BigAutoField(primary_key=True)
-    player = models.ForeignKey(
-        Player,
-        on_delete=models.CASCADE,
-        related_name='playback_logs',
-    )
-    asset_id = models.CharField(max_length=100)
-    asset_name = models.CharField(max_length=200)
-    mimetype = models.CharField(max_length=50, blank=True, default='')
-    event = models.CharField(
-        max_length=20,
-        choices=[('started', 'Started'), ('stopped', 'Stopped')],
-        default='started',
-    )
-    timestamp = models.DateTimeField()
-
-    class Meta:
-        ordering = ['-timestamp']
-        indexes = [
-            models.Index(fields=['player', '-timestamp']),
-            models.Index(fields=['-timestamp']),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=['player', 'asset_id', 'timestamp', 'event'],
-                name='unique_playback_entry',
-            ),
-        ]
-
-    def __str__(self):
-        return f'{self.player.name} — {self.asset_name} [{self.event}]'
-
-
 class BulkProvisionTask(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),

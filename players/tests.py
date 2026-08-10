@@ -2,10 +2,9 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
-from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import PlaybackLog, Player, PlayerSnapshot
+from .models import Player, PlayerSnapshot
 from .services import AnthiasAPIClient, PlayerConnectionError
 
 
@@ -31,25 +30,6 @@ class PlayerModelTests(TestCase):
     def test_get_api_url_strips_trailing_slash(self):
         p = Player(name='Test', url='http://10.0.0.1/')
         self.assertEqual(p.get_api_url(), 'http://10.0.0.1')
-
-
-class PlaybackLogDedupTests(TestCase):
-    def setUp(self):
-        self.player = Player.objects.create(name='P1', url='http://10.0.0.1')
-
-    def test_unique_constraint_prevents_dupes(self):
-        ts = timezone.now()
-        PlaybackLog.objects.create(
-            player=self.player, asset_id='a1', asset_name='Asset1',
-            event='started', timestamp=ts,
-        )
-        # bulk_create with ignore_conflicts should not raise
-        dupes = [PlaybackLog(
-            player=self.player, asset_id='a1', asset_name='Asset1',
-            event='started', timestamp=ts,
-        )]
-        PlaybackLog.objects.bulk_create(dupes, ignore_conflicts=True)
-        self.assertEqual(PlaybackLog.objects.count(), 1)
 
 
 class PlayerAPITests(TestCase):

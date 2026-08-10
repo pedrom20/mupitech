@@ -110,7 +110,7 @@ def bulk_start(request):
     from .bulk_provision import bulk_provision_task
     bulk_provision_task.delay(str(task.id))
 
-    from deploy.audit import log_action
+    from history.logging import log_action
     log_action(request, 'bulk_provision', 'player',
                target_id=task.id, details={'ips': selected_ips})
 

@@ -6,7 +6,7 @@ from rest_framework import parsers, serializers, status, viewsets
 from rest_framework.response import Response
 
 from fleet_manager.permissions import IsEditorOrReadOnly
-from deploy.audit import log_action
+from history.logging import log_action
 
 from .models import MediaFile, MediaFolder, detect_file_type
 from .serializers import MediaFileSerializer, MediaFolderSerializer

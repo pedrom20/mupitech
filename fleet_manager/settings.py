@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'groups',
     'content',
     'cctv',
+    'history',
     'players',
     'deploy',
 ]

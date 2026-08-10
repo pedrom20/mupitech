@@ -30,19 +30,19 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def perform_create(self, serializer):
-        from deploy.audit import log_action
+        from history.logging import log_action
         user = serializer.save()
         log_action(self.request, 'create', 'user', target_id=user.id,
                    target_name=user.username, details={'role': serializer.validated_data.get('role')})
 
     def perform_update(self, serializer):
-        from deploy.audit import log_action
+        from history.logging import log_action
         user = serializer.save()
         log_action(self.request, 'update', 'user', target_id=user.id,
                    target_name=user.username)
 
     def destroy(self, request, *args, **kwargs):
-        from deploy.audit import log_action
+        from history.logging import log_action
         user = self.get_object()
         if user == request.user:
             return Response(

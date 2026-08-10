@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from groups.serializers import GroupSerializer
 
-from .models import PlaybackLog, Player, PlayerSnapshot
+from .models import Player, PlayerSnapshot
 
 # Tailscale uses CGNAT range 100.64.0.0/10
 TAILSCALE_NETWORK = ipaddress.ip_network('100.64.0.0/10')
@@ -112,24 +112,6 @@ class PlayerSnapshotSerializer(serializers.ModelSerializer):
             'assets_count',
             'free_space',
             'load_avg',
-            'timestamp',
-        ]
-        read_only_fields = fields
-
-
-class PlaybackLogSerializer(serializers.ModelSerializer):
-    player_name = serializers.CharField(source='player.name', read_only=True)
-
-    class Meta:
-        model = PlaybackLog
-        fields = [
-            'id',
-            'player',
-            'player_name',
-            'asset_id',
-            'asset_name',
-            'mimetype',
-            'event',
             'timestamp',
         ]
         read_only_fields = fields

@@ -78,7 +78,7 @@ def poll_player(self, player_id):
 
 def _track_playback(player, client):
     """Fetch viewlog from player and store new entries."""
-    from .models import PlaybackLog
+    from history.models import PlaybackLog
 
     try:
         since = player.last_viewlog_fetch or None

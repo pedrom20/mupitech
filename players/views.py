@@ -16,8 +16,8 @@ from rest_framework.views import APIView
 from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
 
 from content.models import MediaFile
-from .models import PlaybackLog, Player, PlayerSnapshot
-from .serializers import PlaybackLogSerializer, PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
+from .models import Player, PlayerSnapshot
+from .serializers import PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
 from .services import AnthiasAPIClient, PlayerConnectionError
 
 logger = logging.getLogger(__name__)
@@ -172,7 +172,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """After creating a player, try to connect and update status."""
-        from deploy.audit import log_action
+        from history.logging import log_action
         player = serializer.save()
         log_action(self.request, 'create', 'player', target_id=player.id, target_name=player.name)
         client = self._get_client(player)
@@ -183,7 +183,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             _update_player_status(player, False)
 
     def perform_destroy(self, instance):
-        from deploy.audit import log_action
+        from history.logging import log_action
         log_action(self.request, 'delete', 'player', target_id=instance.id, target_name=instance.name)
         instance.delete()
 
@@ -252,7 +252,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         try:
             if request.method == 'PATCH':
                 data = client.update_device_settings(request.data)
-                from deploy.audit import log_action
+                from history.logging import log_action
                 log_action(request, 'update', 'device_settings', target_id=player.id, target_name=player.name, details=request.data)
             else:
                 data = client.get_device_settings()
@@ -266,7 +266,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def reboot(self, request, pk=None):
         """Proxy to the player's /v2/reboot endpoint."""
-        from deploy.audit import log_action
+        from history.logging import log_action
         player = self.get_object()
         client = self._get_client(player)
         try:
@@ -285,7 +285,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def shutdown(self, request, pk=None):
         """Proxy to the player's /v2/shutdown endpoint."""
-        from deploy.audit import log_action
+        from history.logging import log_action
         player = self.get_object()
         client = self._get_client(player)
         try:
@@ -357,6 +357,8 @@ class PlayerViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='now-playing')
     def now_playing(self, request, pk=None):
         """Return the most recent 'started' playback entry for this player."""
+        from history.models import PlaybackLog
+
         player = self.get_object()
         entry = PlaybackLog.objects.filter(
             player=player, event='started',
@@ -413,7 +415,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             update_fields['nocache'] = bool(_safe_int(val, 0, 'nocache')) if not isinstance(val, bool) else val
         try:
             data = client.update_asset(asset_id, update_fields)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'update', 'asset', target_id=asset_id, target_name=player.name, details=update_fields)
             return Response({'success': True, 'asset': data})
         except PlayerConnectionError as exc:
@@ -441,7 +443,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             )
         try:
             client.delete_asset(asset_id)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'delete', 'asset', target_id=asset_id, target_name=player.name)
             return Response({'success': True})
         except PlayerConnectionError as exc:
@@ -467,7 +469,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             asset_data['is_enabled'] = request.data['is_enabled']
         try:
             data = client.create_asset(asset_data)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'create', 'asset', target_id=data.get('asset_id', ''), target_name=f"{player.name}: {asset_data.get('name', '')}")
             return Response({'success': True, 'asset': data})
         except PlayerConnectionError as exc:
@@ -567,7 +569,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
                 }
                 data = client.create_asset(asset_data)
 
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'deploy', 'asset', target_id=str(media_file.id), target_name=f"{player.name}: {name}")
             return Response({'success': True, 'asset': data})
         except PlayerConnectionError as exc:
@@ -615,7 +617,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         client = self._get_client(player)
         try:
             data = client.create_schedule_slot(request.data)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'create', 'schedule_slot', target_id=data.get('id', ''), target_name=f"{player.name}: {request.data.get('name', '')}")
             return Response({'success': True, 'slot': data}, status=status.HTTP_201_CREATED)
         except PlayerConnectionError as exc:
@@ -636,7 +638,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         update_data = {k: v for k, v in request.data.items() if k != 'slot_id'}
         try:
             data = client.update_schedule_slot(slot_id, update_data)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'update', 'schedule_slot', target_id=slot_id, target_name=player.name, details=update_data)
             return Response({'success': True, 'slot': data})
         except PlayerConnectionError as exc:
@@ -656,7 +658,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             )
         try:
             client.delete_schedule_slot(slot_id)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'delete', 'schedule_slot', target_id=slot_id, target_name=player.name)
             return Response({'success': True})
         except PlayerConnectionError as exc:
@@ -690,7 +692,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
                     pass  # non-fatal: slot item will still be added
 
             data = client.add_slot_item(slot_id, item_data)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'add_item', 'schedule_slot', target_id=slot_id, target_name=player.name, details={'asset_id': item_data.get('asset_id', '')})
             return Response({'success': True, 'item': data}, status=status.HTTP_201_CREATED)
         except PlayerConnectionError as exc:
@@ -711,7 +713,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             )
         try:
             client.delete_slot_item(slot_id, item_id)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'remove_item', 'schedule_slot', target_id=slot_id, target_name=player.name, details={'item_id': item_id})
             return Response({'success': True})
         except PlayerConnectionError as exc:
@@ -736,7 +738,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         }
         try:
             data = client.update_slot_item(slot_id, item_id, update_data)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'update_item', 'schedule_slot', target_id=slot_id, target_name=player.name, details={'item_id': item_id, **update_data})
             return Response({'success': True, 'item': data})
         except PlayerConnectionError as exc:
@@ -861,7 +863,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         client = self._get_client(player)
         try:
             result = client.trigger_update()
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'trigger_update', 'player', target_id=player.id, target_name=player.name)
             return Response(result)
         except PlayerConnectionError as exc:
@@ -893,7 +895,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         client = self._get_client(player)
         try:
             result = client.cec_standby()
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(request, 'cec_standby', 'player', target_id=player.id, target_name=player.name)
             return Response(result)
         except PlayerConnectionError as exc:
@@ -905,7 +907,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='cec-wake')
     def cec_wake(self, request, pk=None):
         """Wake TV via HDMI-CEC."""
-        from deploy.audit import log_action
+        from history.logging import log_action
         player = self.get_object()
         client = self._get_client(player)
         try:
@@ -948,7 +950,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             )
         try:
             result = client.ir_test(protocol, scancode)
-            from deploy.audit import log_action
+            from history.logging import log_action
             log_action(
                 request, 'ir_test', 'player',
                 target_id=player.id, target_name=player.name,
@@ -1032,114 +1034,10 @@ class BulkActionView(APIView):
             )
 
         results = self._execute_bulk_action(action, player_ids)
-        from deploy.audit import log_action
+        from history.logging import log_action
         success_count = sum(1 for r in results.values() if r.get('success'))
         log_action(request, f'bulk_{action}', 'player', details={'count': len(player_ids), 'success': success_count})
         return Response({'results': results})
-
-
-@api_view(['GET'])
-def playback_log(request):
-    """Get playback log entries with optional filters."""
-    qs = PlaybackLog.objects.select_related('player').all()
-
-    player_id = request.query_params.get('player')
-    if player_id:
-        qs = qs.filter(player_id=player_id)
-
-    date_from = request.query_params.get('date_from')
-    if date_from:
-        qs = qs.filter(timestamp__gte=date_from)
-
-    date_to = request.query_params.get('date_to')
-    if date_to:
-        qs = qs.filter(timestamp__lte=date_to)
-
-    content = request.query_params.get('content')
-    if content:
-        qs = qs.filter(asset_name=content)
-
-    # Pagination
-    page = _safe_int(request.query_params.get('page'), 1, 'page')
-    page_size = _safe_int(request.query_params.get('page_size'), 50, 'page_size')
-    total = qs.count()
-    offset = (page - 1) * page_size
-    entries = qs[offset:offset + page_size]
-
-    serializer = PlaybackLogSerializer(entries, many=True)
-
-    # Tracking info per player
-    tracking_info = {}
-    if player_id:
-        try:
-            p = Player.objects.get(pk=player_id)
-            tracking_info[str(p.id)] = {
-                'name': p.name,
-                'tracking_since': p.history_tracking_since.isoformat() if p.history_tracking_since else None,
-            }
-        except Player.DoesNotExist:
-            logger.debug('Player %s not found for tracking info', player_id)
-    else:
-        for p in Player.objects.filter(history_tracking_since__isnull=False):
-            tracking_info[str(p.id)] = {
-                'name': p.name,
-                'tracking_since': p.history_tracking_since.isoformat() if p.history_tracking_since else None,
-            }
-
-    # Distinct asset names for filter dropdown
-    asset_names = list(
-        PlaybackLog.objects.values_list('asset_name', flat=True)
-        .distinct().order_by('asset_name')
-    )
-
-    return Response({
-        'results': serializer.data,
-        'total': total,
-        'page': page,
-        'page_size': page_size,
-        'tracking_info': tracking_info,
-        'asset_names': asset_names,
-    })
-
-
-@api_view(['GET'])
-def playback_stats(request):
-    """Return total playback duration per asset base name (in seconds).
-
-    Uses SQL LEAD() window function to compute duration between consecutive
-    'started' events per player.  The last event per player is skipped
-    (no way to know when it ended).
-
-    Groups by base name (without extension) so that e.g. 'video.MOV' uploaded
-    as MediaFile matches 'video.mp4' logged by the player after transcoding.
-    """
-    from django.db import connection
-
-    sql = """
-        SELECT base_name, SUM(dur) AS total_seconds
-        FROM (
-            SELECT
-                CASE
-                    WHEN asset_name LIKE '%%.%%'
-                    THEN LEFT(asset_name, LENGTH(asset_name) - LENGTH(SUBSTRING(asset_name FROM '\\.[^.]*$')))
-                    ELSE asset_name
-                END AS base_name,
-                EXTRACT(EPOCH FROM
-                    LEAD(timestamp) OVER (PARTITION BY player_id ORDER BY timestamp)
-                    - timestamp
-                ) AS dur
-            FROM players_playbacklog
-            WHERE event = 'started'
-        ) sub
-        WHERE dur IS NOT NULL AND dur > 0 AND dur < 86400
-        GROUP BY base_name
-    """
-    with connection.cursor() as cur:
-        cur.execute(sql)
-        rows = cur.fetchall()
-
-    stats = {row[0]: round(row[1]) for row in rows}
-    return Response({'stats': stats})
 
 
 INVALID_MAC = 'Unable to retrieve MAC address.'
