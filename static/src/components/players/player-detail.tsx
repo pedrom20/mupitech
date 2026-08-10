@@ -246,6 +246,7 @@ const PlayerDetail: React.FC = () => {
     audio_output: 'hdmi',
     date_format: 'mm/dd/yyyy',
     resolution: '',
+    screen_rotation: '0',
     show_splash: true,
     default_assets: false,
     shuffle_playlist: false,
@@ -829,6 +830,7 @@ const PlayerDetail: React.FC = () => {
         audio_output: String(data.audio_output || 'hdmi'),
         date_format: String(data.date_format || 'mm/dd/yyyy'),
         resolution: String(data.resolution || ''),
+        screen_rotation: String(data.screen_rotation ?? '0'),
         show_splash: !!data.show_splash,
         default_assets: !!data.default_assets,
         shuffle_playlist: !!data.shuffle_playlist,
@@ -890,6 +892,7 @@ const PlayerDetail: React.FC = () => {
         audio_output: settingsForm.audio_output,
         date_format: settingsForm.date_format,
         resolution: settingsForm.resolution,
+        screen_rotation: parseInt(settingsForm.screen_rotation, 10),
         show_splash: settingsForm.show_splash,
         default_assets: settingsForm.default_assets,
         shuffle_playlist: settingsForm.shuffle_playlist,
@@ -2360,6 +2363,21 @@ const PlayerDetail: React.FC = () => {
                         <option value="800x480">800x480 (WVGA)</option>
                         <option value="720x480">720x480 (NTSC)</option>
                         <option value="3840x2160">3840x2160 (4K)</option>
+                      </select>
+                    </div>
+
+                    {/* Screen rotation */}
+                    <div className="mb-2">
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('playerSettings.screenRotation')}</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={settingsForm.screen_rotation}
+                        onChange={e => setSettingsForm({ ...settingsForm, screen_rotation: e.target.value })}
+                      >
+                        <option value="0">{t('playerSettings.rotation0')}</option>
+                        <option value="90">{t('playerSettings.rotation90')}</option>
+                        <option value="180">{t('playerSettings.rotation180')}</option>
+                        <option value="270">{t('playerSettings.rotation270')}</option>
                       </select>
                     </div>
 

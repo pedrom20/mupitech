@@ -103,7 +103,13 @@
     "location": "Location",
     "noLocation": "No location",
     "confirmDelete": "Are you sure you want to delete this group?",
-    "deleted": "Group deleted"
+    "deleted": "Group deleted",
+    "applyRotation": "Apply screen rotation",
+    "applyRotationDesc": "Applies to every device currently in this group.",
+    "apply": "Apply",
+    "rotationApplied": "Rotation applied",
+    "rotationAppliedDesc": "Applied to {{count}} device(s).",
+    "rotationPartial": "Failed on some devices"
   },
   "locations": {
     "title": "Locations",
@@ -443,6 +449,11 @@
     "jack35mm": "3.5mm Jack",
     "dateFormat": "Date Format",
     "resolution": "Resolution",
+    "screenRotation": "Screen Rotation",
+    "rotation0": "0° (normal)",
+    "rotation90": "90°",
+    "rotation180": "180°",
+    "rotation270": "270°",
     "showSplash": "Show Splash Screen",
     "defaultAssets": "Default Assets",
     "shufflePlaylist": "Shuffle Playlist",

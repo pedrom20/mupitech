@@ -6,13 +6,17 @@ import {
   FaEdit,
   FaTrash,
   FaMapMarkerAlt,
+  FaSyncAlt,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchGroups, createGroup, updateGroup, deleteGroup } from '@/store/groupsSlice'
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchLocations } from '@/store/locationsSlice'
+import { groups as groupsApi } from '@/services/api'
 import type { Group } from '@/types'
+
+const ROTATION_OPTIONS: (0 | 90 | 180 | 270)[] = [0, 90, 180, 270]
 
 const GroupList: React.FC = () => {
   const { t } = useTranslation()
@@ -28,6 +32,9 @@ const GroupList: React.FC = () => {
   const [formDescription, setFormDescription] = useState('')
   const [formLocation, setFormLocation] = useState('')
   const [saving, setSaving] = useState(false)
+  const [rotationGroup, setRotationGroup] = useState<Group | null>(null)
+  const [rotationValue, setRotationValue] = useState<0 | 90 | 180 | 270>(0)
+  const [applyingRotation, setApplyingRotation] = useState(false)
 
   useEffect(() => {
     dispatch(fetchGroups())
@@ -86,6 +93,40 @@ const GroupList: React.FC = () => {
           text: String(error),
         })
       }
+    }
+  }
+
+  const handleOpenRotation = (group: Group) => {
+    setRotationGroup(group)
+    setRotationValue(0)
+  }
+
+  const handleApplyRotation = async () => {
+    if (!rotationGroup) return
+    setApplyingRotation(true)
+    try {
+      const res = await groupsApi.applyRotation(rotationGroup.id, rotationValue)
+      const failed = Object.values(res.results).filter((r) => !r.success)
+      if (failed.length === 0) {
+        Swal.fire({
+          icon: 'success',
+          title: t('groups.rotationApplied'),
+          text: t('groups.rotationAppliedDesc', { count: Object.keys(res.results).length }),
+          timer: 2500,
+          showConfirmButton: false,
+        })
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: t('groups.rotationPartial'),
+          text: failed.map((f) => f.name).join(', '),
+        })
+      }
+      setRotationGroup(null)
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
+    } finally {
+      setApplyingRotation(false)
     }
   }
 
@@ -183,6 +224,13 @@ const GroupList: React.FC = () => {
                       <h5 className="card-title mb-0">{group.name}</h5>
                     </div>
                     <div className="card-actions">
+                      <button
+                        className="fm-btn-icon"
+                        onClick={() => handleOpenRotation(group)}
+                        title={t('groups.applyRotation')}
+                      >
+                        <FaSyncAlt />
+                      </button>
                       <button
                         className="fm-btn-icon"
                         onClick={() => handleEdit(group)}
@@ -371,6 +419,63 @@ const GroupList: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply rotation modal */}
+      {rotationGroup && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setRotationGroup(null)}
+        >
+          <div
+            className="modal-dialog modal-dialog-centered"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold text-purple-dark">
+                  {t('groups.applyRotation')} — {rotationGroup.name}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setRotationGroup(null)}
+                  aria-label={t('common.close')}
+                />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('groups.applyRotationDesc')}</p>
+                <div className="d-flex gap-2 flex-wrap">
+                  {ROTATION_OPTIONS.map((deg) => (
+                    <button
+                      key={deg}
+                      type="button"
+                      className={`btn ${rotationValue === deg ? 'fm-btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => setRotationValue(deg)}
+                    >
+                      {deg}°
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setRotationGroup(null)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn-primary"
+                  onClick={handleApplyRotation}
+                  disabled={applyingRotation}
+                >
+                  {applyingRotation ? t('common.loading') : t('groups.apply')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

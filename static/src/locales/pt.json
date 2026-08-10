@@ -103,7 +103,13 @@
     "location": "Localização",
     "noLocation": "Sem localização",
     "confirmDelete": "Tem a certeza que quer eliminar este grupo?",
-    "deleted": "Grupo eliminado"
+    "deleted": "Grupo eliminado",
+    "applyRotation": "Aplicar rotação de ecrã",
+    "applyRotationDesc": "Aplica-se a todos os dispositivos atualmente neste grupo.",
+    "apply": "Aplicar",
+    "rotationApplied": "Rotação aplicada",
+    "rotationAppliedDesc": "Aplicada a {{count}} dispositivo(s).",
+    "rotationPartial": "Falhou em alguns dispositivos"
   },
   "locations": {
     "title": "Localizações",
@@ -443,6 +449,11 @@
     "jack35mm": "Jack 3,5mm",
     "dateFormat": "Formato de Data",
     "resolution": "Resolução",
+    "screenRotation": "Rotação do Ecrã",
+    "rotation0": "0° (normal)",
+    "rotation90": "90°",
+    "rotation180": "180°",
+    "rotation270": "270°",
     "showSplash": "Mostrar Ecrã Inicial",
     "defaultAssets": "Conteúdos Padrão",
     "shufflePlaylist": "Baralhar Lista de Reprodução",

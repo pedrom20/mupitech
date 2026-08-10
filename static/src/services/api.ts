@@ -241,6 +241,14 @@ export const groups = {
   delete(id: string): Promise<void> {
     return apiRequest<void>('DELETE', `/groups/${id}/`)
   },
+
+  applyRotation(id: string, screenRotation: 0 | 90 | 180 | 270): Promise<{
+    success: boolean
+    rotation: number
+    results: Record<string, { name: string; success: boolean; error?: string }>
+  }> {
+    return apiRequest('POST', `/groups/${id}/apply-rotation/`, { screen_rotation: screenRotation })
+  },
 }
 
 export const locations = {
