@@ -92,6 +92,7 @@ export interface PlayerAsset {
   skip_asset_check: number | boolean
   is_active: boolean
   is_processing: boolean
+  playlist?: { id: string; name: string } | null
 }
 
 export interface PlaybackLogEntry {

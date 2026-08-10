@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   FaListUl,
@@ -28,6 +29,7 @@ interface FormItem {
 const PlaylistList: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { playlists, loading } = useAppSelector((state) => state.playlists)
   const { players } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
@@ -53,6 +55,18 @@ const PlaylistList: React.FC = () => {
     dispatch(fetchLocations())
     mediaApi.list().then(setMediaFiles).catch(() => {})
   }, [dispatch])
+
+  // Deep-link from other pages (e.g. a device's content list) — /playlists?edit=<id>
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (!editId || playlists.length === 0) return
+    const target = playlists.find((p) => p.id === editId)
+    if (target) {
+      handleEdit(target)
+      setSearchParams({}, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playlists, searchParams])
 
   const mediaFileName = (id: string) => mediaFiles.find((m) => m.id === id)?.name || id
 

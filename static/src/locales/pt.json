@@ -89,6 +89,7 @@
     "updateFailed": "Falha na atualização",
     "checking": "A verificar...",
     "updating": "A atualizar...",
+    "partOfPlaylist": "Faz parte da playlist \"{{name}}\" — clique para editar",
     "macAddress": "MAC",
     "monitor": "Monitor",
     "monitorOn": "Ligado",

@@ -193,17 +193,33 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def assets(self, request, pk=None):
-        """Proxy to the player's /v2/assets endpoint."""
+        """Proxy to the player's /v2/assets endpoint.
+
+        Each asset is annotated with `playlist: {id, name}` when it was
+        deployed as part of a playlist (via Playlist.deployed_assets),
+        so the frontend can attribute it instead of just listing it loose.
+        """
         player = self.get_object()
         client = self._get_client(player)
         try:
             data = client.get_assets()
-            return Response(data)
         except PlayerConnectionError as exc:
             return Response(
                 {'error': str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
+
+        from playlists.models import Playlist
+        asset_to_playlist = {}
+        for pl in Playlist.objects.filter(deployed_assets__has_key=str(player.id)):
+            for asset_id in pl.deployed_assets.get(str(player.id), []):
+                asset_to_playlist[str(asset_id)] = {'id': str(pl.id), 'name': pl.name}
+        if isinstance(data, list):
+            for asset in data:
+                if isinstance(asset, dict) and asset.get('asset_id'):
+                    asset['playlist'] = asset_to_playlist.get(str(asset['asset_id']))
+
+        return Response(data)
 
     @action(detail=True, methods=['get', 'patch'], url_path='device-settings')
     def device_settings(self, request, pk=None):

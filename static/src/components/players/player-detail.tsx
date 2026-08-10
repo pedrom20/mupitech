@@ -42,6 +42,7 @@ import {
   FaCheckCircle,
   FaShieldAlt,
   FaPowerOff,
+  FaListUl,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { players as playersApi, media as mediaApi, folders as foldersApi, schedule as scheduleApi, cctv as cctvApi } from '@/services/api'
@@ -1106,6 +1107,19 @@ const PlayerDetail: React.FC = () => {
                       >
                         {asset.name || 'Untitled'}
                       </span>
+                      {asset.playlist && (
+                        <div>
+                          <span
+                            className="badge bg-info text-dark"
+                            style={{ cursor: 'pointer', fontSize: '0.7rem' }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/playlists?edit=${asset.playlist!.id}`) }}
+                            title={t('players.partOfPlaylist', { name: asset.playlist.name })}
+                          >
+                            <FaListUl className="me-1" style={{ fontSize: '0.65rem' }} />
+                            {asset.playlist.name}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="text-nowrap"><small>{formatDuration(asset.duration, t)}</small></td>
@@ -1214,6 +1228,19 @@ const PlayerDetail: React.FC = () => {
                       >
                         {asset.name || 'Untitled'}
                       </span>
+                      {asset.playlist && (
+                        <div>
+                          <span
+                            className="badge bg-info text-dark"
+                            style={{ cursor: 'pointer', fontSize: '0.7rem' }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/playlists?edit=${asset.playlist!.id}`) }}
+                            title={t('players.partOfPlaylist', { name: asset.playlist.name })}
+                          >
+                            <FaListUl className="me-1" style={{ fontSize: '0.65rem' }} />
+                            {asset.playlist.name}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="text-nowrap"><small>{formatAssetDate(asset.start_date)}</small></td>
