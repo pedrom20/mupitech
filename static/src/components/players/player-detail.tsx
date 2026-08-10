@@ -661,11 +661,12 @@ const PlayerDetail: React.FC = () => {
       const url = await playersApi.getScreenshot(id)
       setScreenshotUrl(url)
       setHasScreenshot(true)
-    } catch {
+    } catch (err) {
       if (hasScreenshot === null) {
         setHasScreenshot(false)
       } else {
-        Swal.fire({ icon: 'error', title: t('common.error'), text: t('players.screenshotError') })
+        const message = err instanceof Error ? err.message : undefined
+        Swal.fire({ icon: 'error', title: t('common.error'), text: translateApiError(message, t) })
       }
     } finally {
       setScreenshotLoading(false)

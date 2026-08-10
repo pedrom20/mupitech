@@ -279,6 +279,7 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
                 content_type='image/png',
             )
         except PlayerConnectionError as exc:
+            logger.warning('Screenshot failed for %s: %s', player.name, exc)
             return Response(
                 {'error': str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,

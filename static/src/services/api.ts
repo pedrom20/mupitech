@@ -145,13 +145,22 @@ export const players = {
     })
   },
 
-  getScreenshot(id: string): Promise<string> {
-    return fetch(`${BASE_URL}/players/${id}/screenshot/`, {
+  async getScreenshot(id: string): Promise<string> {
+    const res = await fetch(`${BASE_URL}/players/${id}/screenshot/`, {
       credentials: 'same-origin',
-    }).then((res) => {
-      if (!res.ok) throw new Error('Screenshot failed')
-      return res.blob()
-    }).then((blob) => URL.createObjectURL(blob))
+    })
+    if (!res.ok) {
+      let message = 'Screenshot failed'
+      try {
+        const errorData = await res.json()
+        message = errorData.error || errorData.detail || message
+      } catch {
+        // response wasn't JSON, keep generic message
+      }
+      throw new Error(message)
+    }
+    const blob = await res.blob()
+    return URL.createObjectURL(blob)
   },
 
   updateCheck(id: string): Promise<PlayerUpdateCheckResult> {

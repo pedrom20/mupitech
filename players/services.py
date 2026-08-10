@@ -244,7 +244,7 @@ class AnthiasAPIClient:
 
     def get_screenshot(self):
         """GET /api/v2/screenshot - Capture and retrieve a screenshot."""
-        response = self._request('GET', '/api/v2/screenshot', timeout=15)
+        response = self._request('GET', '/api/v2/screenshot', timeout=30)
         return response.content
 
     def control_asset(self, command):
