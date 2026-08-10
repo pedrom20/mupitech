@@ -1,10 +1,10 @@
 {
-  "name": "Anthias Fleet Manager",
-  "short_name": "Anthias FM",
+  "name": "MupiTech Fleet Manager",
+  "short_name": "MupiTech FM",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",
-  "theme_color": "#6f42c1",
+  "theme_color": "#8819C7",
   "icons": [
     {
       "src": "/static/img/icon-192.png",
