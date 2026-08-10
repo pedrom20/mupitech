@@ -3,11 +3,12 @@
   <title>MupiTech</title>
   <defs>
     <linearGradient id="mupitech-favicon" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8819C7"/>
-      <stop offset="1" stop-color="#492955"/>
+      <stop offset="0" stop-color="#0082C8"/>
+      <stop offset="1" stop-color="#0C3A5C"/>
     </linearGradient>
   </defs>
   <rect x="4" y="4" width="92" height="92" rx="22" fill="url(#mupitech-favicon)"/>
-  <rect x="24" y="24" width="52" height="36" rx="5" fill="#FFE72D"/>
-  <rect x="38" y="66" width="24" height="7" rx="3.5" fill="#FDED3A"/>
+  <rect x="34" y="18" width="32" height="46" rx="4" fill="#FFE72D"/>
+  <rect x="47" y="64" width="6" height="10" fill="#FDED3A"/>
+  <rect x="37" y="74" width="26" height="6" rx="3" fill="#FDED3A"/>
 </svg>

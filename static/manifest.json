@@ -3,8 +3,8 @@
   "short_name": "MupiTech FM",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#8819C7",
+  "background_color": "#04182B",
+  "theme_color": "#0082C8",
   "icons": [
     {
       "src": "/static/img/icon-192.png",
