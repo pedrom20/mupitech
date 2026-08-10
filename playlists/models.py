@@ -26,6 +26,11 @@ class Playlist(models.Model):
         default=dict, blank=True,
         help_text='Per-player result of the last deploy, e.g. {player_id: {name, success, items}}.',
     )
+    deployed_assets = models.JSONField(
+        default=dict, blank=True,
+        help_text='Per-player asset IDs created by the last deploy, e.g. {player_id: [asset_id, ...]}. '
+                   'Removed before redeploying so re-applying a playlist does not duplicate its content.',
+    )
     last_deployed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
