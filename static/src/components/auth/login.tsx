@@ -1,12 +1,14 @@
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { FaSignInAlt } from 'react-icons/fa'
 import Swal from 'sweetalert2'
+import { AuthContext } from '@/components/app'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { refresh } = useContext(AuthContext)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,6 +34,7 @@ const Login: React.FC = () => {
       })
 
       if (response.ok) {
+        refresh()
         navigate('/')
       } else {
         const data = await response.json()
