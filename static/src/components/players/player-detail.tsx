@@ -2263,7 +2263,7 @@ const PlayerDetail: React.FC = () => {
           style={{ background: 'rgba(0,0,0,0.5)' }}
           onClick={() => setShowSettingsModal(false)}
         >
-          <div className="modal-dialog" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '900px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-content">
               <div className="modal-header py-2">
                 <h6 className="modal-title d-flex align-items-center gap-2 mb-0">
@@ -2276,13 +2276,14 @@ const PlayerDetail: React.FC = () => {
                   onClick={() => setShowSettingsModal(false)}
                 />
               </div>
-              <div className="modal-body py-2" style={{ maxHeight: '72vh', overflowY: 'auto', fontSize: '0.9rem' }}>
+              <div className="modal-body py-2" style={{ maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
                 {settingsLoading ? (
                   <div className="text-center py-4">
                     <div className="spinner-border" />
                   </div>
                 ) : (
-                  <>
+                  <div className="row g-4">
+                  <div className="col-lg-6">
                     {/* Player Name */}
                     <div className="mb-2">
                       <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('playerSettings.playerName')}</label>
@@ -2413,9 +2414,11 @@ const PlayerDetail: React.FC = () => {
                         </div>
                       ))}
                     </div>
+                  </div>
 
+                  <div className="col-lg-6">
                     {/* Display Power Schedule (CEC) */}
-                    <div className="border rounded px-3 py-2 mt-2">
+                    <div className="border rounded px-3 py-2">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <div>
                           <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>
@@ -2626,7 +2629,8 @@ const PlayerDetail: React.FC = () => {
                         </>
                       )}
                     </div>
-                  </>
+                  </div>
+                  </div>
                 )}
               </div>
               <div className="modal-footer py-2">
