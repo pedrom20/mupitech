@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_celery_beat',
     'channels',
+    'locations',
     'groups',
     'content',
     'cctv',

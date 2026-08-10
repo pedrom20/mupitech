@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from rest_framework import serializers
 
 from groups.serializers import GroupSerializer
+from locations.serializers import LocationSerializer
 
 from .models import Player, PlayerSnapshot
 
@@ -30,6 +31,8 @@ class PlayerSerializer(serializers.ModelSerializer):
         default='',
     )
     group_detail = GroupSerializer(source='group', read_only=True)
+    location_detail = LocationSerializer(source='location', read_only=True)
+    effective_location_detail = LocationSerializer(source='effective_location', read_only=True)
 
     class Meta:
         model = Player
@@ -41,6 +44,9 @@ class PlayerSerializer(serializers.ModelSerializer):
             'password',
             'group',
             'group_detail',
+            'location',
+            'location_detail',
+            'effective_location_detail',
             'is_online',
             'last_seen',
             'last_status',
@@ -83,6 +89,7 @@ class PlayerSerializer(serializers.ModelSerializer):
 
 class PlayerListSerializer(serializers.ModelSerializer):
     group = GroupSerializer(read_only=True)
+    effective_location_detail = LocationSerializer(source='effective_location', read_only=True)
 
     class Meta:
         model = Player
@@ -91,6 +98,7 @@ class PlayerListSerializer(serializers.ModelSerializer):
             'name',
             'url',
             'group',
+            'effective_location_detail',
             'is_online',
             'last_seen',
             'last_status',

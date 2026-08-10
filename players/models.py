@@ -48,6 +48,14 @@ class Player(models.Model):
         blank=True,
         related_name='players',
     )
+    location = models.ForeignKey(
+        'locations.Location',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='players',
+        help_text='Only used when the player has no group — a group\'s own location takes precedence.',
+    )
     is_online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(null=True, blank=True)
     last_status = models.JSONField(default=dict, blank=True)
@@ -84,6 +92,13 @@ class Player(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def effective_location(self):
+        """The player's location: its group's location if grouped, else its own."""
+        if self.group_id and self.group.location_id:
+            return self.group.location
+        return self.location
 
     def get_api_url(self):
         """Return the player URL stripped of any trailing slash."""
