@@ -491,6 +491,12 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "mupitechRebrand": "Rebranding para MupiTech Fleet Manager — novo logótipo, tema de cor azul e português (PT) como idioma padrão",
+      "modularArchitecture": "Backend reorganizado em módulos dedicados: players, groups, content, cctv, history, scheduling, locations, playlists",
+      "locationsFeature": "Nova funcionalidade de Localizações — organize grupos e dispositivos avulsos por local físico",
+      "playlistsFeature": "Novas Listas de Reprodução de conteúdo — um conjunto ordenado de conteúdos que pode ser publicado em dispositivos, grupos ou localizações de uma só vez",
+      "authUxImprovements": "A navegação passa a esconder os itens de menu antes do login e mostra um menu de utilizador com terminar sessão depois de autenticado",
+      "groupsNavFix": "Corrigido link de navegação \"Grupos\" em falta — a página sempre funcionou mas não tinha entrada no menu",
       "initialRelease": "Lançamento inicial",
       "dashboard": "Painel com monitorização de dispositivos",
       "contentLibrary": "Biblioteca de conteúdo com pastas e filtros por tipo",

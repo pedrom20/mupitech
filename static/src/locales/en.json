@@ -491,6 +491,12 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "mupitechRebrand": "Rebranded to MupiTech Fleet Manager — new logo, blue color theme and Portuguese (PT) as the default language",
+      "modularArchitecture": "Backend reorganized into focused modules: players, groups, content, cctv, history, scheduling, locations, playlists",
+      "locationsFeature": "New Locations feature — organize groups and standalone devices by physical site",
+      "playlistsFeature": "New content Playlists — an ordered set of content that can be deployed to devices, groups or locations at once",
+      "authUxImprovements": "Navigation now hides menu items before login and shows a user menu with sign-out after logging in",
+      "groupsNavFix": "Fixed a missing \"Groups\" navigation link — the page always worked but had no menu entry",
       "initialRelease": "Initial release",
       "dashboard": "Dashboard with player monitoring",
       "contentLibrary": "Content library with folders and type filters",

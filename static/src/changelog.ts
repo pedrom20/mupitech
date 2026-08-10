@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.5'
+export const APP_VERSION = '1.0.0'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,18 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.0.0',
+    date: '2026-08-10',
+    changeKeys: [
+      'mupitechRebrand',
+      'modularArchitecture',
+      'locationsFeature',
+      'playlistsFeature',
+      'authUxImprovements',
+      'groupsNavFix',
+    ],
+  },
   {
     version: '1.9.5',
     date: '2026-02-20',

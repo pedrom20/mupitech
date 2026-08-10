@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaSync, FaClipboardList, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
-import { APP_VERSION } from '../changelog'
-import { system, auth as authApi } from '@/services/api'
+import { auth as authApi } from '@/services/api'
 import { RoleContext, AuthContext } from '@/components/app'
 
 const UserMenu: React.FC = () => {
@@ -83,30 +82,6 @@ const Navbar: React.FC = () => {
   const role = useContext(RoleContext)
   const { user, checked } = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
-  const [updateAvailable, setUpdateAvailable] = useState(false)
-  const [versionMismatch, setVersionMismatch] = useState(false)
-  const [newVersion, setNewVersion] = useState('')
-
-  useEffect(() => {
-    if (!user) return undefined
-
-    const check = () => {
-      system.checkForUpdate().then((res) => {
-        setUpdateAvailable(res.update_available)
-      }).catch(() => {})
-
-      // Check if backend version differs from frontend bundle
-      system.getVersion().then((res) => {
-        if (res.version && res.version !== APP_VERSION) {
-          setVersionMismatch(true)
-          setNewVersion(res.version)
-        }
-      }).catch(() => {})
-    }
-    check()
-    const interval = setInterval(check, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [user])
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
@@ -127,18 +102,11 @@ const Navbar: React.FC = () => {
   const isAuthenticated = checked && !!user
 
   return (
-    <>
       <nav className="fm-navbar">
         <div className="container-fluid d-flex align-items-center px-3 h-100">
           <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
             <img src="/static/img/logo.svg" alt="MupiTech Fleet Manager" />
           </NavLink>
-          {isAuthenticated && (
-            <NavLink to="/changelog" className="fm-version-badge" onClick={closeMenu}>
-              v{APP_VERSION}
-              {updateAvailable && <span className="fm-update-dot" title={t('updates.newVersion')} />}
-            </NavLink>
-          )}
 
           {isAuthenticated && (
             <button
@@ -186,17 +154,6 @@ const Navbar: React.FC = () => {
           )}
         </div>
       </nav>
-
-      {versionMismatch && (
-        <div className="fm-update-banner">
-          <span>{t('updates.reloadRequired', { version: newVersion })}</span>
-          <button className="fm-update-banner-btn" onClick={() => window.location.reload()}>
-            <FaSync />
-            {t('updates.reload')}
-          </button>
-        </div>
-      )}
-    </>
   )
 }
 
