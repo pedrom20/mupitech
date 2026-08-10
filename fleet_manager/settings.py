@@ -108,7 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = 'pt'
+LANGUAGE_CODE = os.environ.get('LANGUAGE_CODE', 'pt')
 
 LANGUAGES = [
     ('pt', 'Português'),
@@ -123,7 +123,7 @@ LOCALE_PATHS = [BASE_DIR / 'locale']
 
 USE_I18N = True
 USE_TZ = True
-TIME_ZONE = 'UTC'
+TIME_ZONE = os.environ.get('TIME_ZONE', 'Europe/Lisbon')
 
 # Static files
 STATIC_URL = '/static/'
