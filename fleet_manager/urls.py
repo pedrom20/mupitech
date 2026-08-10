@@ -24,8 +24,10 @@ from rest_framework.routers import DefaultRouter
 from fleet_manager.permissions import _user_role
 from fleet_manager.system_views import (
     branding_delete_logo,
+    branding_delete_standby,
     branding_settings,
     branding_upload_logo,
+    branding_upload_standby,
     system_features,
     system_settings,
     system_telemetry,
@@ -148,6 +150,8 @@ urlpatterns = [
     path('api/system/branding/', branding_settings),
     path('api/system/branding/logo/', branding_upload_logo),
     path('api/system/branding/logo/delete/', branding_delete_logo),
+    path('api/system/branding/standby/', branding_upload_standby),
+    path('api/system/branding/standby/delete/', branding_delete_standby),
     path('api/', include(user_router.urls)),
     path('api/', include('history.urls')),
     path('api/', include('locations.urls')),

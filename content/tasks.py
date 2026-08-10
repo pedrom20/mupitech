@@ -90,7 +90,7 @@ def _fetch_og_image(url):
     try:
         # HEAD request first to check Content-Type
         head_req = urllib.request.Request(url, method='HEAD', headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; AnthiasBot/1.0)',
+            'User-Agent': 'Mozilla/5.0 (compatible; MupiTechBot/1.0)',
         })
         with urllib.request.urlopen(head_req, timeout=5) as head_resp:
             content_type = head_resp.headers.get('Content-Type', '')
@@ -100,7 +100,7 @@ def _fetch_og_image(url):
         logger.debug('HEAD request failed for %s, falling back to GET', url)
     try:
         req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; AnthiasBot/1.0)',
+            'User-Agent': 'Mozilla/5.0 (compatible; MupiTechBot/1.0)',
         })
         with urllib.request.urlopen(req, timeout=5) as resp:
             html = resp.read(50000).decode('utf-8', errors='ignore')

@@ -321,24 +321,33 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=['post'], url_path='push-splash-logo')
-    def push_splash_logo(self, request, pk=None):
-        """SSH into the device once and replace its Anthias splash-page logo."""
+    @action(detail=True, methods=['post'], url_path='push-branding')
+    def push_branding(self, request, pk=None):
+        """SSH into the device once and replace its Anthias branding images
+        (splash-page logo and/or the "no content" standby image)."""
         player = self.get_object()
         ssh_password = request.data.get('ssh_password')
         if not ssh_password:
             return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
         ssh_user = request.data.get('ssh_user') or 'pi'
         ssh_port = _safe_int(request.data.get('ssh_port'), 22, 'ssh_port')
+        push_logo = request.data.get('push_logo', True)
+        push_standby = request.data.get('push_standby', False)
 
-        from .branding import BrandingPushError, push_splash_logo_to_player
+        from .branding import BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player
         try:
-            push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+            if push_logo:
+                push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+            if push_standby:
+                push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port)
         except BrandingPushError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
         from history.logging import log_action
-        log_action(request, 'push_splash_logo', 'player', target_id=player.id, target_name=player.name)
+        log_action(
+            request, 'push_branding', 'player', target_id=player.id, target_name=player.name,
+            details={'logo': bool(push_logo), 'standby': bool(push_standby)},
+        )
         return Response({'success': True})
 
     @action(detail=True, methods=['post'], url_path='playback-control')

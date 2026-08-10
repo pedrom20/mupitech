@@ -15,7 +15,7 @@ import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchGroups, createGroup, updateGroup, deleteGroup } from '@/store/groupsSlice'
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchLocations } from '@/store/locationsSlice'
-import { groups as groupsApi } from '@/services/api'
+import { groups as groupsApi, system as systemApi } from '@/services/api'
 import type { Group } from '@/types'
 
 const ROTATION_OPTIONS: (0 | 90 | 180 | 270)[] = [0, 90, 180, 270]
@@ -43,6 +43,9 @@ const GroupList: React.FC = () => {
   const [pushLogoSshPassword, setPushLogoSshPassword] = useState('')
   const [pushLogoSshPort, setPushLogoSshPort] = useState(22)
   const [pushingLogo, setPushingLogo] = useState(false)
+  const [pushTargetLogo, setPushTargetLogo] = useState(true)
+  const [pushTargetStandby, setPushTargetStandby] = useState(false)
+  const [brandingHasStandby, setBrandingHasStandby] = useState(false)
 
   useEffect(() => {
     dispatch(fetchGroups())
@@ -138,11 +141,16 @@ const GroupList: React.FC = () => {
     }
   }
 
+  const handleOpenPushLogo = (group: Group) => {
+    setPushLogoGroup(group)
+    systemApi.getBranding().then((res) => setBrandingHasStandby(res.has_standby_image)).catch(() => {})
+  }
+
   const handlePushLogo = async () => {
-    if (!pushLogoGroup || !pushLogoSshPassword) return
+    if (!pushLogoGroup || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)) return
     setPushingLogo(true)
     try {
-      const res = await groupsApi.pushSplashLogo(pushLogoGroup.id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
+      const res = await groupsApi.pushBranding(pushLogoGroup.id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby)
       const failed = Object.values(res.results).filter((r) => !r.success)
       if (failed.length === 0) {
         Swal.fire({
@@ -270,7 +278,7 @@ const GroupList: React.FC = () => {
                       </button>
                       <button
                         className="fm-btn-icon"
-                        onClick={() => setPushLogoGroup(group)}
+                        onClick={() => handleOpenPushLogo(group)}
                         title={t('branding.pushTitle')}
                       >
                         <FaImage />
@@ -553,6 +561,36 @@ const GroupList: React.FC = () => {
               </div>
               <div className="modal-body">
                 <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('branding.pushDescGroup')}</p>
+                <div className="mb-3">
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="group-push-target-logo"
+                      checked={pushTargetLogo}
+                      onChange={e => setPushTargetLogo(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="group-push-target-logo">
+                      {t('branding.logoLabel')}
+                    </label>
+                  </div>
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="group-push-target-standby"
+                      checked={pushTargetStandby}
+                      onChange={e => setPushTargetStandby(e.target.checked)}
+                      disabled={!brandingHasStandby}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="group-push-target-standby">
+                      {t('branding.standbyLabel')}
+                      {!brandingHasStandby && (
+                        <span className="text-muted"> ({t('branding.notSet')})</span>
+                      )}
+                    </label>
+                  </div>
+                </div>
                 <div className="mb-2">
                   <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
                   <input
@@ -593,7 +631,7 @@ const GroupList: React.FC = () => {
                   type="button"
                   className="fm-btn-primary"
                   onClick={handlePushLogo}
-                  disabled={pushingLogo || !pushLogoSshPassword}
+                  disabled={pushingLogo || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)}
                 >
                   {pushingLogo ? t('common.loading') : t('branding.push')}
                 </button>

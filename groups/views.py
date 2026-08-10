@@ -51,9 +51,10 @@ class GroupViewSet(viewsets.ModelViewSet):
         )
         return Response({'success': True, 'rotation': rotation, 'results': results})
 
-    @action(detail=True, methods=['post'], url_path='push-splash-logo')
-    def push_splash_logo(self, request, pk=None):
-        """SSH into every player in this group (same credentials) and push the custom splash logo."""
+    @action(detail=True, methods=['post'], url_path='push-branding')
+    def push_branding(self, request, pk=None):
+        """SSH into every player in this group (same credentials) and push
+        the custom branding images (splash-page logo and/or standby image)."""
         group = self.get_object()
         ssh_password = request.data.get('ssh_password')
         if not ssh_password:
@@ -63,19 +64,26 @@ class GroupViewSet(viewsets.ModelViewSet):
             ssh_port = int(request.data.get('ssh_port', 22))
         except (TypeError, ValueError):
             return Response({'error': 'ssh_port must be an integer'}, status=400)
+        push_logo = request.data.get('push_logo', True)
+        push_standby = request.data.get('push_standby', False)
 
-        from players.branding import BrandingPushError, push_splash_logo_to_player
+        from players.branding import (
+            BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
+        )
 
         results = {}
         for player in group.players.all():
             try:
-                push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+                if push_logo:
+                    push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+                if push_standby:
+                    push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port)
                 results[str(player.id)] = {'name': player.name, 'success': True}
             except BrandingPushError as exc:
                 results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}
 
         log_action(
-            request, 'push_splash_logo', 'group', target_id=group.id, target_name=group.name,
-            details={'results': results},
+            request, 'push_branding', 'group', target_id=group.id, target_name=group.name,
+            details={'logo': bool(push_logo), 'standby': bool(push_standby), 'results': results},
         )
         return Response({'success': True, 'results': results})

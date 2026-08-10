@@ -45,7 +45,7 @@ import {
   FaListUl,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { players as playersApi, media as mediaApi, folders as foldersApi, schedule as scheduleApi, cctv as cctvApi } from '@/services/api'
+import { players as playersApi, media as mediaApi, folders as foldersApi, schedule as scheduleApi, cctv as cctvApi, system as systemApi } from '@/services/api'
 import { translateApiError } from '@/utils/translateError'
 import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, ScheduleSlot, PlayerUpdateCheckResult, CecStatus, IrStatus } from '@/types'
 import { PlayerSchedule } from './player-schedule'
@@ -177,12 +177,15 @@ const PlayerDetail: React.FC = () => {
   const [screenshotFullscreen, setScreenshotFullscreen] = useState(false)
   const [screenshotUnsupported, setScreenshotUnsupported] = useState(false)
 
-  // Push splash logo (branding)
+  // Push branding (splash logo + standby image)
   const [showPushLogoModal, setShowPushLogoModal] = useState(false)
   const [pushLogoSshUser, setPushLogoSshUser] = useState('pi')
   const [pushLogoSshPassword, setPushLogoSshPassword] = useState('')
   const [pushLogoSshPort, setPushLogoSshPort] = useState(22)
   const [pushingLogo, setPushingLogo] = useState(false)
+  const [pushTargetLogo, setPushTargetLogo] = useState(true)
+  const [pushTargetStandby, setPushTargetStandby] = useState(false)
+  const [brandingHasStandby, setBrandingHasStandby] = useState(false)
 
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
@@ -609,11 +612,16 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
-  const handlePushSplashLogo = async () => {
-    if (!id || !pushLogoSshPassword) return
+  const handleOpenPushLogo = () => {
+    setShowPushLogoModal(true)
+    systemApi.getBranding().then((res) => setBrandingHasStandby(res.has_standby_image)).catch(() => {})
+  }
+
+  const handlePushBranding = async () => {
+    if (!id || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)) return
     setPushingLogo(true)
     try {
-      await playersApi.pushSplashLogo(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
+      await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby)
       Swal.fire({ icon: 'success', title: t('branding.pushed'), timer: 1500, showConfirmButton: false })
       setShowPushLogoModal(false)
       setPushLogoSshPassword('')
@@ -1355,7 +1363,7 @@ const PlayerDetail: React.FC = () => {
             {role === 'admin' && (
               <button
                 className="fm-btn-outline fm-btn-sm"
-                onClick={() => setShowPushLogoModal(true)}
+                onClick={handleOpenPushLogo}
                 title={t('branding.pushTitle')}
               >
                 <FaImage />
@@ -2735,6 +2743,36 @@ const PlayerDetail: React.FC = () => {
               </div>
               <div className="modal-body">
                 <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('branding.pushDesc')}</p>
+                <div className="mb-3">
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="push-target-logo"
+                      checked={pushTargetLogo}
+                      onChange={e => setPushTargetLogo(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-target-logo">
+                      {t('branding.logoLabel')}
+                    </label>
+                  </div>
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="push-target-standby"
+                      checked={pushTargetStandby}
+                      onChange={e => setPushTargetStandby(e.target.checked)}
+                      disabled={!brandingHasStandby}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-target-standby">
+                      {t('branding.standbyLabel')}
+                      {!brandingHasStandby && (
+                        <span className="text-muted"> ({t('branding.notSet')})</span>
+                      )}
+                    </label>
+                  </div>
+                </div>
                 <div className="mb-2">
                   <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
                   <input
@@ -2774,8 +2812,8 @@ const PlayerDetail: React.FC = () => {
                 <button
                   type="button"
                   className="fm-btn-primary"
-                  onClick={handlePushSplashLogo}
-                  disabled={pushingLogo || !pushLogoSshPassword}
+                  onClick={handlePushBranding}
+                  disabled={pushingLogo || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)}
                 >
                   {pushingLogo ? t('common.loading') : t('branding.push')}
                 </button>

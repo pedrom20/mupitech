@@ -353,24 +353,34 @@ def tailscale_settings(request):
     })
 
 
-# Fleet-wide custom splash logo, pushed to devices via SSH (players/branding.py).
-# Stored as a plain file on the shared media volume — no DB model needed for
-# a single fleet-wide asset. Constants live in players.branding; imported
+# Fleet-wide custom branding assets, pushed to devices via SSH (players/branding.py).
+# Stored as plain files on the shared media volume — no DB model needed for
+# a couple of fleet-wide assets. Constants live in players.branding; imported
 # here rather than redefined so the two never drift apart.
-from players.branding import BRANDING_DIR, BRANDING_LOGO_FILENAME, wrap_raster_as_svg
+from players.branding import (
+    BRANDING_DIR, BRANDING_LOGO_FILENAME, STANDBY_FILENAME,
+    convert_to_png, wrap_raster_as_svg,
+)
 
 
 def _branding_logo_path():
     return os.path.join(BRANDING_DIR, BRANDING_LOGO_FILENAME)
 
 
+def _branding_standby_path():
+    return os.path.join(BRANDING_DIR, STANDBY_FILENAME)
+
+
 @api_view(['GET'])
 def branding_settings(request):
-    """Whether a custom splash logo is set (vs. the bundled MupiTech default), and its URL for preview."""
-    exists = os.path.isfile(_branding_logo_path())
+    """Branding asset status: splash logo (custom vs. bundled default) and standby image."""
+    logo_exists = os.path.isfile(_branding_logo_path())
+    standby_exists = os.path.isfile(_branding_standby_path())
     return Response({
-        'has_custom_logo': exists,
-        'logo_url': f'{settings.MEDIA_URL}branding/{BRANDING_LOGO_FILENAME}' if exists else '/static/img/logo.svg',
+        'has_custom_logo': logo_exists,
+        'logo_url': f'{settings.MEDIA_URL}branding/{BRANDING_LOGO_FILENAME}' if logo_exists else '/static/img/logo.svg',
+        'has_standby_image': standby_exists,
+        'standby_url': f'{settings.MEDIA_URL}branding/{STANDBY_FILENAME}' if standby_exists else None,
     })
 
 
@@ -417,4 +427,51 @@ def branding_delete_logo(request):
         os.remove(path)
         from history.logging import log_action
         log_action(request, 'delete', 'branding_logo')
+    return Response(status=204)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def branding_upload_standby(request):
+    """Upload the fleet-wide "no content" standby image (PNG or JPEG).
+
+    Always converted to real PNG bytes at the fixed standby.png path the
+    device expects. SVG isn't accepted here (unlike the logo) — Pillow
+    can't rasterize vectors, and standby.png is loaded by the viewer as
+    a plain raster image, not through a browser that could render one.
+    """
+    image = request.FILES.get('standby')
+    if not image:
+        return Response({'error': 'standby file is required'}, status=400)
+
+    name_lower = image.name.lower()
+    if not name_lower.endswith(('.png', '.jpg', '.jpeg')):
+        return Response({'error': 'Only PNG or JPEG files are supported'}, status=400)
+
+    os.makedirs(BRANDING_DIR, exist_ok=True)
+    try:
+        png_bytes = convert_to_png(image)
+    except Exception as exc:
+        return Response({'error': f'Could not process image: {exc}'}, status=400)
+    with open(_branding_standby_path(), 'wb') as f:
+        f.write(png_bytes)
+
+    from history.logging import log_action
+    log_action(request, 'upload', 'branding_standby')
+
+    return Response({
+        'success': True,
+        'standby_url': f'{settings.MEDIA_URL}branding/{STANDBY_FILENAME}',
+    })
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdmin])
+def branding_delete_standby(request):
+    """Remove the fleet-wide custom standby image (does not affect devices it was already pushed to)."""
+    path = _branding_standby_path()
+    if os.path.isfile(path):
+        os.remove(path)
+        from history.logging import log_action
+        log_action(request, 'delete', 'branding_standby')
     return Response(status=204)

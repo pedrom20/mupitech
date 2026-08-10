@@ -1,11 +1,18 @@
-"""Push the fleet-wide custom splash logo to a device over SSH.
+"""Push fleet-wide custom branding assets to a device over SSH.
 
-Anthias's idle "splash" screen reads its logo from a plain static file
-(settings['splash_logo_url'], default /static/img/logo-full-splash.svg)
-served directly by WhiteNoise's StaticFilesStorage — not baked into any
-compiled Qt resource. Overwriting that file inside the running
-anthias-server container and restarting it is enough to rebrand it,
-no image rebuild needed. See docs/anthias-version-analysis.md.
+Anthias reads two branding-relevant images as plain static files, both
+served directly by WhiteNoise's StaticFilesStorage — neither is baked
+into any compiled Qt resource:
+  - settings['splash_logo_url'] (default /static/img/logo-full-splash.svg)
+    — logo on the network/IP "splash" screen shown on first boot / no
+    server configured yet.
+  - STANDBY_SCREEN (anthias_viewer/constants.py, always
+    /static/img/standby.png) — shown whenever there is no content
+    scheduled to play (the "black screen" between/without assets).
+
+Overwriting these files inside the running anthias-server container
+and restarting it is enough to rebrand them, no image rebuild needed.
+See docs/anthias-version-analysis.md.
 """
 
 import base64
@@ -16,17 +23,22 @@ from django.conf import settings
 
 from .provision import _shell_quote, _ssh_run
 
-REMOTE_TMP_PATH = '/tmp/mupitech-splash-logo.svg'
-CONTAINER_STATIC_PATH = '/usr/src/app/staticfiles/img/logo-full-splash.svg'
 BRANDING_DIR = os.path.join(settings.MEDIA_ROOT, 'branding')
+
 BRANDING_LOGO_FILENAME = 'splash-logo.svg'
+CONTAINER_LOGO_PATH = '/usr/src/app/staticfiles/img/logo-full-splash.svg'
+REMOTE_TMP_LOGO_PATH = '/tmp/mupitech-splash-logo.svg'
 # Bundled MupiTech logo, pushed when no custom one has been uploaded —
 # "remove custom logo" reverts to this rather than leaving nothing to push.
 DEFAULT_LOGO_PATH = os.path.join(settings.BASE_DIR, 'static', 'img', 'logo.svg')
 
+STANDBY_FILENAME = 'standby-image.png'
+CONTAINER_STANDBY_PATH = '/usr/src/app/staticfiles/img/standby.png'
+REMOTE_TMP_STANDBY_PATH = '/tmp/mupitech-standby-image.png'
+
 
 class BrandingPushError(Exception):
-    """Raised when pushing the custom splash logo to a device fails."""
+    """Raised when pushing a branding asset to a device fails."""
 
 
 def wrap_raster_as_svg(file_obj, filename):
@@ -56,6 +68,28 @@ def wrap_raster_as_svg(file_obj, filename):
     return svg.encode('utf-8')
 
 
+def convert_to_png(file_obj):
+    """Convert an uploaded SVG/PNG/JPEG to real PNG bytes.
+
+    Unlike the logo, standby.png's fixed filename is loaded by the
+    viewer as a plain raster image — serving SVG bytes under a .png
+    name isn't reliable there, so this always rasterizes to real PNG.
+    """
+    from PIL import Image
+
+    file_obj.seek(0)
+    with Image.open(file_obj) as img:
+        buf = _png_bytes(img)
+    return buf
+
+
+def _png_bytes(img):
+    import io
+    buf = io.BytesIO()
+    img.convert('RGBA').save(buf, format='PNG')
+    return buf.getvalue()
+
+
 def get_logo_path():
     """Absolute path to the logo that would be pushed: the uploaded
     fleet-wide custom one if set, otherwise the bundled MupiTech default.
@@ -64,11 +98,15 @@ def get_logo_path():
     return custom if os.path.isfile(custom) else DEFAULT_LOGO_PATH
 
 
-def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and replace its Anthias splash-page logo."""
-    import paramiko
+def get_standby_path():
+    """Absolute path to the custom standby ("no content") image, or None."""
+    path = os.path.join(BRANDING_DIR, STANDBY_FILENAME)
+    return path if os.path.isfile(path) else None
 
-    logo_path = get_logo_path()
+
+def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
+                          local_path, remote_tmp_path, container_path):
+    import paramiko
 
     host = urlparse(player.url).hostname
     if not host:
@@ -84,7 +122,7 @@ def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, time
     try:
         sftp = ssh.open_sftp()
         try:
-            sftp.put(logo_path, REMOTE_TMP_PATH)
+            sftp.put(local_path, remote_tmp_path)
         finally:
             sftp.close()
 
@@ -101,14 +139,42 @@ def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, time
 
         _ssh_run(
             ssh,
-            f'docker cp {REMOTE_TMP_PATH} {_shell_quote(container)}:{CONTAINER_STATIC_PATH}',
+            f'docker cp {remote_tmp_path} {_shell_quote(container)}:{container_path}',
             timeout=timeout,
         )
         _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
-        _ssh_run(ssh, f'rm -f {REMOTE_TMP_PATH}', timeout=timeout, check=False)
+        _ssh_run(ssh, f'rm -f {remote_tmp_path}', timeout=timeout, check=False)
     except BrandingPushError:
         raise
     except Exception as exc:
         raise BrandingPushError(str(exc)) from exc
     finally:
         ssh.close()
+
+
+def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and replace its Anthias splash-page logo."""
+    _push_file_to_player(
+        player, ssh_user, ssh_password, ssh_port, timeout,
+        local_path=get_logo_path(),
+        remote_tmp_path=REMOTE_TMP_LOGO_PATH,
+        container_path=CONTAINER_LOGO_PATH,
+    )
+
+
+def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and replace its "no content" standby image.
+
+    Raises BrandingPushError if no custom standby image has been uploaded —
+    unlike the logo there's no bundled default (a good placeholder needs
+    real design input, not just this app's own icon stretched to fill it).
+    """
+    standby_path = get_standby_path()
+    if not standby_path:
+        raise BrandingPushError('No custom standby image has been uploaded yet.')
+    _push_file_to_player(
+        player, ssh_user, ssh_password, ssh_port, timeout,
+        local_path=standby_path,
+        remote_tmp_path=REMOTE_TMP_STANDBY_PATH,
+        container_path=CONTAINER_STANDBY_PATH,
+    )

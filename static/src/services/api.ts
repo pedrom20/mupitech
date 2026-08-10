@@ -171,9 +171,10 @@ export const players = {
     return apiRequest<PlayerUpdateCheckResult>('GET', `/players/${id}/update-check/`)
   },
 
-  pushSplashLogo(id: string, sshUser: string, sshPassword: string, sshPort?: number): Promise<{ success: boolean }> {
-    return apiRequest('POST', `/players/${id}/push-splash-logo/`, {
+  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean): Promise<{ success: boolean }> {
+    return apiRequest('POST', `/players/${id}/push-branding/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+      push_logo: pushLogo, push_standby: pushStandby,
     })
   },
 
@@ -269,12 +270,13 @@ export const groups = {
     return apiRequest('POST', `/groups/${id}/apply-rotation/`, { screen_rotation: screenRotation })
   },
 
-  pushSplashLogo(id: string, sshUser: string, sshPassword: string, sshPort?: number): Promise<{
+  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean): Promise<{
     success: boolean
     results: Record<string, { name: string; success: boolean; error?: string }>
   }> {
-    return apiRequest('POST', `/groups/${id}/push-splash-logo/`, {
+    return apiRequest('POST', `/groups/${id}/push-branding/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+      push_logo: pushLogo, push_standby: pushStandby,
     })
   },
 }
@@ -563,7 +565,12 @@ export const system = {
     return apiRequest<ServerTelemetry>('GET', '/system/telemetry/')
   },
 
-  getBranding(): Promise<{ has_custom_logo: boolean; logo_url: string | null }> {
+  getBranding(): Promise<{
+    has_custom_logo: boolean
+    logo_url: string | null
+    has_standby_image: boolean
+    standby_url: string | null
+  }> {
     return apiRequest('GET', '/system/branding/')
   },
 
@@ -575,6 +582,16 @@ export const system = {
 
   deleteBrandingLogo(): Promise<void> {
     return apiRequest('DELETE', '/system/branding/logo/delete/')
+  },
+
+  uploadBrandingStandby(file: File): Promise<{ success: boolean; standby_url: string }> {
+    const data = new FormData()
+    data.append('standby', file)
+    return apiRequest('POST', '/system/branding/standby/', data)
+  },
+
+  deleteBrandingStandby(): Promise<void> {
+    return apiRequest('DELETE', '/system/branding/standby/delete/')
   },
 }
 
