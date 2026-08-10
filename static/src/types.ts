@@ -228,6 +228,12 @@ export interface ProvisionStep {
 
 export type UserRole = 'viewer' | 'editor' | 'admin'
 
+export interface UserScope {
+  location_ids: string[]
+  group_ids: string[]
+  player_ids: string[]
+}
+
 export interface User {
   id: number
   username: string
@@ -236,6 +242,7 @@ export interface User {
   last_name: string
   is_active: boolean
   role: UserRole
+  scope: UserScope
   last_login: string | null
   date_joined: string
 }

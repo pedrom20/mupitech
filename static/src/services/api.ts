@@ -560,11 +560,18 @@ export const users = {
     return apiRequest<User>('GET', '/users/me/')
   },
 
-  create(data: { username: string; email?: string; password: string; role: string; first_name?: string; last_name?: string }): Promise<User> {
+  create(data: {
+    username: string; email?: string; password: string; role: string
+    first_name?: string; last_name?: string
+    location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
+  }): Promise<User> {
     return apiRequest<User>('POST', '/users/', data)
   },
 
-  update(id: number, data: Partial<User> & { password?: string; role?: string }): Promise<User> {
+  update(id: number, data: Partial<User> & {
+    password?: string; role?: string
+    location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
+  }): Promise<User> {
     return apiRequest<User>('PATCH', `/users/${id}/`, data)
   },
 

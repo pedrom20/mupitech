@@ -109,7 +109,8 @@
     "apply": "Apply",
     "rotationApplied": "Rotation applied",
     "rotationAppliedDesc": "Applied to {{count}} device(s).",
-    "rotationPartial": "Failed on some devices"
+    "rotationPartial": "Failed on some devices",
+    "viewAllDevices": "View all {{count}} devices"
   },
   "locations": {
     "title": "Locations",
@@ -121,7 +122,9 @@
     "groups": "Groups",
     "ungroupedPlayers": "Ungrouped Players",
     "confirmDelete": "Are you sure you want to delete this location?",
-    "deleted": "Location deleted"
+    "deleted": "Location deleted",
+    "viewDetails": "View groups and devices",
+    "noDevices": "No devices"
   },
   "playlists": {
     "title": "Playlists",
@@ -762,7 +765,11 @@
     "updated": "User updated",
     "confirmDeactivate": "Deactivate this user?",
     "deactivated": "User deactivated",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "access": "Access",
+    "fullAccess": "Full access",
+    "restrictedAccess": "Restricted ({{count}})",
+    "scopeHint": "Optionally restrict this user to specific locations, groups or devices. Leave everything empty for full access. A location grants its groups and devices; a group grants its devices."
   },
   "audit": {
     "title": "Audit Log",

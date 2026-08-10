@@ -109,7 +109,8 @@
     "apply": "Aplicar",
     "rotationApplied": "Rotação aplicada",
     "rotationAppliedDesc": "Aplicada a {{count}} dispositivo(s).",
-    "rotationPartial": "Falhou em alguns dispositivos"
+    "rotationPartial": "Falhou em alguns dispositivos",
+    "viewAllDevices": "Ver todos os {{count}} dispositivos"
   },
   "locations": {
     "title": "Localizações",
@@ -121,7 +122,9 @@
     "groups": "Grupos",
     "ungroupedPlayers": "Dispositivos sem Grupo",
     "confirmDelete": "Tem a certeza que quer eliminar esta localização?",
-    "deleted": "Localização eliminada"
+    "deleted": "Localização eliminada",
+    "viewDetails": "Ver grupos e dispositivos",
+    "noDevices": "Sem dispositivos"
   },
   "playlists": {
     "title": "Listas de Reprodução",
@@ -762,7 +765,11 @@
     "updated": "Utilizador atualizado",
     "confirmDeactivate": "Desativar este utilizador?",
     "deactivated": "Utilizador desativado",
-    "inactive": "Inativo"
+    "inactive": "Inativo",
+    "access": "Acesso",
+    "fullAccess": "Acesso total",
+    "restrictedAccess": "Restrito ({{count}})",
+    "scopeHint": "Opcionalmente, restrinja este utilizador a localizações, grupos ou dispositivos específicos. Deixe tudo vazio para acesso total. Uma localização dá acesso aos seus grupos e dispositivos; um grupo dá acesso aos seus dispositivos."
   },
   "audit": {
     "title": "Registo de Auditoria",

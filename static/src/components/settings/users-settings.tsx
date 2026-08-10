@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { users as usersApi } from '@/services/api'
-import type { User, UserRole } from '@/types'
+import { users as usersApi, locations as locationsApi, groups as groupsApi, players as playersApi } from '@/services/api'
+import type { User, UserRole, Location, Group, Player } from '@/types'
 
 const ROLE_BADGE: Record<UserRole, string> = {
   admin: 'bg-danger',
@@ -27,11 +27,24 @@ const UsersSettings: React.FC = () => {
   const [role, setRole] = useState<string>('viewer')
   const [saving, setSaving] = useState(false)
 
+  // Scope pickers (leave all empty = unrestricted access, the default)
+  const [allLocations, setAllLocations] = useState<Location[]>([])
+  const [allGroups, setAllGroups] = useState<Group[]>([])
+  const [allPlayers, setAllPlayers] = useState<Player[]>([])
+  const [scopeLocationIds, setScopeLocationIds] = useState<string[]>([])
+  const [scopeGroupIds, setScopeGroupIds] = useState<string[]>([])
+  const [scopePlayerIds, setScopePlayerIds] = useState<string[]>([])
+
   const loadUsers = () => {
     usersApi.list().then(setUserList).catch(() => {}).finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => {
+    loadUsers()
+    locationsApi.list().then(setAllLocations).catch(() => {})
+    groupsApi.list().then(setAllGroups).catch(() => {})
+    playersApi.list().then(setAllPlayers).catch(() => {})
+  }, [])
 
   const resetForm = () => {
     setUsername('')
@@ -40,8 +53,14 @@ const UsersSettings: React.FC = () => {
     setLastName('')
     setPassword('')
     setRole('viewer')
+    setScopeLocationIds([])
+    setScopeGroupIds([])
+    setScopePlayerIds([])
     setEditUser(null)
   }
+
+  const selectedValues = (e: React.ChangeEvent<HTMLSelectElement>) =>
+    Array.from(e.target.selectedOptions).map((o) => o.value)
 
   const openCreate = () => {
     resetForm()
@@ -56,6 +75,9 @@ const UsersSettings: React.FC = () => {
     setLastName(u.last_name)
     setRole(u.role)
     setPassword('')
+    setScopeLocationIds(u.scope?.location_ids || [])
+    setScopeGroupIds(u.scope?.group_ids || [])
+    setScopePlayerIds(u.scope?.player_ids || [])
     setShowModal(true)
   }
 
@@ -63,13 +85,18 @@ const UsersSettings: React.FC = () => {
     e.preventDefault()
     setSaving(true)
     try {
+      const scopeData = {
+        location_ids: scopeLocationIds,
+        group_ids: scopeGroupIds,
+        player_ids: scopePlayerIds,
+      }
       if (editUser) {
-        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role }
+        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, ...scopeData }
         if (password) data.password = password
         await usersApi.update(editUser.id, data as Parameters<typeof usersApi.update>[1])
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.updated'), timer: 1500, showConfirmButton: false })
       } else {
-        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName })
+        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName, ...scopeData })
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.created'), timer: 1500, showConfirmButton: false })
       }
       setShowModal(false)
@@ -124,12 +151,16 @@ const UsersSettings: React.FC = () => {
                   <th>{t('users.username')}</th>
                   <th>{t('users.email')}</th>
                   <th>{t('users.role')}</th>
+                  <th>{t('users.access')}</th>
                   <th>{t('users.lastLogin')}</th>
                   <th>{t('users.actions')}</th>
                 </tr>
               </thead>
               <tbody>
-                {userList.map((u) => (
+                {userList.map((u) => {
+                  const scopedCount = (u.scope?.location_ids.length || 0)
+                    + (u.scope?.group_ids.length || 0) + (u.scope?.player_ids.length || 0)
+                  return (
                   <tr key={u.id} className={!u.is_active ? 'opacity-50' : ''}>
                     <td className="fw-semibold">{u.username}</td>
                     <td>{u.email || '—'}</td>
@@ -138,6 +169,13 @@ const UsersSettings: React.FC = () => {
                         {t(`users.role_${u.role}`)}
                       </span>
                       {!u.is_active && <span className="badge bg-dark ms-1">{t('users.inactive')}</span>}
+                    </td>
+                    <td>
+                      {scopedCount > 0 ? (
+                        <span className="badge bg-info text-dark">{t('users.restrictedAccess', { count: scopedCount })}</span>
+                      ) : (
+                        <span className="badge bg-light text-muted border">{t('users.fullAccess')}</span>
+                      )}
                     </td>
                     <td style={{ fontSize: '0.8rem' }}>
                       {u.last_login ? new Date(u.last_login).toLocaleString() : '—'}
@@ -153,7 +191,8 @@ const UsersSettings: React.FC = () => {
                       )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -203,6 +242,57 @@ const UsersSettings: React.FC = () => {
                       <option value="admin">{t('users.role_admin')}</option>
                     </select>
                   </div>
+
+                  {role !== 'admin' && (
+                    <>
+                      <hr className="my-3" />
+                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>
+                        {t('users.scopeHint')}
+                      </p>
+                      <div className="mb-2">
+                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
+                        <select
+                          multiple
+                          className="form-select form-select-sm"
+                          size={Math.min(4, Math.max(2, allLocations.length))}
+                          value={scopeLocationIds}
+                          onChange={(e) => setScopeLocationIds(selectedValues(e))}
+                        >
+                          {allLocations.map((l) => (
+                            <option key={l.id} value={l.id}>{l.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="mb-2">
+                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('groups.title')}</label>
+                        <select
+                          multiple
+                          className="form-select form-select-sm"
+                          size={Math.min(4, Math.max(2, allGroups.length))}
+                          value={scopeGroupIds}
+                          onChange={(e) => setScopeGroupIds(selectedValues(e))}
+                        >
+                          {allGroups.map((g) => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="mb-2">
+                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('players.title')}</label>
+                        <select
+                          multiple
+                          className="form-select form-select-sm"
+                          size={Math.min(4, Math.max(2, allPlayers.length))}
+                          value={scopePlayerIds}
+                          onChange={(e) => setScopePlayerIds(selectedValues(e))}
+                        >
+                          {allPlayers.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="modal-footer py-2">
                   <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowModal(false)}>
