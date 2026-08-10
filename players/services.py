@@ -2,6 +2,7 @@ import logging
 
 import requests
 from django.conf import settings
+from rest_framework import status
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, HTTPError, RetryError, Timeout
 from urllib3.util.retry import Retry
@@ -16,6 +17,49 @@ class PlayerConnectionError(Exception):
         super().__init__(message)
         self.status_code = status_code
         self.response_data = response_data
+
+
+def format_player_error(exc):
+    """Extract a human-readable error from PlayerConnectionError.
+
+    DRF validation errors come as dicts like:
+        {"field": ["msg1", "msg2"], "non_field_errors": ["msg3"]}
+    Player custom errors come as:
+        {"error": "some message"}
+    """
+    data = exc.response_data
+    if not data:
+        return str(exc), status.HTTP_502_BAD_GATEWAY
+
+    # Player-side HTTP status → forward as-is for 4xx
+    http_status = status.HTTP_502_BAD_GATEWAY
+    if exc.status_code and 400 <= exc.status_code < 500:
+        http_status = exc.status_code
+
+    # {"error": "..."} format
+    if isinstance(data, dict) and 'error' in data:
+        return data['error'], http_status
+
+    # {"detail": "..."} format (DRF generic)
+    if isinstance(data, dict) and 'detail' in data:
+        return data['detail'], http_status
+
+    # DRF serializer validation: {"field": ["msg", ...], ...}
+    if isinstance(data, dict):
+        messages = []
+        for field, errors in data.items():
+            if isinstance(errors, list):
+                for msg in errors:
+                    if field == 'non_field_errors':
+                        messages.append(str(msg))
+                    else:
+                        messages.append(f'{field}: {msg}')
+            else:
+                messages.append(f'{field}: {errors}')
+        if messages:
+            return '; '.join(messages), http_status
+
+    return str(exc), http_status
 
 
 def _build_session():

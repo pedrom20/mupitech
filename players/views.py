@@ -16,9 +16,10 @@ from rest_framework.views import APIView
 from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
 
 from content.models import MediaFile
+from scheduling.mixins import ScheduleActionsMixin
 from .models import Player, PlayerSnapshot
 from .serializers import PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
-from .services import AnthiasAPIClient, PlayerConnectionError
+from .services import AnthiasAPIClient, PlayerConnectionError, format_player_error
 
 logger = logging.getLogger(__name__)
 
@@ -86,49 +87,6 @@ def _get_latest_player_version(device_type='pi4'):
         return {'sha': '', 'error': str(e)}
 
 
-def _format_player_error(exc):
-    """Extract a human-readable error from PlayerConnectionError.
-
-    DRF validation errors come as dicts like:
-        {"field": ["msg1", "msg2"], "non_field_errors": ["msg3"]}
-    Player custom errors come as:
-        {"error": "some message"}
-    """
-    data = exc.response_data
-    if not data:
-        return str(exc), status.HTTP_502_BAD_GATEWAY
-
-    # Player-side HTTP status → forward as-is for 4xx
-    http_status = status.HTTP_502_BAD_GATEWAY
-    if exc.status_code and 400 <= exc.status_code < 500:
-        http_status = exc.status_code
-
-    # {"error": "..."} format
-    if isinstance(data, dict) and 'error' in data:
-        return data['error'], http_status
-
-    # {"detail": "..."} format (DRF generic)
-    if isinstance(data, dict) and 'detail' in data:
-        return data['detail'], http_status
-
-    # DRF serializer validation: {"field": ["msg", ...], ...}
-    if isinstance(data, dict):
-        messages = []
-        for field, errors in data.items():
-            if isinstance(errors, list):
-                for msg in errors:
-                    if field == 'non_field_errors':
-                        messages.append(str(msg))
-                    else:
-                        messages.append(f'{field}: {msg}')
-            else:
-                messages.append(f'{field}: {errors}')
-        if messages:
-            return '; '.join(messages), http_status
-
-    return str(exc), http_status
-
-
 def _safe_int(value, default, field_name='value'):
     """Parse an int from request data, returning default on None or raising 400 on bad input."""
     if value is None:
@@ -149,7 +107,7 @@ def _update_player_status(player, online, info=None):
     player.save(update_fields=['is_online', 'last_seen', 'last_status'])
 
 
-class PlayerViewSet(viewsets.ModelViewSet):
+class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
     """ViewSet for managing Anthias players."""
     queryset = Player.objects.select_related('group').all()
     serializer_class = PlayerSerializer
@@ -584,186 +542,6 @@ class PlayerViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    # ── Schedule Slot proxy actions ──
-
-    @action(detail=True, methods=['get'], url_path='schedule-slots')
-    def schedule_slots(self, request, pk=None):
-        """Proxy to the player's schedule slots list."""
-        player = self.get_object()
-        client = self._get_client(player)
-        try:
-            data = client.get_schedule_slots()
-            return Response(data)
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['get'], url_path='schedule-status')
-    def schedule_status(self, request, pk=None):
-        """Proxy to the player's schedule status."""
-        player = self.get_object()
-        client = self._get_client(player)
-        try:
-            data = client.get_schedule_status()
-            return Response(data)
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['post'], url_path='schedule-slot-create')
-    def schedule_slot_create(self, request, pk=None):
-        """Create a schedule slot on the player."""
-        player = self.get_object()
-        client = self._get_client(player)
-        try:
-            data = client.create_schedule_slot(request.data)
-            from history.logging import log_action
-            log_action(request, 'create', 'schedule_slot', target_id=data.get('id', ''), target_name=f"{player.name}: {request.data.get('name', '')}")
-            return Response({'success': True, 'slot': data}, status=status.HTTP_201_CREATED)
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['put', 'patch'], url_path='schedule-slot-update')
-    def schedule_slot_update(self, request, pk=None):
-        """Update a schedule slot on the player."""
-        player = self.get_object()
-        client = self._get_client(player)
-        slot_id = request.data.get('slot_id')
-        if not slot_id:
-            return Response(
-                {'error': 'slot_id is required'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        update_data = {k: v for k, v in request.data.items() if k != 'slot_id'}
-        try:
-            data = client.update_schedule_slot(slot_id, update_data)
-            from history.logging import log_action
-            log_action(request, 'update', 'schedule_slot', target_id=slot_id, target_name=player.name, details=update_data)
-            return Response({'success': True, 'slot': data})
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['post'], url_path='schedule-slot-delete')
-    def schedule_slot_delete(self, request, pk=None):
-        """Delete a schedule slot on the player."""
-        player = self.get_object()
-        client = self._get_client(player)
-        slot_id = request.data.get('slot_id')
-        if not slot_id:
-            return Response(
-                {'error': 'slot_id is required'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            client.delete_schedule_slot(slot_id)
-            from history.logging import log_action
-            log_action(request, 'delete', 'schedule_slot', target_id=slot_id, target_name=player.name)
-            return Response({'success': True})
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['post'], url_path='schedule-slot-item-add')
-    def schedule_slot_item_add(self, request, pk=None):
-        """Add an asset to a schedule slot on the player.
-
-        Automatically enables the asset (is_enabled=True) so it can be
-        played by the scheduler.  Anthias requires assets to be enabled
-        even when they are part of a schedule slot.
-        """
-        player = self.get_object()
-        client = self._get_client(player)
-        slot_id = request.data.get('slot_id')
-        if not slot_id:
-            return Response(
-                {'error': 'slot_id is required'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        item_data = {k: v for k, v in request.data.items() if k != 'slot_id'}
-        try:
-            # Ensure the asset is enabled so the scheduler can play it
-            asset_id = item_data.get('asset_id')
-            if asset_id:
-                try:
-                    client.update_asset(asset_id, {'is_enabled': True})
-                except PlayerConnectionError:
-                    pass  # non-fatal: slot item will still be added
-
-            data = client.add_slot_item(slot_id, item_data)
-            from history.logging import log_action
-            log_action(request, 'add_item', 'schedule_slot', target_id=slot_id, target_name=player.name, details={'asset_id': item_data.get('asset_id', '')})
-            return Response({'success': True, 'item': data}, status=status.HTTP_201_CREATED)
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['post'], url_path='schedule-slot-item-remove')
-    def schedule_slot_item_remove(self, request, pk=None):
-        """Remove an asset from a schedule slot on the player."""
-        player = self.get_object()
-        client = self._get_client(player)
-        slot_id = request.data.get('slot_id')
-        item_id = request.data.get('item_id')
-        if not slot_id or not item_id:
-            return Response(
-                {'error': 'slot_id and item_id are required'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            client.delete_slot_item(slot_id, item_id)
-            from history.logging import log_action
-            log_action(request, 'remove_item', 'schedule_slot', target_id=slot_id, target_name=player.name, details={'item_id': item_id})
-            return Response({'success': True})
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['put', 'patch'], url_path='schedule-slot-item-update')
-    def schedule_slot_item_update(self, request, pk=None):
-        """Update a slot item on the player (e.g. duration_override)."""
-        player = self.get_object()
-        client = self._get_client(player)
-        slot_id = request.data.get('slot_id')
-        item_id = request.data.get('item_id')
-        if not slot_id or not item_id:
-            return Response(
-                {'error': 'slot_id and item_id are required'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        update_data = {
-            k: v for k, v in request.data.items()
-            if k not in ('slot_id', 'item_id')
-        }
-        try:
-            data = client.update_slot_item(slot_id, item_id, update_data)
-            from history.logging import log_action
-            log_action(request, 'update_item', 'schedule_slot', target_id=slot_id, target_name=player.name, details={'item_id': item_id, **update_data})
-            return Response({'success': True, 'item': data})
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
-    @action(detail=True, methods=['post'], url_path='schedule-slot-items-reorder')
-    def schedule_slot_items_reorder(self, request, pk=None):
-        """Reorder items in a schedule slot."""
-        player = self.get_object()
-        client = self._get_client(player)
-        slot_id = request.data.get('slot_id')
-        ids = request.data.get('ids', [])
-        if not slot_id:
-            return Response(
-                {'error': 'slot_id is required'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            data = client.reorder_slot_items(slot_id, ids)
-            return Response(data)
-        except PlayerConnectionError as exc:
-            msg, code = _format_player_error(exc)
-            return Response({'error': msg}, status=code)
-
     @action(detail=True, methods=['get'], url_path=r'asset-content/(?P<asset_id>[^/.]+)')
     def asset_content(self, request, pk=None, asset_id=None):
         """Proxy asset content from the player (images, videos)."""
@@ -958,7 +736,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             )
             return Response(result)
         except PlayerConnectionError as exc:
-            msg, http_status = _format_player_error(exc)
+            msg, http_status = format_player_error(exc)
             return Response({'error': msg, 'success': False}, status=http_status)
 
 
