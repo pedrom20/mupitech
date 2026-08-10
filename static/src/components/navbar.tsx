@@ -50,7 +50,7 @@ const Navbar: React.FC = () => {
       <nav className="fm-navbar">
         <div className="container-fluid d-flex align-items-center px-3 h-100">
           <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
-            <img src="/static/img/logo.svg" alt="Anthias Fleet Manager" />
+            <img src="/static/img/logo.svg" alt="MupiTech Fleet Manager" />
           </NavLink>
           <NavLink to="/changelog" className="fm-version-badge" onClick={closeMenu}>
             v{APP_VERSION}

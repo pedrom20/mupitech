@@ -282,7 +282,8 @@
     "logout": "Déconnexion",
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
-    "invalidCredentials": "Nom d'utilisateur ou mot de passe incorrect"
+    "invalidCredentials": "Nom d'utilisateur ou mot de passe incorrect",
+    "brandSuffix": "Fleet Manager"
   },
   "schedule": {
     "title": "Créneaux horaires",
@@ -534,7 +535,8 @@
     "camera": "Caméra"
   },
   "footer": {
-    "copyright": "Anthias Fleet Manager"
+    "copyright": "MupiTech Fleet Manager",
+    "upstream": "Basé sur le projet Anthias"
   },
   "apiErrors": {
     "slotNotFound": "Créneau introuvable",

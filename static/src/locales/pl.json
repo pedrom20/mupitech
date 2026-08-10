@@ -282,7 +282,8 @@
     "logout": "Wyloguj się",
     "username": "Nazwa użytkownika",
     "password": "Hasło",
-    "invalidCredentials": "Nieprawidłowa nazwa użytkownika lub hasło"
+    "invalidCredentials": "Nieprawidłowa nazwa użytkownika lub hasło",
+    "brandSuffix": "Fleet Manager"
   },
   "schedule": {
     "title": "Sloty harmonogramu",

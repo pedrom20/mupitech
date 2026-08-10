@@ -299,7 +299,8 @@
     "logout": "Terminar Sessão",
     "username": "Utilizador",
     "password": "Palavra-passe",
-    "invalidCredentials": "Utilizador ou palavra-passe inválidos"
+    "invalidCredentials": "Utilizador ou palavra-passe inválidos",
+    "brandSuffix": "Gestor de Mupis"
   },
   "schedule": {
     "title": "Intervalos de Agendamento",

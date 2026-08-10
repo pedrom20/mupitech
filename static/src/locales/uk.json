@@ -299,7 +299,8 @@
     "logout": "Вийти",
     "username": "Ім'я користувача",
     "password": "Пароль",
-    "invalidCredentials": "Невірне ім'я користувача або пароль"
+    "invalidCredentials": "Невірне ім'я користувача або пароль",
+    "brandSuffix": "Fleet Manager"
   },
   "schedule": {
     "title": "Часові слоти",
@@ -606,7 +607,8 @@
     "camera": "Камера"
   },
   "footer": {
-    "copyright": "Anthias Fleet Manager"
+    "copyright": "MupiTech Fleet Manager",
+    "upstream": "Built on the Anthias project"
   },
   "apiErrors": {
     "slotNotFound": "Слот не знайдено",

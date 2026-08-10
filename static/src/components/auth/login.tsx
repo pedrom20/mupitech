@@ -57,7 +57,7 @@ const Login: React.FC = () => {
       <div className="fm-card fm-card-accent" style={{ maxWidth: '420px', width: '100%' }}>
         <div className="fm-card-header text-center">
           <h4 className="card-title mb-0">
-            <span className="brand-highlight">Anthias</span> Fleet Manager
+            <span className="brand-highlight">MupiTech</span> {t('auth.brandSuffix')}
           </h4>
         </div>
         <div className="fm-card-body">

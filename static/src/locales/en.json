@@ -299,7 +299,8 @@
     "logout": "Sign Out",
     "username": "Username",
     "password": "Password",
-    "invalidCredentials": "Invalid username or password"
+    "invalidCredentials": "Invalid username or password",
+    "brandSuffix": "Fleet Manager"
   },
   "schedule": {
     "title": "Schedule Slots",
@@ -606,7 +607,8 @@
     "camera": "Camera"
   },
   "footer": {
-    "copyright": "Anthias Fleet Manager"
+    "copyright": "MupiTech Fleet Manager",
+    "upstream": "Built on the Anthias project"
   },
   "apiErrors": {
     "slotNotFound": "Slot not found",
