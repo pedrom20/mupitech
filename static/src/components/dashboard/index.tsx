@@ -5,6 +5,7 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaLayerGroup,
+  FaMapMarkerAlt,
   FaPlus,
   FaSearch,
   FaThLarge,
@@ -39,8 +40,8 @@ const Dashboard: React.FC = () => {
     const total = players.length
     const online = players.filter((p) => p.is_online).length
     const offline = total - online
-    return { total, online, offline, groups: groups.length }
-  }, [players, groups])
+    return { total, online, offline, groups: groups.length, locations: locations.length }
+  }, [players, groups, locations])
 
   const filteredPlayers = useMemo(() => {
     return players.filter((player) => {
@@ -87,6 +88,12 @@ const Dashboard: React.FC = () => {
       iconClass: 'stat-icon-yellow',
       value: stats.groups,
       label: t('dashboard.groups'),
+    },
+    {
+      icon: <FaMapMarkerAlt />,
+      iconClass: 'stat-icon-purple',
+      value: stats.locations,
+      label: t('dashboard.locations'),
     },
   ]
 
