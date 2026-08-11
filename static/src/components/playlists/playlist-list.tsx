@@ -10,6 +10,7 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaTimes,
+  FaSearch,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -18,6 +19,7 @@ import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { media as mediaApi } from '@/services/api'
+import { FilePreview } from '@/components/shared/media-preview'
 import type { Playlist, PlaylistItem, MediaFile } from '@/types'
 
 interface FormItem {
@@ -41,7 +43,7 @@ const PlaylistList: React.FC = () => {
   const [formName, setFormName] = useState('')
   const [formDescription, setFormDescription] = useState('')
   const [formItems, setFormItems] = useState<FormItem[]>([])
-  const [pickerMediaId, setPickerMediaId] = useState('')
+  const [contentSearch, setContentSearch] = useState('')
   const [formTargetPlayers, setFormTargetPlayers] = useState<string[]>([])
   const [formTargetGroups, setFormTargetGroups] = useState<string[]>([])
   const [formTargetLocations, setFormTargetLocations] = useState<string[]>([])
@@ -68,13 +70,13 @@ const PlaylistList: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playlists, searchParams])
 
-  const mediaFileName = (id: string) => mediaFiles.find((m) => m.id === id)?.name || id
+  const mediaFileById = (id: string) => mediaFiles.find((m) => m.id === id)
 
   const resetForm = () => {
     setFormName('')
     setFormDescription('')
     setFormItems([])
-    setPickerMediaId('')
+    setContentSearch('')
     setFormTargetPlayers([])
     setFormTargetGroups([])
     setFormTargetLocations([])
@@ -104,10 +106,8 @@ const PlaylistList: React.FC = () => {
     setEditingPlaylist(null)
   }
 
-  const handleAddItem = () => {
-    if (!pickerMediaId) return
-    setFormItems((prev) => [...prev, { media_file: pickerMediaId, order: prev.length, duration: null }])
-    setPickerMediaId('')
+  const handleAddItem = (mediaId: string) => {
+    setFormItems((prev) => [...prev, { media_file: mediaId, order: prev.length, duration: null }])
   }
 
   const handleRemoveItem = (index: number) => {
@@ -295,43 +295,85 @@ const PlaylistList: React.FC = () => {
 
                   <div className="mb-3">
                     <label className="form-label fw-semibold">{t('playlists.content')}</label>
-                    <div className="d-flex gap-2 mb-2">
-                      <select className="form-select" value={pickerMediaId} onChange={(e) => setPickerMediaId(e.target.value)}>
-                        <option value="">{t('playlists.selectContent')}</option>
-                        {mediaFiles.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                      </select>
-                      <button type="button" className="btn btn-secondary" onClick={handleAddItem}>
-                        <FaPlus />
-                      </button>
+
+                    <div className="input-group input-group-sm mb-2">
+                      <span className="input-group-text"><FaSearch /></span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder={t('playlists.searchContent')}
+                        value={contentSearch}
+                        onChange={(e) => setContentSearch(e.target.value)}
+                      />
                     </div>
+                    <div
+                      className="border rounded p-2 mb-3 d-flex flex-wrap gap-2"
+                      style={{ maxHeight: '220px', overflowY: 'auto' }}
+                    >
+                      {mediaFiles.length === 0 ? (
+                        <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                      ) : mediaFiles
+                        .filter((m) => m.name.toLowerCase().includes(contentSearch.toLowerCase()))
+                        .map((m) => (
+                          <div
+                            key={m.id}
+                            role="button"
+                            title={t('playlists.addContentHint', { name: m.name })}
+                            onClick={() => handleAddItem(m.id)}
+                            style={{ width: '96px', cursor: 'pointer' }}
+                          >
+                            <div className="rounded overflow-hidden border" style={{ width: '96px' }}>
+                              <FilePreview file={m} />
+                            </div>
+                            <small
+                              className="d-block text-truncate mt-1"
+                              style={{ fontSize: '0.7rem' }}
+                              title={m.name}
+                            >
+                              {m.name}
+                            </small>
+                          </div>
+                        ))}
+                    </div>
+
+                    <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>
+                      {t('playlists.playlistItems')} ({formItems.length})
+                    </label>
                     {formItems.length === 0 ? (
                       <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('playlists.noItemsYet')}</p>
                     ) : (
                       <ul className="list-group">
-                        {formItems.map((item, index) => (
-                          <li key={`${item.media_file}-${index}`} className="list-group-item d-flex align-items-center gap-2">
-                            <span className="flex-grow-1">{index + 1}. {mediaFileName(item.media_file)}</span>
-                            <input
-                              type="number"
-                              className="form-control form-control-sm"
-                              style={{ width: '90px' }}
-                              placeholder={t('playlists.durationSec')}
-                              value={item.duration ?? ''}
-                              onChange={(e) => handleItemDurationChange(index, e.target.value)}
-                            />
-                            <button type="button" className="fm-btn-icon" onClick={() => handleMoveItem(index, -1)} disabled={index === 0}>
-                              <FaArrowUp />
-                            </button>
-                            <button type="button" className="fm-btn-icon" onClick={() => handleMoveItem(index, 1)} disabled={index === formItems.length - 1}>
-                              <FaArrowDown />
-                            </button>
-                            <button type="button" className="fm-btn-icon" onClick={() => handleRemoveItem(index)} style={{ color: '#dc3545' }}>
-                              <FaTimes />
-                            </button>
-                          </li>
-                        ))}
+                        {formItems.map((item, index) => {
+                          const file = mediaFileById(item.media_file)
+                          return (
+                            <li key={`${item.media_file}-${index}`} className="list-group-item d-flex align-items-center gap-2">
+                              <span className="text-muted" style={{ fontSize: '0.8rem', width: '18px' }}>{index + 1}.</span>
+                              <div className="rounded overflow-hidden border flex-shrink-0" style={{ width: '56px' }}>
+                                {file ? <FilePreview file={file} /> : (
+                                  <div style={{ width: '56px', aspectRatio: '16/9', background: 'var(--bs-gray-200)' }} />
+                                )}
+                              </div>
+                              <span className="flex-grow-1 text-truncate">{file?.name || item.media_file}</span>
+                              <input
+                                type="number"
+                                className="form-control form-control-sm"
+                                style={{ width: '90px' }}
+                                placeholder={t('playlists.durationSec')}
+                                value={item.duration ?? ''}
+                                onChange={(e) => handleItemDurationChange(index, e.target.value)}
+                              />
+                              <button type="button" className="fm-btn-icon" onClick={() => handleMoveItem(index, -1)} disabled={index === 0}>
+                                <FaArrowUp />
+                              </button>
+                              <button type="button" className="fm-btn-icon" onClick={() => handleMoveItem(index, 1)} disabled={index === formItems.length - 1}>
+                                <FaArrowDown />
+                              </button>
+                              <button type="button" className="fm-btn-icon" onClick={() => handleRemoveItem(index)} style={{ color: '#dc3545' }}>
+                                <FaTimes />
+                              </button>
+                            </li>
+                          )
+                        })}
                       </ul>
                     )}
                   </div>
