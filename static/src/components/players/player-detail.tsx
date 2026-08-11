@@ -785,6 +785,59 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  const handleSidecarScreenshot = async () => {
+    if (!id || !player) return
+
+    let sshUser = player.ssh_username || 'pi'
+    let sshPassword = ''
+    let sshPort = player.ssh_port || 22
+    let saveCredentials = false
+
+    if (!player.has_ssh_credentials) {
+      const result = await Swal.fire({
+        title: t('players.sidecarPromptTitle'),
+        html:
+          `<input id="swal-ssh-user" class="swal2-input" placeholder="${t('branding.sshUser')}" value="pi">` +
+          `<input id="swal-ssh-password" type="password" class="swal2-input" placeholder="${t('branding.sshPassword')}">` +
+          `<input id="swal-ssh-port" type="number" class="swal2-input" placeholder="${t('branding.sshPort')}" value="22">`,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: t('players.sidecarCapture'),
+        cancelButtonText: t('common.cancel'),
+        preConfirm: () => {
+          const userInput = (document.getElementById('swal-ssh-user') as HTMLInputElement).value
+          const passwordInput = (document.getElementById('swal-ssh-password') as HTMLInputElement).value
+          const portInput = Number((document.getElementById('swal-ssh-port') as HTMLInputElement).value) || 22
+          if (!passwordInput) {
+            Swal.showValidationMessage(t('branding.sshPassword'))
+            return false
+          }
+          return { user: userInput, password: passwordInput, port: portInput }
+        },
+      })
+      if (!result.isConfirmed || !result.value) return
+      sshUser = result.value.user
+      sshPassword = result.value.password
+      sshPort = result.value.port
+      saveCredentials = true
+    }
+
+    setScreenshotLoading(true)
+    try {
+      if (screenshotUrl) URL.revokeObjectURL(screenshotUrl)
+      const url = await playersApi.captureScreenshotSidecar(id, sshUser, sshPassword, sshPort, saveCredentials)
+      setScreenshotUrl(url)
+      setHasScreenshot(true)
+      if (saveCredentials) {
+        setPlayer({ ...player, has_ssh_credentials: true, ssh_username: sshUser, ssh_port: sshPort })
+      }
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setScreenshotLoading(false)
+    }
+  }
+
   // Asset toggle enabled/disabled (optimistic UI like Anthias Player)
   const handleToggleAsset = async (asset: PlayerAsset) => {
     if (!id || togglingAssetId) return
@@ -1554,6 +1607,16 @@ const PlayerDetail: React.FC = () => {
                         ? t('players.screenshotUnavailable')
                         : t('players.offline')}
                   </small>
+                  {screenshotUnsupported && player.is_online && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={handleSidecarScreenshot}
+                      disabled={screenshotLoading}
+                    >
+                      {screenshotLoading ? t('common.loading') : t('players.sidecarCapture')}
+                    </button>
+                  )}
                 </div>
               )}
               {/* Playback controls under screenshot */}

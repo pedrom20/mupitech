@@ -167,6 +167,30 @@ export const players = {
     return URL.createObjectURL(blob)
   },
 
+  async captureScreenshotSidecar(id: string, sshUser: string, sshPassword: string, sshPort: number, saveCredentials = false): Promise<string> {
+    const res = await fetch(`${BASE_URL}/players/${id}/screenshot-sidecar/`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({
+        ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+        save_credentials: saveCredentials,
+      }),
+    })
+    if (!res.ok) {
+      let message = 'Screenshot failed'
+      try {
+        const errorData = await res.json()
+        message = errorData.error || errorData.detail || message
+      } catch {
+        // response wasn't JSON, keep generic message
+      }
+      throw new Error(message)
+    }
+    const blob = await res.blob()
+    return URL.createObjectURL(blob)
+  },
+
   updateCheck(id: string): Promise<PlayerUpdateCheckResult> {
     return apiRequest<PlayerUpdateCheckResult>('GET', `/players/${id}/update-check/`)
   },

@@ -86,6 +86,8 @@
     "liveBadge": "AO VIVO",
     "featureNotSupported": "Esta funcionalidade não é suportada neste dispositivo",
     "screenshotNotSupported": "Captura de ecrã não disponível para este dispositivo",
+    "sidecarCapture": "Capturar via SSH",
+    "sidecarPromptTitle": "Credenciais SSH deste dispositivo",
     "checkUpdate": "Verificar Atualização",
     "updateAvailable": "Atualização disponível",
     "upToDate": "Atualizado",

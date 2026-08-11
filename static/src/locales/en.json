@@ -86,6 +86,8 @@
     "liveBadge": "LIVE",
     "featureNotSupported": "This feature is not supported on this player",
     "screenshotNotSupported": "Screenshot not available for this player",
+    "sidecarCapture": "Capture via SSH",
+    "sidecarPromptTitle": "SSH credentials for this device",
     "checkUpdate": "Check Update",
     "updateAvailable": "Update available",
     "upToDate": "Up to date",

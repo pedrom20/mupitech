@@ -321,6 +321,37 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+    @action(detail=True, methods=['post'], url_path='screenshot-sidecar')
+    def screenshot_sidecar(self, request, pk=None):
+        """Capture a screenshot via a throwaway SSH/Docker sidecar, for
+        official Anthias devices whose /v2/screenshot the fork-only
+        endpoint doesn't exist. See players/screenshot_sidecar.py.
+
+        ssh_user/ssh_password/ssh_port are optional if this device
+        already has saved SSH credentials."""
+        player = self.get_object()
+        ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
+        if not ssh_password:
+            return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
+
+        from .screenshot_sidecar import ScreenshotSidecarError, capture_screenshot_via_sidecar
+        try:
+            image_data = capture_screenshot_via_sidecar(player, ssh_user, ssh_password, ssh_port)
+        except ScreenshotSidecarError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if request.data.get('save_credentials'):
+            player.ssh_username = ssh_user
+            player.set_ssh_password(ssh_password)
+            player.ssh_port = ssh_port
+            player.save(update_fields=['ssh_username', 'ssh_password_encrypted', 'ssh_port'])
+
+        from history.logging import log_action
+        log_action(request, 'screenshot_sidecar', 'player', target_id=player.id, target_name=player.name)
+        return HttpResponse(image_data, content_type='image/png')
+
     @action(detail=True, methods=['post'], url_path='push-branding')
     def push_branding(self, request, pk=None):
         """SSH into the device once and replace its Anthias branding
