@@ -172,6 +172,7 @@ const PlayerDetail: React.FC = () => {
   const [assetsLoading, setAssetsLoading] = useState(false)
   const [togglingAssetId, setTogglingAssetId] = useState<string | null>(null)
   const [expandedPlaylistGroups, setExpandedPlaylistGroups] = useState<Set<string>>(new Set())
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set())
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
   const [screenshotLoading, setScreenshotLoading] = useState(false)
   const [screenshotFullscreen, setScreenshotFullscreen] = useState(false)
@@ -917,6 +918,40 @@ const PlayerDetail: React.FC = () => {
   }
 
   // Asset delete
+  const toggleAssetSelection = (assetId: string) => {
+    setSelectedAssetIds(prev => {
+      const next = new Set(prev)
+      if (next.has(assetId)) next.delete(assetId)
+      else next.add(assetId)
+      return next
+    })
+  }
+
+  const handleBulkDeleteAssets = async (assetIds: string[]) => {
+    if (!id || assetIds.length === 0) return
+    const result = await Swal.fire({
+      title: t('assets.deleteAsset'),
+      text: t('assets.confirmBulkDelete', { count: assetIds.length }),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: t('common.delete'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!result.isConfirmed) return
+    try {
+      await Promise.all(assetIds.map(assetId => playersApi.deleteAsset(id, assetId)))
+      setAssets(prev => prev.filter(a => !assetIds.includes(a.asset_id)))
+      setSelectedAssetIds(prev => {
+        const next = new Set(prev)
+        assetIds.forEach(assetId => next.delete(assetId))
+        return next
+      })
+      Swal.fire({ icon: 'success', title: t('assets.deleted'), timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: t('assets.deleteFailed') })
+    }
+  }
+
   const handleDeleteAsset = async (asset: PlayerAsset) => {
     if (!id) return
 
@@ -1233,6 +1268,14 @@ const PlayerDetail: React.FC = () => {
 
   const renderAssetRow = (asset: PlayerAsset) => (
     <tr key={asset.asset_id}>
+      <td>
+        <input
+          type="checkbox"
+          className="form-check-input"
+          checked={selectedAssetIds.has(asset.asset_id)}
+          onChange={() => toggleAssetSelection(asset.asset_id)}
+        />
+      </td>
       <td>{renderAssetThumbnail(asset)}</td>
       <td>
         <div
@@ -1305,6 +1348,20 @@ const PlayerDetail: React.FC = () => {
 
   const renderAssetsTable = (assetList: PlayerAsset[], title: string) => {
     const sorted = sortAssets(assetList)
+    const listAssetIds = assetList.map(a => a.asset_id)
+    const selectedInList = listAssetIds.filter(aid => selectedAssetIds.has(aid))
+    const allSelectedInList = listAssetIds.length > 0 && selectedInList.length === listAssetIds.length
+    const toggleSelectAllInList = () => {
+      setSelectedAssetIds(prev => {
+        const next = new Set(prev)
+        if (allSelectedInList) {
+          listAssetIds.forEach(aid => next.delete(aid))
+        } else {
+          listAssetIds.forEach(aid => next.add(aid))
+        }
+        return next
+      })
+    }
     return (
     <div className="fm-card fm-card-accent-purple mb-3">
       <div className="fm-card-header d-flex justify-content-between align-items-center">
@@ -1312,32 +1369,52 @@ const PlayerDetail: React.FC = () => {
           {title}
           <span className="badge bg-secondary ms-2">{assetList.length}</span>
         </h5>
-        {title === t('assets.activeAssets') && (
-          <button
-            className="fm-btn-primary fm-btn-sm"
-            onClick={handleOpenContentPicker}
-            disabled={!player.is_online}
-          >
-            <FaPlus className="me-1" />
-            {t('assets.addFromContent')}
-          </button>
-        )}
+        <div className="d-flex align-items-center gap-2">
+          {selectedInList.length > 0 && (
+            <button
+              className="fm-btn-danger fm-btn-sm"
+              onClick={() => handleBulkDeleteAssets(selectedInList)}
+            >
+              <FaTrash className="me-1" />
+              {t('assets.deleteSelected', { count: selectedInList.length })}
+            </button>
+          )}
+          {title === t('assets.activeAssets') && (
+            <button
+              className="fm-btn-primary fm-btn-sm"
+              onClick={handleOpenContentPicker}
+              disabled={!player.is_online}
+            >
+              <FaPlus className="me-1" />
+              {t('assets.addFromContent')}
+            </button>
+          )}
+        </div>
       </div>
       <div className="fm-card-body p-0">
         {assetList.length > 0 ? (
           <div className="table-responsive">
           <table className="fm-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
+              <col style={{ width: '32px' }} />
               <col style={{ width: '72px' }} />
               <col />
-              <col style={{ width: '17%' }} />
-              <col style={{ width: '17%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '14%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '13%' }} />
             </colgroup>
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={allSelectedInList}
+                    onChange={toggleSelectAllInList}
+                  />
+                </th>
                 <th></th>
                 <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('name')}>{t('assets.name')}<SortIcon field="name" /></th>
                 <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('start_date')}>{t('assets.startDate')}<SortIcon field="start_date" /></th>
@@ -1361,6 +1438,8 @@ const PlayerDetail: React.FC = () => {
                   seenPlaylists.add(playlistId)
                   const playlistName = asset.playlist.name
                   const groupAssets = sorted.filter((a) => a.playlist?.id === playlistId)
+                  const groupAssetIds = groupAssets.map(a => a.asset_id)
+                  const groupAllSelected = groupAssetIds.length > 0 && groupAssetIds.every(aid => selectedAssetIds.has(aid))
                   const isExpanded = expandedPlaylistGroups.has(playlistId)
                   rows.push(
                     <tr
@@ -1368,6 +1447,24 @@ const PlayerDetail: React.FC = () => {
                       style={{ cursor: 'pointer', background: 'var(--bs-tertiary-bg, #f8f9fa)' }}
                       onClick={() => togglePlaylistGroup(playlistId)}
                     >
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={groupAllSelected}
+                          onChange={() => {
+                            setSelectedAssetIds(prev => {
+                              const next = new Set(prev)
+                              if (groupAllSelected) {
+                                groupAssetIds.forEach(aid => next.delete(aid))
+                              } else {
+                                groupAssetIds.forEach(aid => next.add(aid))
+                              }
+                              return next
+                            })
+                          }}
+                        />
+                      </td>
                       <td colSpan={7}>
                         <div className="d-flex align-items-center gap-2">
                           {isExpanded ? <FaChevronDown style={{ fontSize: '0.75rem' }} /> : <FaChevronRight style={{ fontSize: '0.75rem' }} />}

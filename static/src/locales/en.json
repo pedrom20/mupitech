@@ -303,6 +303,8 @@
     "inactiveAssets": "Inactive Assets",
     "editAsset": "Edit Asset",
     "deleteAsset": "Delete Asset",
+    "deleteSelected": "Delete ({{count}})",
+    "confirmBulkDelete": "Delete {{count}} selected item(s)?",
     "addFromContent": "Add from Content",
     "previous": "Previous",
     "next": "Next",

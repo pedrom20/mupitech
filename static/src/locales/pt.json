@@ -303,6 +303,8 @@
     "inactiveAssets": "Conteúdos Inativos",
     "editAsset": "Editar Conteúdo",
     "deleteAsset": "Eliminar Conteúdo",
+    "deleteSelected": "Eliminar ({{count}})",
+    "confirmBulkDelete": "Eliminar {{count}} item(ns) selecionado(s)?",
     "addFromContent": "Adicionar da Biblioteca",
     "previous": "Anterior",
     "next": "Seguinte",
