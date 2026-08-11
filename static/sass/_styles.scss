@@ -745,7 +745,6 @@ body {
   background: $white;
   border-radius: $border-radius-lg;
   box-shadow: $shadow-card;
-  height: 100%;
   display: flex;
   flex-direction: column;
   transition: $transition-base;
@@ -758,7 +757,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
+    padding: 0.6rem 1.25rem;
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     font-weight: $font-weight-semibold;
     font-size: $font-size-sm;
@@ -813,12 +812,10 @@ body {
   }
 
   .telemetry-body {
-    padding: 0.75rem 1.25rem;
+    padding: 0.6rem 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
-    flex: 1;
-    justify-content: center;
+    gap: 0.5rem;
   }
 
   .telemetry-metric {
