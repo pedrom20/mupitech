@@ -93,7 +93,7 @@
     border-bottom: 3px solid #6e2426 !important;
 
     .navbar-brand img {
-      filter: grayscale(0.3) contrast(1.1);
+      filter: grayscale(1) contrast(2.2) brightness(1.15) !important;
     }
 
     .nav-link {
