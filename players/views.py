@@ -26,9 +26,22 @@ PLAYER_VERSION_CACHE_KEY = 'player:latest_version'
 PLAYER_VERSION_CACHE_TTL = 300  # 5 minutes
 
 
-def _player_ghcr_repo():
-    """Org/repo path (no host) for the configured Anthias player image registry."""
+def _player_ghcr_repo(device_type='pi4'):
+    """Org/repo path (no host) for the configured Anthias player image
+    registry. x86 devices run our own MupiTech fork, which uses a
+    different naming convention (hyphen before the service name, not
+    the old fork's slash + `anthias-` prefix — see
+    docker/Dockerfile.server.j2 in pedrom20/mupitech-player)."""
+    if device_type == 'x86':
+        return settings.ANTHIAS_IMAGE_REGISTRY_X86.removeprefix('ghcr.io/') + '-server'
     return settings.ANTHIAS_IMAGE_REGISTRY.removeprefix('ghcr.io/') + '/anthias-server'
+
+
+def _player_tag_suffix(device_type='pi4'):
+    """Tag suffix used to filter GHCR tags for this device type — the
+    old fork tags as `-pi4-64`/`-pi5-64`; our own x86 image tags as
+    plain `-x86` (see docker-build.yaml in pedrom20/mupitech-player)."""
+    return '-x86' if device_type == 'x86' else f'-{device_type}-64'
 
 
 def _get_latest_player_version(device_type='pi4'):
@@ -37,13 +50,13 @@ def _get_latest_player_version(device_type='pi4'):
     Uses the anonymous token endpoint + tags/list API which works
     without authentication for public/org-visible packages.
     """
-    tag_suffix = f'-{device_type}-64'
+    tag_suffix = _player_tag_suffix(device_type)
     cache_key = f'{PLAYER_VERSION_CACHE_KEY}:{device_type}'
     cached = cache.get(cache_key)
     if cached:
         return cached
 
-    image_name = _player_ghcr_repo()  # e.g. alex1981-tech/anthias-server
+    image_name = _player_ghcr_repo(device_type)  # e.g. alex1981-tech/anthias-server or pedrom20/mupitech-player-server
     try:
         # Step 1: get anonymous bearer token
         token_resp = http_requests.get(
@@ -735,7 +748,7 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
         current_sha = parts[-1] if '@' in current_version else ''
 
         # Select tag suffix based on player device_type
-        dt = player.device_type if player.device_type in ('pi4', 'pi5') else 'pi4'
+        dt = player.device_type if player.device_type in ('pi4', 'pi5', 'x86') else 'pi4'
         latest = _get_latest_player_version(device_type=dt)
         latest_sha = latest.get('sha', '')
         latest_version = latest.get('version', '')
