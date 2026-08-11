@@ -105,6 +105,7 @@
     "checking": "Checking...",
     "updating": "Updating...",
     "partOfPlaylist": "Part of playlist \"{{name}}\" — click to edit",
+    "editPlaylistLink": "Edit playlist",
     "macAddress": "MAC",
     "monitor": "Monitor",
     "monitorOn": "On",

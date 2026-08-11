@@ -171,6 +171,7 @@ const PlayerDetail: React.FC = () => {
   const [infoLoading, setInfoLoading] = useState(false)
   const [assetsLoading, setAssetsLoading] = useState(false)
   const [togglingAssetId, setTogglingAssetId] = useState<string | null>(null)
+  const [expandedPlaylistGroups, setExpandedPlaylistGroups] = useState<Set<string>>(new Set())
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
   const [screenshotLoading, setScreenshotLoading] = useState(false)
   const [screenshotFullscreen, setScreenshotFullscreen] = useState(false)
@@ -1230,6 +1231,78 @@ const PlayerDetail: React.FC = () => {
     return <FaFile className="me-2 text-secondary" />
   }
 
+  const renderAssetRow = (asset: PlayerAsset) => (
+    <tr key={asset.asset_id}>
+      <td>{renderAssetThumbnail(asset)}</td>
+      <td>
+        <div
+          style={{ overflow: 'hidden', cursor: 'pointer' }}
+          onClick={() => setPreviewAsset(asset)}
+          onMouseEnter={(e) => {
+            if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+            setHoveredAsset(asset)
+            setHoverRect(e.currentTarget.getBoundingClientRect())
+          }}
+          onMouseLeave={() => {
+            hoverTimeoutRef.current = setTimeout(() => setHoveredAsset(null), 200)
+          }}
+        >
+          <span
+            className="fw-semibold text-truncate"
+            style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' }}
+          >
+            {asset.name || 'Untitled'}
+          </span>
+        </div>
+      </td>
+      <td className="text-nowrap"><small>{formatAssetDate(asset.start_date)}</small></td>
+      <td className="text-nowrap"><small>{formatAssetDate(asset.end_date)}</small></td>
+      <td className="text-nowrap"><small>{formatDuration(asset.duration, t)}</small></td>
+      <td>
+        <button
+          className="btn btn-sm p-0 border-0"
+          onClick={() => handleToggleAsset(asset)}
+          disabled={togglingAssetId === asset.asset_id}
+          title={asset.is_enabled ? t('assets.enabled') : t('assets.disabled')}
+          style={{ fontSize: '22px', background: 'none', opacity: togglingAssetId === asset.asset_id ? 0.5 : 1 }}
+        >
+          {asset.is_enabled ? (
+            <FaToggleOn className="text-success" />
+          ) : (
+            <FaToggleOff className="text-secondary" />
+          )}
+        </button>
+      </td>
+      <td>
+        <div className="d-flex gap-1">
+          <button
+            className="fm-btn-outline fm-btn-sm"
+            onClick={() => handleOpenEdit(asset)}
+            title={t('assets.editAsset')}
+          >
+            <FaEdit />
+          </button>
+          <button
+            className="fm-btn-danger fm-btn-sm"
+            onClick={() => handleDeleteAsset(asset)}
+            title={t('assets.deleteAsset')}
+          >
+            <FaTrash />
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+
+  const togglePlaylistGroup = (playlistId: string) => {
+    setExpandedPlaylistGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(playlistId)) next.delete(playlistId)
+      else next.add(playlistId)
+      return next
+    })
+  }
+
   const renderAssetsTable = (assetList: PlayerAsset[], title: string) => {
     const sorted = sortAssets(assetList)
     return (
@@ -1275,81 +1348,50 @@ const PlayerDetail: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((asset) => (
-                <tr key={asset.asset_id}>
-                  <td>{renderAssetThumbnail(asset)}</td>
-                  <td>
-                    <div
-                      style={{ overflow: 'hidden', cursor: 'pointer' }}
-                      onClick={() => setPreviewAsset(asset)}
-                      onMouseEnter={(e) => {
-                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-                        setHoveredAsset(asset)
-                        setHoverRect(e.currentTarget.getBoundingClientRect())
-                      }}
-                      onMouseLeave={() => {
-                        hoverTimeoutRef.current = setTimeout(() => setHoveredAsset(null), 200)
-                      }}
+              {(() => {
+                const seenPlaylists = new Set<string>()
+                const rows: React.ReactNode[] = []
+                sorted.forEach((asset) => {
+                  if (!asset.playlist) {
+                    rows.push(renderAssetRow(asset))
+                    return
+                  }
+                  const playlistId = asset.playlist.id
+                  if (seenPlaylists.has(playlistId)) return
+                  seenPlaylists.add(playlistId)
+                  const playlistName = asset.playlist.name
+                  const groupAssets = sorted.filter((a) => a.playlist?.id === playlistId)
+                  const isExpanded = expandedPlaylistGroups.has(playlistId)
+                  rows.push(
+                    <tr
+                      key={`playlist-group-${playlistId}`}
+                      style={{ cursor: 'pointer', background: 'var(--bs-tertiary-bg, #f8f9fa)' }}
+                      onClick={() => togglePlaylistGroup(playlistId)}
                     >
-                      <span
-                        className="fw-semibold text-truncate"
-                        style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' }}
-                      >
-                        {asset.name || 'Untitled'}
-                      </span>
-                      {asset.playlist && (
-                        <div>
-                          <span
-                            className="badge bg-info text-dark"
-                            style={{ cursor: 'pointer', fontSize: '0.7rem' }}
-                            onClick={(e) => { e.stopPropagation(); navigate(`/playlists?edit=${asset.playlist!.id}`) }}
-                            title={t('players.partOfPlaylist', { name: asset.playlist.name })}
+                      <td colSpan={7}>
+                        <div className="d-flex align-items-center gap-2">
+                          {isExpanded ? <FaChevronDown style={{ fontSize: '0.75rem' }} /> : <FaChevronRight style={{ fontSize: '0.75rem' }} />}
+                          <FaListUl className="text-info" />
+                          <span className="fw-semibold">{playlistName}</span>
+                          <span className="badge bg-secondary">{groupAssets.length} {t('playlists.items')}</span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-link p-0 ms-auto"
+                            style={{ fontSize: '0.78rem' }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/playlists?edit=${playlistId}`) }}
                           >
-                            <FaListUl className="me-1" style={{ fontSize: '0.65rem' }} />
-                            {asset.playlist.name}
-                          </span>
+                            {t('players.editPlaylistLink')}
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="text-nowrap"><small>{formatAssetDate(asset.start_date)}</small></td>
-                  <td className="text-nowrap"><small>{formatAssetDate(asset.end_date)}</small></td>
-                  <td className="text-nowrap"><small>{formatDuration(asset.duration, t)}</small></td>
-                  <td>
-                    <button
-                      className="btn btn-sm p-0 border-0"
-                      onClick={() => handleToggleAsset(asset)}
-                      disabled={togglingAssetId === asset.asset_id}
-                      title={asset.is_enabled ? t('assets.enabled') : t('assets.disabled')}
-                      style={{ fontSize: '22px', background: 'none', opacity: togglingAssetId === asset.asset_id ? 0.5 : 1 }}
-                    >
-                      {asset.is_enabled ? (
-                        <FaToggleOn className="text-success" />
-                      ) : (
-                        <FaToggleOff className="text-secondary" />
-                      )}
-                    </button>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button
-                        className="fm-btn-outline fm-btn-sm"
-                        onClick={() => handleOpenEdit(asset)}
-                        title={t('assets.editAsset')}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        className="fm-btn-danger fm-btn-sm"
-                        onClick={() => handleDeleteAsset(asset)}
-                        title={t('assets.deleteAsset')}
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </td>
+                    </tr>
+                  )
+                  if (isExpanded) {
+                    groupAssets.forEach((a) => rows.push(renderAssetRow(a)))
+                  }
+                })
+                return rows
+              })()}
             </tbody>
           </table>
           </div>
