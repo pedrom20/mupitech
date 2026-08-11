@@ -692,6 +692,32 @@ export const system = {
   },
 }
 
+export interface BrandingImage {
+  id: string
+  name: string
+  kind: 'logo' | 'standby'
+  file: string
+  created_at: string
+}
+
+export const brandingLibrary = {
+  list(kind: 'logo' | 'standby'): Promise<BrandingImage[]> {
+    return apiRequest('GET', `/players/branding-library/?kind=${kind}`)
+  },
+
+  upload(kind: 'logo' | 'standby', file: File, name?: string): Promise<BrandingImage> {
+    const data = new FormData()
+    data.append('kind', kind)
+    data.append('file', file)
+    data.append('name', name || file.name)
+    return apiRequest('POST', '/players/branding-library/', data)
+  },
+
+  delete(id: string): Promise<void> {
+    return apiRequest('DELETE', `/players/branding-library/${id}/`)
+  },
+}
+
 export const auth = {
   logout(): Promise<{ success: boolean }> {
     return apiRequest('POST', '/auth/logout/')

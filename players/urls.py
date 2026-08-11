@@ -1,12 +1,14 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from .branding_library_views import BrandingImageViewSet
 from .bulk_views import bulk_detail, bulk_list, bulk_scan, bulk_start
 from .provision_views import provision_create, provision_detail, provision_retry
 from .views import BulkActionView, PlayerViewSet, install_phonehome, register_player
 
 router = DefaultRouter()
 router.register('players', PlayerViewSet)
+router.register('branding-library', BrandingImageViewSet)
 
 urlpatterns = [
     path('players/register/', register_player, name='register-player'),

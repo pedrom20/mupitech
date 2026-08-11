@@ -796,6 +796,14 @@
     "saved": "Definições do Tailscale guardadas",
     "saveFailed": "Falha ao guardar as definições do Tailscale"
   },
+  "brandingLibrary": {
+    "titleLogo": "Escolher um logótipo",
+    "titleStandby": "Escolher uma imagem de repouso",
+    "chooseButton": "Escolher da biblioteca",
+    "uploadNew": "Carregar novo",
+    "empty": "Ainda sem imagens guardadas — carregue uma para a adicionar à biblioteca.",
+    "confirmDelete": "Remover \"{{name}}\" da biblioteca? Os dispositivos que já a usam continuam a funcionar."
+  },
   "branding": {
     "title": "Marca dos Dispositivos",
     "description": "Imagens mostradas nos dispositivos em vez da marca do próprio Anthias. Aplica-se a todo o parque — envie a partir da página de detalhe de um dispositivo, ou a um grupo inteiro a partir da página de grupos.",

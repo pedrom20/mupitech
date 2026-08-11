@@ -254,3 +254,22 @@ class BulkProvisionTask(models.Model):
             return f.decrypt(self.ssh_password_encrypted.encode()).decode()
         except Exception:
             return ''
+
+
+class BrandingImage(models.Model):
+    """A reusable splash-logo or standby image, uploaded once and picked
+    from a library wherever branding is set (fleet-wide, group, location,
+    device) — instead of only ever uploading a fresh file each time."""
+    KIND_CHOICES = [('logo', 'Logo'), ('standby', 'Standby')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES)
+    file = models.FileField(upload_to='branding/library/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.name} ({self.kind})'

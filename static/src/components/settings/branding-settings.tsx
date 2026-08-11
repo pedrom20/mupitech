@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaImage, FaUpload, FaTrash, FaPaperPlane } from 'react-icons/fa'
+import { FaImage, FaUpload, FaTrash, FaPaperPlane, FaFolderOpen } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { system } from '@/services/api'
+import { showToast } from '@/utils/toast'
+import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
 
 const BrandingSettings: React.FC = () => {
   const { t } = useTranslation()
@@ -15,6 +17,8 @@ const BrandingSettings: React.FC = () => {
   const [uploadingStandby, setUploadingStandby] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const standbyInputRef = useRef<HTMLInputElement>(null)
+  const [showLogoPicker, setShowLogoPicker] = useState(false)
+  const [showStandbyPicker, setShowStandbyPicker] = useState(false)
 
   const [showPushAllModal, setShowPushAllModal] = useState(false)
   const [pushAllSshUser, setPushAllSshUser] = useState('pi')
@@ -39,6 +43,21 @@ const BrandingSettings: React.FC = () => {
 
   useEffect(() => { load() }, [])
 
+  const uploadLogoFile = async (file: File) => {
+    setUploadingLogo(true)
+    try {
+      const res = await system.uploadBrandingLogo(file)
+      setHasLogo(true)
+      setLogoUrl(res.logo_url)
+      showToast('success', t('common.success'))
+      setShowLogoPicker(false)
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -47,18 +66,8 @@ const BrandingSettings: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: t('branding.formatHint') })
       return
     }
-    setUploadingLogo(true)
-    try {
-      const res = await system.uploadBrandingLogo(file)
-      setHasLogo(true)
-      setLogoUrl(res.logo_url)
-      Swal.fire({ icon: 'success', title: t('common.success'), timer: 1500, showConfirmButton: false })
-    } catch (err) {
-      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
-    } finally {
-      setUploadingLogo(false)
-      if (logoInputRef.current) logoInputRef.current.value = ''
-    }
+    await uploadLogoFile(file)
+    if (logoInputRef.current) logoInputRef.current.value = ''
   }
 
   const handleLogoDelete = async () => {
@@ -79,6 +88,21 @@ const BrandingSettings: React.FC = () => {
     }
   }
 
+  const uploadStandbyFile = async (file: File) => {
+    setUploadingStandby(true)
+    try {
+      const res = await system.uploadBrandingStandby(file)
+      setHasStandby(true)
+      setStandbyUrl(res.standby_url)
+      showToast('success', t('common.success'))
+      setShowStandbyPicker(false)
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingStandby(false)
+    }
+  }
+
   const handleStandbyChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -87,18 +111,8 @@ const BrandingSettings: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: t('branding.standbyFormatHint') })
       return
     }
-    setUploadingStandby(true)
-    try {
-      const res = await system.uploadBrandingStandby(file)
-      setHasStandby(true)
-      setStandbyUrl(res.standby_url)
-      Swal.fire({ icon: 'success', title: t('common.success'), timer: 1500, showConfirmButton: false })
-    } catch (err) {
-      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
-    } finally {
-      setUploadingStandby(false)
-      if (standbyInputRef.current) standbyInputRef.current.value = ''
-    }
+    await uploadStandbyFile(file)
+    if (standbyInputRef.current) standbyInputRef.current.value = ''
   }
 
   const handleStandbyDelete = async () => {
@@ -190,15 +204,25 @@ const BrandingSettings: React.FC = () => {
                     className="d-none"
                     onChange={handleLogoChange}
                   />
-                  <button
-                    type="button"
-                    className="fm-btn-primary btn-sm"
-                    onClick={() => logoInputRef.current?.click()}
-                    disabled={uploadingLogo}
-                  >
-                    <FaUpload className="me-1" />
-                    {uploadingLogo ? t('common.loading') : t('branding.upload')}
-                  </button>
+                  <div className="d-flex gap-2">
+                    <button
+                      type="button"
+                      className="fm-btn-primary btn-sm"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                    >
+                      <FaUpload className="me-1" />
+                      {uploadingLogo ? t('common.loading') : t('branding.upload')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => setShowLogoPicker(true)}
+                    >
+                      <FaFolderOpen className="me-1" />
+                      {t('brandingLibrary.chooseButton')}
+                    </button>
+                  </div>
                   {hasLogo && (
                     <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleLogoDelete}>
                       <FaTrash className="me-1" />
@@ -233,15 +257,25 @@ const BrandingSettings: React.FC = () => {
                     className="d-none"
                     onChange={handleStandbyChange}
                   />
-                  <button
-                    type="button"
-                    className="fm-btn-primary btn-sm"
-                    onClick={() => standbyInputRef.current?.click()}
-                    disabled={uploadingStandby}
-                  >
-                    <FaUpload className="me-1" />
-                    {uploadingStandby ? t('common.loading') : t('branding.upload')}
-                  </button>
+                  <div className="d-flex gap-2">
+                    <button
+                      type="button"
+                      className="fm-btn-primary btn-sm"
+                      onClick={() => standbyInputRef.current?.click()}
+                      disabled={uploadingStandby}
+                    >
+                      <FaUpload className="me-1" />
+                      {uploadingStandby ? t('common.loading') : t('branding.upload')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => setShowStandbyPicker(true)}
+                    >
+                      <FaFolderOpen className="me-1" />
+                      {t('brandingLibrary.chooseButton')}
+                    </button>
+                  </div>
                   {hasStandby && (
                     <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleStandbyDelete}>
                       <FaTrash className="me-1" />
@@ -374,6 +408,19 @@ const BrandingSettings: React.FC = () => {
           </div>
         </div>
       )}
+
+      <BrandingLibraryPicker
+        kind="logo"
+        show={showLogoPicker}
+        onClose={() => setShowLogoPicker(false)}
+        onPick={uploadLogoFile}
+      />
+      <BrandingLibraryPicker
+        kind="standby"
+        show={showStandbyPicker}
+        onClose={() => setShowStandbyPicker(false)}
+        onPick={uploadStandbyFile}
+      />
     </div>
   )
 }

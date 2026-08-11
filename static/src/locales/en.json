@@ -796,6 +796,14 @@
     "saved": "Tailscale settings saved",
     "saveFailed": "Failed to save Tailscale settings"
   },
+  "brandingLibrary": {
+    "titleLogo": "Choose a logo",
+    "titleStandby": "Choose a standby image",
+    "chooseButton": "Choose from library",
+    "uploadNew": "Upload new",
+    "empty": "No images saved yet — upload one to add it to the library.",
+    "confirmDelete": "Remove \"{{name}}\" from the library? Devices already using it keep working."
+  },
   "branding": {
     "title": "Device Branding",
     "description": "Images shown on your devices instead of Anthias's own branding. Applies fleet-wide — push it to a device from its detail page, or to a whole group from the groups page.",

@@ -49,6 +49,7 @@ import Swal from 'sweetalert2'
 import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi } from '@/services/api'
 import { translateApiError } from '@/utils/translateError'
 import { showToast } from '@/utils/toast'
+import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
 import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus } from '@/types'
 import PlayerTerminal from './player-terminal'
 import { RoleContext, isAdminRole } from '@/components/app'
@@ -194,6 +195,8 @@ const PlayerDetail: React.FC = () => {
   const [uploadingDeviceStandby, setUploadingDeviceStandby] = useState(false)
   const deviceLogoInputRef = useRef<HTMLInputElement>(null)
   const deviceStandbyInputRef = useRef<HTMLInputElement>(null)
+  const [showDeviceLogoPicker, setShowDeviceLogoPicker] = useState(false)
+  const [showDeviceStandbyPicker, setShowDeviceStandbyPicker] = useState(false)
 
   // Migrate to MupiTech Anthias image (x86 only for now)
   const [showMigrateImageModal, setShowMigrateImageModal] = useState(false)
@@ -636,19 +639,25 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
-  const handleDeviceLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !id || !player) return
+  const uploadDeviceLogoFile = async (file: File) => {
+    if (!id || !player) return
     setUploadingDeviceLogo(true)
     try {
       const res = await playersApi.uploadLogo(id, file)
       setPlayer({ ...player, splash_logo: res.logo_url })
+      setShowDeviceLogoPicker(false)
     } catch (err) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
     } finally {
       setUploadingDeviceLogo(false)
-      if (deviceLogoInputRef.current) deviceLogoInputRef.current.value = ''
     }
+  }
+
+  const handleDeviceLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadDeviceLogoFile(file)
+    if (deviceLogoInputRef.current) deviceLogoInputRef.current.value = ''
   }
 
   const handleDeviceLogoDelete = async () => {
@@ -661,19 +670,25 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
-  const handleDeviceStandbyChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !id || !player) return
+  const uploadDeviceStandbyFile = async (file: File) => {
+    if (!id || !player) return
     setUploadingDeviceStandby(true)
     try {
       const res = await playersApi.uploadStandby(id, file)
       setPlayer({ ...player, standby_image: res.standby_url })
+      setShowDeviceStandbyPicker(false)
     } catch (err) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
     } finally {
       setUploadingDeviceStandby(false)
-      if (deviceStandbyInputRef.current) deviceStandbyInputRef.current.value = ''
     }
+  }
+
+  const handleDeviceStandbyChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadDeviceStandbyFile(file)
+    if (deviceStandbyInputRef.current) deviceStandbyInputRef.current.value = ''
   }
 
   const handleDeviceStandbyDelete = async () => {
@@ -3103,6 +3118,9 @@ const PlayerDetail: React.FC = () => {
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => deviceLogoInputRef.current?.click()} disabled={uploadingDeviceLogo} style={{ fontSize: '0.72rem' }}>
                             {t('branding.logoLabel')}
                           </button>
+                          <button type="button" className="btn btn-sm btn-link p-0" onClick={() => setShowDeviceLogoPicker(true)} style={{ fontSize: '0.72rem' }}>
+                            {t('brandingLibrary.chooseButton')}
+                          </button>
                           {player?.splash_logo && (
                             <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleDeviceLogoDelete} style={{ fontSize: '0.72rem' }}>
                               {t('common.delete')}
@@ -3125,6 +3143,9 @@ const PlayerDetail: React.FC = () => {
                           <input ref={deviceStandbyInputRef} type="file" accept=".png,.jpg,.jpeg" className="d-none" onChange={handleDeviceStandbyChange} />
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => deviceStandbyInputRef.current?.click()} disabled={uploadingDeviceStandby} style={{ fontSize: '0.72rem' }}>
                             {t('branding.standbyLabel')}
+                          </button>
+                          <button type="button" className="btn btn-sm btn-link p-0" onClick={() => setShowDeviceStandbyPicker(true)} style={{ fontSize: '0.72rem' }}>
+                            {t('brandingLibrary.chooseButton')}
                           </button>
                           {player?.standby_image && (
                             <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleDeviceStandbyDelete} style={{ fontSize: '0.72rem' }}>
@@ -3605,6 +3626,19 @@ const PlayerDetail: React.FC = () => {
         </div>
         )
       })()}
+
+      <BrandingLibraryPicker
+        kind="logo"
+        show={showDeviceLogoPicker}
+        onClose={() => setShowDeviceLogoPicker(false)}
+        onPick={uploadDeviceLogoFile}
+      />
+      <BrandingLibraryPicker
+        kind="standby"
+        show={showDeviceStandbyPicker}
+        onClose={() => setShowDeviceStandbyPicker(false)}
+        onPick={uploadDeviceStandbyFile}
+      />
     </div>
   )
 }
