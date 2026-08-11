@@ -227,7 +227,7 @@ export interface ProvisionStep {
   timestamp: string
 }
 
-export type UserRole = 'viewer' | 'editor' | 'admin'
+export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin'
 
 export interface UserScope {
   location_ids: string[]

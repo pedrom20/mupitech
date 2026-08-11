@@ -48,9 +48,39 @@ class UserSerializer(serializers.ModelSerializer):
         return ScopeSerializer(scope).data
 
 
+def _validate_role_escalation(role, context):
+    """Only an existing superadmin may grant the superadmin role to anyone."""
+    if role != 'superadmin':
+        return
+    request = context.get('request')
+    if not request or _user_role(request.user) != 'superadmin':
+        raise serializers.ValidationError('Only a superadmin can grant the superadmin role.')
+
+
+def _assign_role(user, role):
+    """Assign a role. Superadmin is backed by is_superuser/is_staff (full
+    Django admin access too) rather than a plain Group — downgrading away
+    from it clears both flags."""
+    from django.contrib.auth.models import Group
+    user.groups.clear()
+    if role == 'superadmin':
+        user.is_superuser = True
+        user.is_staff = True
+        user.save(update_fields=['is_superuser', 'is_staff'])
+    elif user.is_superuser:
+        user.is_superuser = False
+        user.is_staff = False
+        user.save(update_fields=['is_superuser', 'is_staff'])
+    try:
+        group = Group.objects.get(name=role)
+        user.groups.add(group)
+    except Group.DoesNotExist:
+        pass
+
+
 class CreateUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
-    role = serializers.ChoiceField(choices=['viewer', 'editor', 'admin'])
+    role = serializers.ChoiceField(choices=['viewer', 'editor', 'admin', 'superadmin'])
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
@@ -60,6 +90,10 @@ class CreateUserSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'first_name', 'last_name', 'password', 'role',
                   'location_ids', 'group_ids', 'player_ids']
 
+    def validate_role(self, value):
+        _validate_role_escalation(value, self.context)
+        return value
+
     def create(self, validated_data):
         role = validated_data.pop('role')
         password = validated_data.pop('password')
@@ -67,24 +101,14 @@ class CreateUserSerializer(serializers.ModelSerializer):
         group_ids = validated_data.pop('group_ids', None)
         player_ids = validated_data.pop('player_ids', None)
         user = User.objects.create_user(**validated_data, password=password)
-        self._assign_role(user, role)
+        _assign_role(user, role)
         _set_scope(user, location_ids, group_ids, player_ids)
         return user
-
-    @staticmethod
-    def _assign_role(user, role):
-        from django.contrib.auth.models import Group
-        user.groups.clear()
-        try:
-            group = Group.objects.get(name=role)
-            user.groups.add(group)
-        except Group.DoesNotExist:
-            pass
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=6)
-    role = serializers.ChoiceField(choices=['viewer', 'editor', 'admin'], required=False)
+    role = serializers.ChoiceField(choices=['viewer', 'editor', 'admin', 'superadmin'], required=False)
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
@@ -93,6 +117,10 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password',
                   'role', 'is_active', 'location_ids', 'group_ids', 'player_ids']
+
+    def validate_role(self, value):
+        _validate_role_escalation(value, self.context)
+        return value
 
     def update(self, instance, validated_data):
         role = validated_data.pop('role', None)
@@ -110,7 +138,7 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         instance.save()
 
         if role:
-            CreateUserSerializer._assign_role(instance, role)
+            _assign_role(instance, role)
 
         _set_scope(instance, location_ids, group_ids, player_ids)
 

@@ -6,7 +6,7 @@ import Swal from 'sweetalert2'
 import { pushLanguageToPlayers, system } from '@/services/api'
 import type { TailscaleSettings } from '@/types'
 import { APP_VERSION } from '../../changelog'
-import { RoleContext } from '@/components/app'
+import { RoleContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
 import BrandingSettings from './branding-settings'
 
@@ -104,11 +104,14 @@ const Settings: React.FC = () => {
       setAutoUpdate(res.auto_update)
     }).catch(() => {})
 
-    system.getTailscale().then((res) => {
-      setTsSettings(res)
-      setTsEnabled(res.tailscale_enabled)
-      setTsFmIp(res.fm_tailscale_ip || '')
-    }).catch(() => {})
+    if (isSuperAdminRole(role)) {
+      system.getTailscale().then((res) => {
+        setTsSettings(res)
+        setTsEnabled(res.tailscale_enabled)
+        setTsFmIp(res.fm_tailscale_ip || '')
+      }).catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleCheckUpdate = () => {
@@ -345,7 +348,8 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Tailscale VPN */}
+        {/* Tailscale VPN — superadmin only */}
+        {isSuperAdminRole(role) && (
         <div className="col-lg-6">
           <div className="fm-card fm-card-accent h-100">
             <div className="fm-card-header py-2">
@@ -433,6 +437,7 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Updates */}
         <div className="col-lg-6">
@@ -513,7 +518,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Branding — admin only */}
-      {role === 'admin' && (
+      {isAdminRole(role) && (
         <div className="row g-3 mt-1">
           <div className="col-12">
             <BrandingSettings />
@@ -522,7 +527,7 @@ const Settings: React.FC = () => {
       )}
 
       {/* Users Management — admin only */}
-      {role === 'admin' && (
+      {isAdminRole(role) && (
         <div className="row g-3 mt-1">
           <div className="col-12">
             <UsersSettings />
@@ -531,7 +536,7 @@ const Settings: React.FC = () => {
       )}
 
       {/* Audit Log link — admin only */}
-      {role === 'admin' && (
+      {isAdminRole(role) && (
         <div className="row g-3 mt-1">
           <div className="col-12">
             <div className="fm-card fm-card-accent">

@@ -14,7 +14,7 @@ def get_scope(user):
 
 
 def is_restricted(user):
-    if _user_role(user) == 'admin':
+    if _user_role(user) in ('admin', 'superadmin'):
         return False
     scope = get_scope(user)
     return bool(scope and scope.is_restricted())

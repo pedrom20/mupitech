@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { users as usersApi, locations as locationsApi, groups as groupsApi, players as playersApi } from '@/services/api'
+import { RoleContext, isSuperAdminRole } from '@/components/app'
 import type { User, UserRole, Location, Group, Player } from '@/types'
 
 const ROLE_BADGE: Record<UserRole, string> = {
+  superadmin: 'bg-dark',
   admin: 'bg-danger',
   editor: 'bg-primary',
   viewer: 'bg-secondary',
@@ -13,6 +15,7 @@ const ROLE_BADGE: Record<UserRole, string> = {
 
 const UsersSettings: React.FC = () => {
   const { t } = useTranslation()
+  const currentRole = useContext(RoleContext)
   const [userList, setUserList] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -241,10 +244,13 @@ const UsersSettings: React.FC = () => {
                       <option value="viewer">{t('users.role_viewer')}</option>
                       <option value="editor">{t('users.role_editor')}</option>
                       <option value="admin">{t('users.role_admin')}</option>
+                      {isSuperAdminRole(currentRole) && (
+                        <option value="superadmin">{t('users.role_superadmin')}</option>
+                      )}
                     </select>
                   </div>
 
-                  {role !== 'admin' && (
+                  {role !== 'admin' && role !== 'superadmin' && (
                     <>
                       <hr className="my-3" />
                       <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>

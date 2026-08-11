@@ -12,7 +12,7 @@ from django.core.cache import cache
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin
+from fleet_manager.permissions import IsAdmin, IsSuperAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -308,8 +308,9 @@ def _get_tailscale_status():
 
 
 @api_view(['GET', 'PATCH'])
+@permission_classes([IsSuperAdmin])
 def tailscale_settings(request):
-    """Get or update Tailscale VPN settings."""
+    """Get or update Tailscale VPN settings. Superadmin only — not even admin."""
     if request.method == 'GET':
         detected_ip = _detect_tailscale_ip()
         ts_status = _get_tailscale_status()

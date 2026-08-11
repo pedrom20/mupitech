@@ -16,7 +16,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import AddPlayerModal from './add-player-modal'
 import BulkProvision from './bulk-provision'
-import { RoleContext } from '@/components/app'
+import { RoleContext, isAdminRole } from '@/components/app'
 import type { Player } from '@/types'
 
 const PlayerList: React.FC = () => {
@@ -111,7 +111,7 @@ const PlayerList: React.FC = () => {
           </h1>
         </div>
         <div className="page-actions d-flex gap-2">
-          {role === 'admin' && (
+          {isAdminRole(role) && (
             <button className="fm-btn-outline" onClick={() => setShowBulkProvision(true)}>
               <FaNetworkWired />
               {t('bulkProvision.title')}

@@ -789,6 +789,7 @@
     "password": "Password",
     "leaveBlank": "leave blank to keep current",
     "role": "Role",
+    "role_superadmin": "Superadmin",
     "role_admin": "Admin",
     "role_editor": "Editor",
     "role_viewer": "Viewer",

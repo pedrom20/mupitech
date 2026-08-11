@@ -51,7 +51,7 @@ import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, ScheduleS
 import { PlayerSchedule } from './player-schedule'
 import { ScheduleTimeline } from './schedule-timeline'
 import PlayerTerminal from './player-terminal'
-import { RoleContext } from '@/components/app'
+import { RoleContext, isAdminRole } from '@/components/app'
 
 const getAssetTypeIcon = (mimetype: string) => {
   if (!mimetype) return <FaFile />
@@ -1360,7 +1360,7 @@ const PlayerDetail: React.FC = () => {
             >
               <FaSyncAlt />
             </button>
-            {role === 'admin' && (
+            {isAdminRole(role) && (
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={handleOpenPushLogo}
@@ -1369,7 +1369,7 @@ const PlayerDetail: React.FC = () => {
                 <FaImage />
               </button>
             )}
-            {role === 'admin' && player.is_online && (
+            {isAdminRole(role) && player.is_online && (
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={() => setShowTerminal(!showTerminal)}

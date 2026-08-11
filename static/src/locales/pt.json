@@ -789,6 +789,7 @@
     "password": "Palavra-passe",
     "leaveBlank": "deixe em branco para manter a atual",
     "role": "Função",
+    "role_superadmin": "Superadministrador",
     "role_admin": "Administrador",
     "role_editor": "Editor",
     "role_viewer": "Visualizador",

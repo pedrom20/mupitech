@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi } from '@/services/api'
-import { RoleContext, AuthContext } from '@/components/app'
+import { RoleContext, AuthContext, isAdminRole } from '@/components/app'
 
 const FLEET_ROUTES = ['/players', '/groups', '/locations']
 
@@ -158,7 +158,7 @@ const Navbar: React.FC = () => {
     { to: '/playlists', icon: <FaListUl className="nav-icon" />, label: t('nav.playlists'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },
-    ...(role === 'admin' ? [{ to: '/audit', icon: <FaClipboardList className="nav-icon" />, label: t('nav.audit'), end: false }] : []),
+    ...(isAdminRole(role) ? [{ to: '/audit', icon: <FaClipboardList className="nav-icon" />, label: t('nav.audit'), end: false }] : []),
     { to: '/settings', icon: <FaCog className="nav-icon" />, label: t('nav.settings'), end: false },
   ]
 

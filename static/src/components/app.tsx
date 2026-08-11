@@ -22,9 +22,15 @@ import { users as usersApi } from '@/services/api'
 import { FeaturesProvider } from '@/context/features-context'
 import type { User } from '@/types'
 
-export type UserRole = 'viewer' | 'editor' | 'admin' | null
+export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin' | null
 
 export const RoleContext = createContext<UserRole>(null)
+
+/** Admin-gated UI should show for both admin and superadmin — superadmin
+ * is a strict superset (full access, including a few superadmin-only
+ * areas like Tailscale settings, gated separately with isSuperAdminRole). */
+export const isAdminRole = (role: UserRole): boolean => role === 'admin' || role === 'superadmin'
+export const isSuperAdminRole = (role: UserRole): boolean => role === 'superadmin'
 
 interface AuthContextValue {
   user: User | null
