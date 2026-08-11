@@ -228,6 +228,8 @@ const PlayerDetail: React.FC = () => {
   // Content picker modal state
   const [showContentModal, setShowContentModal] = useState(false)
   const [contentFiles, setContentFiles] = useState<MediaFile[]>([])
+  const [selectedContentIds, setSelectedContentIds] = useState<Set<string>>(new Set())
+  const [deployingSelected, setDeployingSelected] = useState(false)
   const [contentLoading, setContentLoading] = useState(false)
   const [deployingId, setDeployingId] = useState<string | null>(null)
   const [contentFolders, setContentFolders] = useState<MediaFolder[]>([])
@@ -1179,6 +1181,7 @@ const PlayerDetail: React.FC = () => {
     setContentLoading(true)
     setContentFilterType('all')
     setContentFilterFolder(null)
+    setSelectedContentIds(new Set())
     try {
       const [files, flds] = await Promise.all([mediaApi.list(), foldersApi.list()])
       setContentFiles(files)
@@ -1228,6 +1231,55 @@ const PlayerDetail: React.FC = () => {
       } finally {
         setDeployingId(null)
       }
+    }
+  }
+
+  const toggleContentSelection = (fileId: string) => {
+    setSelectedContentIds(prev => {
+      const next = new Set(prev)
+      if (next.has(fileId)) next.delete(fileId)
+      else next.add(fileId)
+      return next
+    })
+  }
+
+  const handleDeploySelectedContent = async () => {
+    if (!id || selectedContentIds.size === 0) return
+    const fileIds = Array.from(selectedContentIds)
+    const result = await Swal.fire({
+      title: t('assets.selectContent'),
+      text: t('assets.confirmBulkDeploy', { count: fileIds.length }),
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!result.isConfirmed) return
+
+    setDeployingSelected(true)
+    setShowContentModal(false)
+    Swal.fire({
+      title: t('assets.deploying'),
+      html: t('assets.deployingCount', { count: fileIds.length }),
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => { Swal.showLoading() },
+    })
+    let failed = 0
+    for (const fileId of fileIds) {
+      try {
+        await playersApi.deployContent(id, fileId)
+      } catch {
+        failed += 1
+      }
+    }
+    await loadAssets()
+    setSelectedContentIds(new Set())
+    setDeployingSelected(false)
+    if (failed === 0) {
+      Swal.fire({ icon: 'success', title: t('assets.deployed'), timer: 1500, showConfirmButton: false })
+    } else {
+      Swal.fire({ icon: 'warning', title: t('assets.deployFailed'), text: t('assets.deployPartialFailed', { failed, total: fileIds.length }) })
     }
   }
 
@@ -2351,6 +2403,19 @@ const PlayerDetail: React.FC = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">{t('assets.selectContent')}</h5>
+                <div className="d-flex align-items-center gap-2 ms-auto me-2">
+                  {selectedContentIds.size > 0 && (
+                    <button
+                      type="button"
+                      className="fm-btn-primary fm-btn-sm"
+                      onClick={handleDeploySelectedContent}
+                      disabled={deployingSelected}
+                    >
+                      <FaPlus className="me-1" />
+                      {t('assets.deploySelected', { count: selectedContentIds.size })}
+                    </button>
+                  )}
+                </div>
                 <button
                   type="button"
                   className="btn-close"
@@ -2427,7 +2492,29 @@ const PlayerDetail: React.FC = () => {
                 ) : filteredContentFiles.length > 0 ? (
                   <div className="row g-3">
                     {filteredContentFiles.map(file => (
-                      <div key={file.id} className="col-6 col-md-4 col-lg-3">
+                      <div key={file.id} className="col-6 col-md-4 col-lg-3" style={{ position: 'relative' }}>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); toggleContentSelection(file.id) }}
+                          style={{
+                            position: 'absolute',
+                            top: '6px',
+                            left: '6px',
+                            zIndex: 2,
+                            background: 'rgba(0,0,0,0.5)',
+                            borderRadius: '4px',
+                            padding: '3px 5px',
+                            display: 'flex',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            className="form-check-input m-0"
+                            checked={selectedContentIds.has(file.id)}
+                            onChange={() => toggleContentSelection(file.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
                         <div
                           className="card h-100"
                           style={{
