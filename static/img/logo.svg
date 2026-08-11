@@ -12,7 +12,7 @@
   <rect x="30" y="24" width="30" height="42" rx="4" fill="#FFE72D"/>
   <rect x="43" y="66" width="4" height="9" fill="#FDED3A"/>
   <rect x="35" y="75" width="20" height="5" rx="2.5" fill="#FDED3A"/>
-  <text x="104" y="50" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="-0.8">
+  <text x="104" y="55" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="-0.8">
     <tspan fill="#ffffff">Mupi</tspan><tspan fill="#FFE72D">Tech</tspan>
   </text>
   <text x="105" y="80" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="16.5" font-weight="600" letter-spacing="0.2" fill="#CFE3F0">Gestor de Mupis Digitais</text>
