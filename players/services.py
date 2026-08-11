@@ -329,21 +329,48 @@ class AnthiasAPIClient:
         return self._json(response)
 
     # ── CEC TV control ──
+    #
+    # Official Anthias (our own MupiTech image, not the old alex1981-tech
+    # fork) exposes CEC as a single `display_power` field on GET
+    # /api/v2/info (populated by a periodic celery-beat probe — see
+    # lib/diagnostics.py::get_display_power in the anthias fork), and a
+    # single POST /api/v2/display/<on|off> to change it. There is no
+    # dedicated /cec/status or /cec/standby|wake endpoint upstream — the
+    # separate-endpoints shape below is this client's own translation
+    # layer, kept so callers (players/views.py, the frontend) don't need
+    # to change.
+    _CEC_UNAVAILABLE_VALUES = (
+        'No CEC adapter', 'CEC adapter unresponsive', 'CEC error', None,
+    )
+
+    def _cec_status_from_display_power(self, display_power):
+        if display_power in self._CEC_UNAVAILABLE_VALUES:
+            return {'cec_available': False, 'tv_on': False}
+        # get_display_power() returns real bool True/False for a real
+        # answer from a real peer, but redis-py rejects bool values, so
+        # celery_tasks stores it as the string 'True'/'False'.
+        tv_on = display_power in (True, 'True')
+        return {'cec_available': True, 'tv_on': tv_on}
 
     def get_cec_status(self):
-        """GET /api/v2/cec/status - Get CEC availability and TV power state."""
-        response = self._request('GET', '/api/v2/cec/status')
-        return self._json(response)
+        """Derive CEC availability and TV power state from GET /api/v2/info."""
+        info = self.get_info()
+        return self._cec_status_from_display_power(info.get('display_power'))
+
+    def _set_display_power(self, state):
+        """POST /api/v2/display/<state> (state is 'on' or 'off'). Raises
+        PlayerConnectionError (503 no adapter, 502 TV/adapter didn't
+        respond) on failure — reaching the return means it succeeded."""
+        self._request('POST', f'/api/v2/display/{state}')
+        return self._cec_status_from_display_power('True' if state == 'on' else 'False')
 
     def cec_standby(self):
-        """POST /api/v2/cec/standby - Send TV to standby via HDMI-CEC."""
-        response = self._request('POST', '/api/v2/cec/standby')
-        return self._json(response)
+        """Send TV to standby via HDMI-CEC."""
+        return self._set_display_power('off')
 
     def cec_wake(self):
-        """POST /api/v2/cec/wake - Wake TV via HDMI-CEC."""
-        response = self._request('POST', '/api/v2/cec/wake')
-        return self._json(response)
+        """Wake TV via HDMI-CEC."""
+        return self._set_display_power('on')
 
     # ── IR remote control ──
 
