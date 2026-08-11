@@ -171,10 +171,10 @@ export const players = {
     return apiRequest<PlayerUpdateCheckResult>('GET', `/players/${id}/update-check/`)
   },
 
-  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean): Promise<{ success: boolean }> {
+  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean): Promise<{ success: boolean }> {
     return apiRequest('POST', `/players/${id}/push-branding/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
-      push_logo: pushLogo, push_standby: pushStandby,
+      push_logo: pushLogo, push_standby: pushStandby, push_theme: pushTheme,
     })
   },
 
@@ -270,13 +270,13 @@ export const groups = {
     return apiRequest('POST', `/groups/${id}/apply-rotation/`, { screen_rotation: screenRotation })
   },
 
-  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean): Promise<{
+  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean): Promise<{
     success: boolean
     results: Record<string, { name: string; success: boolean; error?: string }>
   }> {
     return apiRequest('POST', `/groups/${id}/push-branding/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
-      push_logo: pushLogo, push_standby: pushStandby,
+      push_logo: pushLogo, push_standby: pushStandby, push_theme: pushTheme,
     })
   },
 

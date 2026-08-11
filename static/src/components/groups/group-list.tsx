@@ -45,6 +45,7 @@ const GroupList: React.FC = () => {
   const [pushingLogo, setPushingLogo] = useState(false)
   const [pushTargetLogo, setPushTargetLogo] = useState(true)
   const [pushTargetStandby, setPushTargetStandby] = useState(false)
+  const [pushTargetTheme, setPushTargetTheme] = useState(false)
   const [brandingHasStandby, setBrandingHasStandby] = useState(false)
   const [uploadingGroupLogo, setUploadingGroupLogo] = useState(false)
   const [uploadingGroupStandby, setUploadingGroupStandby] = useState(false)
@@ -151,10 +152,10 @@ const GroupList: React.FC = () => {
   }
 
   const handlePushLogo = async () => {
-    if (!pushLogoGroup || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)) return
+    if (!pushLogoGroup || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)) return
     setPushingLogo(true)
     try {
-      const res = await groupsApi.pushBranding(pushLogoGroup.id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby)
+      const res = await groupsApi.pushBranding(pushLogoGroup.id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, pushTargetTheme)
       const failed = Object.values(res.results).filter((r) => !r.success)
       if (failed.length === 0) {
         Swal.fire({
@@ -648,6 +649,18 @@ const GroupList: React.FC = () => {
                       )}
                     </label>
                   </div>
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="group-push-target-theme"
+                      checked={pushTargetTheme}
+                      onChange={e => setPushTargetTheme(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="group-push-target-theme">
+                      {t('branding.themeLabel')}
+                    </label>
+                  </div>
                 </div>
                 <div className="mb-2">
                   <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
@@ -689,7 +702,7 @@ const GroupList: React.FC = () => {
                   type="button"
                   className="fm-btn-primary"
                   onClick={handlePushLogo}
-                  disabled={pushingLogo || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)}
+                  disabled={pushingLogo || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
                 >
                   {pushingLogo ? t('common.loading') : t('branding.push')}
                 </button>

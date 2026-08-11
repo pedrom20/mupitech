@@ -185,6 +185,7 @@ const PlayerDetail: React.FC = () => {
   const [pushingLogo, setPushingLogo] = useState(false)
   const [pushTargetLogo, setPushTargetLogo] = useState(true)
   const [pushTargetStandby, setPushTargetStandby] = useState(false)
+  const [pushTargetTheme, setPushTargetTheme] = useState(false)
   const [brandingHasStandby, setBrandingHasStandby] = useState(false)
 
   // CCTV live view state
@@ -618,10 +619,10 @@ const PlayerDetail: React.FC = () => {
   }
 
   const handlePushBranding = async () => {
-    if (!id || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)) return
+    if (!id || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)) return
     setPushingLogo(true)
     try {
-      await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby)
+      await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, pushTargetTheme)
       Swal.fire({ icon: 'success', title: t('branding.pushed'), timer: 1500, showConfirmButton: false })
       setShowPushLogoModal(false)
       setPushLogoSshPassword('')
@@ -2772,6 +2773,18 @@ const PlayerDetail: React.FC = () => {
                       )}
                     </label>
                   </div>
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="push-target-theme"
+                      checked={pushTargetTheme}
+                      onChange={e => setPushTargetTheme(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-target-theme">
+                      {t('branding.themeLabel')}
+                    </label>
+                  </div>
                 </div>
                 <div className="mb-2">
                   <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
@@ -2813,7 +2826,7 @@ const PlayerDetail: React.FC = () => {
                   type="button"
                   className="fm-btn-primary"
                   onClick={handlePushBranding}
-                  disabled={pushingLogo || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby)}
+                  disabled={pushingLogo || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
                 >
                   {pushingLogo ? t('common.loading') : t('branding.push')}
                 </button>

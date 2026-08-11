@@ -36,6 +36,25 @@ STANDBY_FILENAME = 'standby-image.png'
 CONTAINER_STANDBY_PATH = '/usr/src/app/staticfiles/img/standby.png'
 REMOTE_TMP_STANDBY_PATH = '/tmp/mupitech-standby-image.png'
 
+CONTAINER_CSS_PATH = '/usr/src/app/staticfiles/dist/css/anthias.css'
+# Official Anthias's $anthias-purple-1..5 (src/anthias_server/app/static/sass/_variables.scss)
+# and the splash-page's two radial-gradient glows, mapped to this project's
+# own blue palette (static/sass/_variables.scss). Sass's --style=compressed
+# output preserves color literals verbatim (no auto hex-shortening), so a
+# plain in-place sed on the already-compiled CSS is reliable — no rebuild,
+# no re-uploading the whole file.
+THEME_COLOR_REPLACEMENTS = [
+    ('#270035', '#04182B'),   # $anthias-purple-1 (--color-bg, splash gradient start)
+    ('#492955', '#0C3A5C'),   # $anthias-purple-2 (--color-active)
+    ('#52335D', '#005096'),   # $anthias-purple-3 (--color-bg-elevated)
+    ('#D4CCD7', '#CFE3F0'),   # $anthias-purple-4
+    ('#8819C7', '#0082C8'),   # $anthias-purple-5
+    ('#0f0019', '#04182B'),   # --color-bg-deep (splash background-color)
+    ('#503061', '#0d3f66'),   # --color-active-tint (gradient stop)
+    ('rgba(124, 48, 205,', 'rgba(0, 130, 200,'),  # splash radial glow 1
+    ('rgba(91, 32, 144,', 'rgba(12, 58, 92,'),    # splash radial glow 2
+]
+
 
 class BrandingPushError(Exception):
     """Raised when pushing a branding asset to a device fails."""
@@ -68,19 +87,47 @@ def wrap_raster_as_svg(file_obj, filename):
     return svg.encode('utf-8')
 
 
-def convert_to_png(file_obj):
+STANDBY_MARGIN_RATIO = 0.08  # 8% padding on each side, so it doesn't bleed to the screen edges
+
+
+def convert_to_png(file_obj, add_margin=False, margin_ratio=STANDBY_MARGIN_RATIO):
     """Convert an uploaded SVG/PNG/JPEG to real PNG bytes.
 
     Unlike the logo, standby.png's fixed filename is loaded by the
     viewer as a plain raster image — serving SVG bytes under a .png
     name isn't reliable there, so this always rasterizes to real PNG.
+
+    With add_margin=True (used for the standby image), the picture is
+    scaled down and centered on a black canvas with a safety margin
+    instead of filling every pixel edge-to-edge.
     """
     from PIL import Image
 
     file_obj.seek(0)
     with Image.open(file_obj) as img:
+        if add_margin:
+            img = _with_safety_margin(img, margin_ratio)
         buf = _png_bytes(img)
     return buf
+
+
+def _with_safety_margin(img, margin_ratio):
+    """Return a new image with `img` centered on a black canvas of the
+    same size, scaled down to leave `margin_ratio` of padding on each side.
+    """
+    from PIL import Image
+
+    img = img.convert('RGBA')
+    width, height = img.size
+    scale = 1 - (2 * margin_ratio)
+    inner_width = max(1, round(width * scale))
+    inner_height = max(1, round(height * scale))
+    resized = img.resize((inner_width, inner_height), Image.LANCZOS)
+
+    canvas = Image.new('RGBA', (width, height), (0, 0, 0, 255))
+    offset = ((width - inner_width) // 2, (height - inner_height) // 2)
+    canvas.paste(resized, offset, resized)
+    return canvas
 
 
 def _png_bytes(img):
@@ -148,7 +195,7 @@ def save_standby_upload(instance, uploaded_file):
     name_lower = uploaded_file.name.lower()
     if not name_lower.endswith(('.png', '.jpg', '.jpeg')):
         raise ValueError('Only PNG or JPEG files are supported')
-    png_bytes = convert_to_png(uploaded_file)
+    png_bytes = convert_to_png(uploaded_file, add_margin=True)
     instance.standby_image.save('standby.png', ContentFile(png_bytes), save=True)
 
 
@@ -231,3 +278,52 @@ def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, ti
         remote_tmp_path=REMOTE_TMP_STANDBY_PATH,
         container_path=CONTAINER_STANDBY_PATH,
     )
+
+
+def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and replace Anthias's purple theme colors
+    (splash-page background gradient, active-state accents) with this
+    project's blue palette, via an in-place sed on the already-compiled
+    anthias.css — no rebuild, no re-uploading the whole file.
+    """
+    import paramiko
+
+    host = urlparse(player.url).hostname
+    if not host:
+        raise BrandingPushError(f"Could not determine host from player URL: {player.url}")
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        ssh.connect(host, port=ssh_port, username=ssh_user, password=ssh_password, timeout=timeout)
+    except Exception as exc:
+        raise BrandingPushError(f'SSH connection failed: {exc}') from exc
+
+    try:
+        out, _, _ = _ssh_run(
+            ssh,
+            "docker ps --format '{{.Names}}' --filter name=anthias-server",
+            timeout=timeout,
+        )
+        container = next((line for line in out.strip().splitlines() if line.strip()), '')
+        if not container:
+            raise BrandingPushError(
+                'Could not find a running anthias-server container on this device.'
+            )
+
+        sed_expr = ' '.join(
+            f"-e {_shell_quote(f's/{old}/{new}/g')}"
+            for old, new in THEME_COLOR_REPLACEMENTS
+        )
+        _ssh_run(
+            ssh,
+            f'docker exec {_shell_quote(container)} sed -i {sed_expr} {CONTAINER_CSS_PATH}',
+            timeout=timeout,
+        )
+        _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
+    except BrandingPushError:
+        raise
+    except Exception as exc:
+        raise BrandingPushError(str(exc)) from exc
+    finally:
+        ssh.close()

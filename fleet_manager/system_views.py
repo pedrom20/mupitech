@@ -451,7 +451,7 @@ def branding_upload_standby(request):
 
     os.makedirs(BRANDING_DIR, exist_ok=True)
     try:
-        png_bytes = convert_to_png(image)
+        png_bytes = convert_to_png(image, add_margin=True)
     except Exception as exc:
         return Response({'error': f'Could not process image: {exc}'}, status=400)
     with open(_branding_standby_path(), 'wb') as f:

@@ -759,6 +759,7 @@
     "description": "Images shown on your devices instead of Anthias's own branding. Applies fleet-wide — push it to a device from its detail page, or to a whole group from the groups page.",
     "logoLabel": "Splash screen logo (network/IP screen)",
     "standbyLabel": "Standby image (no content playing)",
+    "themeLabel": "Theme colors (replace Anthias purple with blue)",
     "standbyDescription": "Shown whenever a device has nothing scheduled. No default is bundled — upload a plain background here to replace Anthias's own.",
     "upload": "Upload",
     "formatHint": "Only SVG, PNG or JPEG files are supported",
