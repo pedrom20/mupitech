@@ -367,7 +367,12 @@ def deploy_media_file_to_player(player, media_file, name=None, duration=10,
 
     now = timezone.now()
     start_date = start_date or now.strftime('%Y-%m-%dT%H:%M:%S.000Z')
-    end_date = end_date or (now + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    # Anthias's own Asset.is_active() treats a null end_date as "never
+    # active" (it requires both bounds to be set), so "no expiration"
+    # can't be a real null — approximate it with a far-future date
+    # instead, unless the caller passed an explicit end_date (a
+    # deliberately temporary/scheduled deployment).
+    end_date = end_date or (now + timedelta(days=3650)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
     if media_file.file:
         old_timeout = client.timeout
