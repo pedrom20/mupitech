@@ -30,7 +30,7 @@ class TerminalConsumer(AsyncWebsocketConsumer):
             return
 
         role = await asyncio.to_thread(_user_role, user)
-        if role != 'admin':
+        if role not in ('admin', 'superadmin'):
             await self.close(code=4003)
             return
 

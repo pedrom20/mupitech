@@ -27,7 +27,7 @@ class BulkProvisionTaskSerializer(serializers.ModelSerializer):
 
 
 def _check_admin(request):
-    if _user_role(request.user) != 'admin':
+    if _user_role(request.user) not in ('admin', 'superadmin'):
         return Response(
             {'detail': 'Admin access required.'},
             status=status.HTTP_403_FORBIDDEN,

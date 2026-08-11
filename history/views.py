@@ -26,7 +26,7 @@ def _safe_int(value, default, field_name='value'):
 @api_view(['GET'])
 def audit_list(request):
     """Paginated audit log with filters. Admin-only."""
-    if _user_role(request.user) != 'admin':
+    if _user_role(request.user) not in ('admin', 'superadmin'):
         return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
 
     qs = AuditLog.objects.select_related('user').all()
