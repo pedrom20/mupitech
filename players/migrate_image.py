@@ -13,9 +13,12 @@ x86 template and current official upstream Anthias now share the same
     compose template, with the previous compose file backed up first.
   - anything else: refused — needs manual inspection.
 
-Only x86 is supported as a migration target today; Pi4/Pi5 builds of
-our own image don't exist yet (see MAINTENANCE.md in the mupitech-player
-fork — multi-arch build is a separate, not-yet-done phase).
+Only x86 is enabled as a migration target today. Pi4/Pi5 builds of our
+own image exist and publish (Phase 5 of the custom-image plan), but
+haven't been validated against real Pi4/Pi5 hardware yet — pushing this
+onto a real deployed device before that validation would be risky.
+Extend _MIGRATABLE_DEVICE_TYPES once that's done (see MAINTENANCE.md in
+the mupitech-player fork).
 """
 
 from urllib.parse import urlparse
@@ -129,7 +132,8 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
     if player.device_type not in _MIGRATABLE_DEVICE_TYPES:
         raise MigrationError(
             f'Migration to the MupiTech image is only supported for x86 devices right now '
-            f'(this device is "{player.device_type}"). Pi4/Pi5 builds are planned but not yet available.'
+            f'(this device is "{player.device_type}"). Pi4/Pi5 images exist but haven\'t been '
+            f'validated on real hardware yet.'
         )
 
     ssh, host = _connect(player, ssh_user, ssh_password, ssh_port, timeout)

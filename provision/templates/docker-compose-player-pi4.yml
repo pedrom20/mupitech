@@ -20,21 +20,16 @@ services:
       - /home/$PI_USER/anthias_assets:/data/anthias_assets
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    # Pi 5 has two real HDMI/CEC adapters (dual HDMI output) — unlike
-    # /dev/lirc0 on x86, these are expected to exist on every Pi 5, so
-    # (unlike the IR passthrough below) they're declared unconditionally.
-    devices:
-      - /dev/cec0:/dev/cec0
-      - /dev/cec1:/dev/cec1
     depends_on:
       - redis
-    # IR remote-control (MupiTech addition) needs /dev/lirc0 passed
-    # through — NOT declared here by default: unlike a volume bind
-    # mount, Docker's `devices:` hard-fails `up` if the host path
-    # doesn't exist, and most boxes have no IR receiver at all. Add
+    # CEC/IR passthrough (MupiTech addition) — NOT declared here by
+    # default: unlike a volume bind mount, Docker's `devices:` hard-fails
+    # `up` if the host path doesn't exist, and CEC-on-Pi4 hasn't been
+    # confirmed across our fleet's HDMI wiring yet. Add on hosts that
+    # have it:
     #   devices:
+    #     - /dev/cec0:/dev/cec0
     #     - /dev/lirc0:/dev/lirc0
-    # to anthias-server manually on hosts that actually have one.
 
   anthias-viewer:
     image: $ANTHIAS_REGISTRY-viewer:$ANTHIAS_TAG_SUFFIX
@@ -42,9 +37,10 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     privileged: true
-    # cage (Pi 5's Wayland kiosk compositor) doesn't always release the
-    # DRM master on SIGTERM — same rationale as upstream's own
-    # docker-compose.yml.tmpl for this service.
+    # Pi 4 renders through Qt's eglfs_kms platform (no compositor, direct
+    # DRM/KMS) rather than cage — but a slow/hung shutdown path on
+    # SIGTERM is a risk on any board holding DRM master directly, so this
+    # keeps the same conservative stop behavior as the Wayland boards.
     stop_grace_period: 3s
     stop_signal: SIGKILL
     shm_size: '2460166144'

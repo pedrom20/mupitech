@@ -27,20 +27,28 @@ PLAYER_VERSION_CACHE_TTL = 300  # 5 minutes
 
 def _player_ghcr_repo(device_type='pi4'):
     """Org/repo path (no host) for the configured Anthias player image
-    registry. x86 devices run our own MupiTech fork, which uses a
-    different naming convention (hyphen before the service name, not
-    the old fork's slash + `anthias-` prefix — see
-    docker/Dockerfile.server.j2 in pedrom20/mupitech-player)."""
-    if device_type == 'x86':
-        return settings.ANTHIAS_IMAGE_REGISTRY_X86.removeprefix('ghcr.io/') + '-server'
+    registry. x86/pi4/pi5 all run our own mupitech-player image (Phase
+    5), which uses a different naming convention (hyphen before the
+    service name, not the old fork's slash + `anthias-` prefix — see
+    docker/Dockerfile.server.j2 in pedrom20/mupitech-player). Any other
+    device_type falls back to the old third-party fork's convention."""
+    from .provision import _COMPOSE_TEMPLATE_BY_DEVICE_TYPE
+    if device_type in _COMPOSE_TEMPLATE_BY_DEVICE_TYPE:
+        _, _, registry_setting = _COMPOSE_TEMPLATE_BY_DEVICE_TYPE[device_type]
+        return getattr(settings, registry_setting).removeprefix('ghcr.io/') + '-server'
     return settings.ANTHIAS_IMAGE_REGISTRY.removeprefix('ghcr.io/') + '/anthias-server'
 
 
 def _player_tag_suffix(device_type='pi4'):
-    """Tag suffix used to filter GHCR tags for this device type — the
-    old fork tags as `-pi4-64`/`-pi5-64`; our own x86 image tags as
-    plain `-x86` (see docker-build.yaml in pedrom20/mupitech-player)."""
-    return '-x86' if device_type == 'x86' else f'-{device_type}-64'
+    """Tag suffix used to filter GHCR tags for this device type. Our own
+    mupitech-player image tags as plain `-<board>` (`-x86`, `-pi4-64`,
+    `-pi5` — see docker-build.yaml in pedrom20/mupitech-player); the old
+    fork (fallback for any other device_type) tagged as `-pi4-64`/`-pi5-64`."""
+    from .provision import _COMPOSE_TEMPLATE_BY_DEVICE_TYPE
+    if device_type in _COMPOSE_TEMPLATE_BY_DEVICE_TYPE:
+        _, tag_suffix_setting, _ = _COMPOSE_TEMPLATE_BY_DEVICE_TYPE[device_type]
+        return '-' + getattr(settings, tag_suffix_setting).removeprefix('latest-')
+    return f'-{device_type}-64'
 
 
 def _get_latest_player_version(device_type='pi4'):

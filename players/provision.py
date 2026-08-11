@@ -115,18 +115,20 @@ def _shell_quote(s):
 
 
 _COMPOSE_TEMPLATE_BY_DEVICE_TYPE = {
-    'pi5': ('docker-compose-player-pi5.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'ANTHIAS_IMAGE_REGISTRY'),
+    'pi4': ('docker-compose-player-pi4.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'ANTHIAS_IMAGE_REGISTRY_PI4'),
+    'pi5': ('docker-compose-player-pi5.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'ANTHIAS_IMAGE_REGISTRY_PI5'),
     'x86': ('docker-compose-player-x86.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_X86', 'ANTHIAS_IMAGE_REGISTRY_X86'),
 }
 
 # Host-side bind-mount layout expected by each compose template's
-# volumes: section. pi4/pi5 still run the old third-party fork's image,
-# which persists Anthias's settings/assets under .screenly/screenly_assets
-# and bind-mounts the whole viewer/ package (including __init__.py).
-# x86 runs our own mupitech-player image, built from current-upstream
-# Anthias, whose own docker-compose.yml.tmpl uses .anthias/anthias_assets
-# instead and only overrides media_player.py (viewer/__init__.py isn't a
-# bind mount there at all — see docker-compose-player-x86.yml).
+# volumes: section. All three device types now run our own
+# mupitech-player image, built from current-upstream Anthias, whose own
+# docker-compose.yml.tmpl uses .anthias/anthias_assets and only
+# overrides media_player.py (viewer/__init__.py isn't a bind mount
+# there at all). The old third-party fork's .screenly/screenly_assets
+# layout (which bind-mounted the whole viewer/ package) is kept as
+# _DEFAULT_HOME_LAYOUT purely as a defensive fallback for an unknown
+# device_type — no real device type maps to it anymore since Phase 5.
 _DEFAULT_HOME_LAYOUT = {
     'project_dir': 'screenly',
     'config_dir': '.screenly',
@@ -136,16 +138,19 @@ _DEFAULT_HOME_LAYOUT = {
     'viewer_init_rel': 'screenly/viewer/__init__.py',
     'extra_dirs': ['screenly/staticfiles'],
 }
+_NEW_SHAPE_HOME_LAYOUT = {
+    'project_dir': 'anthias',
+    'config_dir': '.anthias',
+    'assets_dir': 'anthias_assets',
+    'media_player_rel': 'anthias/media_player.py',
+    'extract_viewer_init': False,
+    'viewer_init_rel': None,
+    'extra_dirs': [],
+}
 _HOME_LAYOUT_BY_DEVICE_TYPE = {
-    'x86': {
-        'project_dir': 'anthias',
-        'config_dir': '.anthias',
-        'assets_dir': 'anthias_assets',
-        'media_player_rel': 'anthias/media_player.py',
-        'extract_viewer_init': False,
-        'viewer_init_rel': None,
-        'extra_dirs': [],
-    },
+    'x86': _NEW_SHAPE_HOME_LAYOUT,
+    'pi4': _NEW_SHAPE_HOME_LAYOUT,
+    'pi5': _NEW_SHAPE_HOME_LAYOUT,
 }
 
 
@@ -554,11 +559,12 @@ try:
             )
             registry = getattr(settings, registry_setting)
             tag = getattr(settings, tag_suffix_setting)
-            if device_type == 'x86':
-                # Our own mupitech-player image: 4-service shape, celery
-                # shares the server image (no separate pull), no
-                # nginx/websocket. Registry setting already includes the
-                # full image basename (see docker-compose-player-x86.yml).
+            if device_type in _HOME_LAYOUT_BY_DEVICE_TYPE:
+                # Our own mupitech-player image (x86/pi4/pi5): 4-service
+                # shape, celery shares the server image (no separate
+                # pull), no nginx/websocket. Registry setting already
+                # includes the full image basename (see
+                # docker-compose-player-{x86,pi4,pi5}.yml).
                 images = [
                     ('redis', f'{registry}-redis:{tag}'),
                     ('watchtower', 'containrrr/watchtower:latest'),
@@ -566,7 +572,8 @@ try:
                     ('viewer', f'{registry}-viewer:{tag}'),
                 ]
             else:
-                # pi4/pi5 still run the old third-party fork's 6-service image shape.
+                # Unknown device type falling back to the old third-party
+                # fork's 6-service image shape (see _DEFAULT_HOME_LAYOUT).
                 images = [
                     ('redis', f'{registry}/anthias-redis:{tag}'),
                     ('watchtower', 'containrrr/watchtower:latest'),

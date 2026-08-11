@@ -197,22 +197,29 @@ CELERY_TASK_ROUTES = {
 PLAYER_POLL_INTERVAL = int(os.environ.get('PLAYER_POLL_INTERVAL', '60'))
 PLAYER_REQUEST_TIMEOUT = int(os.environ.get('PLAYER_REQUEST_TIMEOUT', '10'))
 
-# Registo/tags das imagens Anthias usadas no provisioning dos players.
-# Ver docs/anthias-version-analysis.md para o porquê de, por omissão, ainda
-# apontarem para o fork alex1981-tech em vez do Anthias oficial.
+# Legado: fork de terceiros alex1981-tech, mantido só como fallback
+# defensivo para um device_type desconhecido — nenhum dos 3 tipos reais
+# (x86/pi4/pi5) usa isto desde a Fase 5 do plano de imagem personalizada.
+# Ver docs/anthias-version-analysis.md.
 ANTHIAS_IMAGE_REGISTRY = os.environ.get('ANTHIAS_IMAGE_REGISTRY', 'ghcr.io/alex1981-tech')
-ANTHIAS_IMAGE_TAG_SUFFIX_PI4 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'latest-pi4-64')
-ANTHIAS_IMAGE_TAG_SUFFIX_PI5 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'latest-pi5-64')
 
 # Fork próprio (pedrom20/mupitech-player, ramo mupitech-custom — ver
 # MAINTENANCE.md nesse repo) com paridade de funcionalidades construída
 # sobre o Anthias oficial atual, substituindo a dependência do fork
 # alex1981-tech acima. Nomenclatura de imagem diferente da do fork antigo
 # (hífen antes do nome do serviço, não barra) — ver
-# docker-compose-player-x86.yml. Só x86 disponível para já (Fase 0-4 do
-# plano de imagem personalizada); Pi4/Pi5 entram na Fase 5.
+# docker-compose-player-{x86,pi4,pi5}.yml. Tags de board seguem
+# tools/image_builder/constants.py (x86, pi4-64, pi5).
+#
+# Pi4/Pi5 já constroem e publicam (Fase 5), mas ainda não foram validados
+# em hardware real — ver MAINTENANCE.md no fork antes de confiar neles em
+# produção.
 ANTHIAS_IMAGE_REGISTRY_X86 = os.environ.get('ANTHIAS_IMAGE_REGISTRY_X86', 'ghcr.io/pedrom20/mupitech-player')
 ANTHIAS_IMAGE_TAG_SUFFIX_X86 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_X86', 'latest-x86')
+ANTHIAS_IMAGE_REGISTRY_PI4 = os.environ.get('ANTHIAS_IMAGE_REGISTRY_PI4', 'ghcr.io/pedrom20/mupitech-player')
+ANTHIAS_IMAGE_TAG_SUFFIX_PI4 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'latest-pi4-64')
+ANTHIAS_IMAGE_REGISTRY_PI5 = os.environ.get('ANTHIAS_IMAGE_REGISTRY_PI5', 'ghcr.io/pedrom20/mupitech-player')
+ANTHIAS_IMAGE_TAG_SUFFIX_PI5 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'latest-pi5')
 
 # Shared secret for player phone-home registration (empty = open mode)
 PLAYER_REGISTER_TOKEN = os.environ.get('PLAYER_REGISTER_TOKEN', '')
