@@ -22,6 +22,13 @@ services:
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       - redis
+    # IR remote-control (MupiTech addition) needs /dev/lirc0 passed
+    # through — NOT declared here by default: unlike a volume bind
+    # mount, Docker's `devices:` hard-fails `up` if the host path
+    # doesn't exist, and most boxes have no IR receiver at all. Add
+    #   devices:
+    #     - /dev/lirc0:/dev/lirc0
+    # to anthias-server manually on hosts that actually have one.
 
   anthias-viewer:
     image: $ANTHIAS_REGISTRY-viewer:$ANTHIAS_TAG_SUFFIX
