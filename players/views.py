@@ -253,12 +253,27 @@ class PlayerViewSet(viewsets.ModelViewSet):
                 log_action(request, 'update', 'device_settings', target_id=player.id, target_name=player.name, details=request.data)
             else:
                 data = client.get_device_settings()
+            self._sync_screen_rotation_cache(player, data)
             return Response(data)
         except PlayerConnectionError as exc:
             return Response(
                 {'error': str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
+
+    def _sync_screen_rotation_cache(self, player, device_settings_data):
+        """Keep Player.screen_rotation in sync with whatever the device
+        actually reports/accepts, so the UI (device cards, screenshot
+        preview) can show orientation without a live round-trip."""
+        try:
+            rotation = int(device_settings_data.get('screen_rotation'))
+        except (TypeError, ValueError):
+            return
+        if rotation not in (0, 90, 180, 270):
+            return
+        if player.screen_rotation != rotation:
+            player.screen_rotation = rotation
+            player.save(update_fields=['screen_rotation'])
 
     @action(detail=True, methods=['post'])
     def reboot(self, request, pk=None):

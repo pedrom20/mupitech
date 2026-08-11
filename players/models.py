@@ -100,6 +100,12 @@ class Player(models.Model):
     )
     ssh_password_encrypted = models.CharField(max_length=500, blank=True, default='', help_text='Stored encrypted.')
     ssh_port = models.IntegerField(default=22)
+    screen_rotation = models.IntegerField(
+        default=0, choices=[(0, '0'), (90, '90'), (180, '180'), (270, '270')],
+        help_text='Cached screen_rotation from this device\'s settings — synced whenever '
+                   'device-settings is read or updated, so the UI can show orientation '
+                   'without a live round-trip to the device.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

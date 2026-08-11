@@ -53,6 +53,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             'last_status',
             'mac_address',
             'device_type',
+            'screen_rotation',
             'tailscale_ip',
             'tailscale_enabled',
             'splash_logo',
@@ -63,8 +64,8 @@ class PlayerSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = [
-            'id', 'is_online', 'last_seen', 'last_status', 'mac_address', 'device_type', 'created_at',
-            'ssh_username', 'ssh_port', 'has_ssh_credentials',
+            'id', 'is_online', 'last_seen', 'last_status', 'mac_address', 'device_type',
+            'screen_rotation', 'created_at', 'ssh_username', 'ssh_port', 'has_ssh_credentials',
         ]
 
     def create(self, validated_data):
@@ -113,6 +114,7 @@ class PlayerListSerializer(serializers.ModelSerializer):
             'last_status',
             'mac_address',
             'device_type',
+            'screen_rotation',
             'tailscale_ip',
             'tailscale_enabled',
         ]

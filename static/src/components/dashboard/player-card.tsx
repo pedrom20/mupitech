@@ -17,6 +17,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => 
   const navigate = useNavigate()
 
   const group = player.group_detail || player.group
+  const location = player.effective_location_detail
+  const rotation = player.screen_rotation ?? 0
+  const isPortrait = rotation === 90 || rotation === 270
   const lastSeen = player.last_seen
     ? new Date(player.last_seen).toLocaleString()
     : '--'
@@ -93,6 +96,43 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => 
             ) : (
               <span className="text-muted">{t('players.noGroup')}</span>
             )}
+          </span>
+        </div>
+
+        <div className="player-info-row">
+          <span className="info-label">{t('locations.title')}</span>
+          <span className="info-value">
+            {location ? (
+              <span
+                className="fm-group-tag"
+                style={{
+                  backgroundColor: location.color ? `${location.color}20` : undefined,
+                  color: location.color || undefined,
+                }}
+              >
+                {location.name}
+              </span>
+            ) : (
+              <span className="text-muted">{t('players.noLocation')}</span>
+            )}
+          </span>
+        </div>
+
+        <div className="player-info-row">
+          <span className="info-label">{t('players.orientation')}</span>
+          <span className="info-value d-flex align-items-center gap-1" title={t(`players.rotation${rotation}` as const)}>
+            <span
+              aria-hidden="true"
+              style={{
+                display: 'inline-block',
+                width: isPortrait ? '10px' : '16px',
+                height: isPortrait ? '16px' : '10px',
+                border: '1.5px solid currentColor',
+                borderRadius: '2px',
+                opacity: 0.75,
+              }}
+            />
+            {t(isPortrait ? 'players.orientationPortrait' : 'players.orientationLandscape')}
           </span>
         </div>
 

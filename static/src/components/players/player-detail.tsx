@@ -1458,6 +1458,9 @@ const PlayerDetail: React.FC = () => {
         <div className="fm-card-body">
           <div className="row g-3">
             {/* Screenshot / CCTV live column */}
+            {(() => {
+              const isPortraitDevice = player.screen_rotation === 90 || player.screen_rotation === 270
+              return (
             <div className="col-lg-5 col-md-6">
               {liveViewEnabled && liveSnapshotUrl ? (
                 <div style={{ position: 'relative' }}>
@@ -1493,11 +1496,19 @@ const PlayerDetail: React.FC = () => {
                   </div>
                 </div>
               ) : screenshotUrl ? (
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', textAlign: isPortraitDevice ? 'center' : undefined }}>
                   <img
                     src={screenshotUrl}
                     alt="Player screenshot"
-                    style={{
+                    style={isPortraitDevice ? {
+                      height: '260px',
+                      maxWidth: '100%',
+                      width: 'auto',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    } : {
                       width: '100%',
                       maxHeight: '260px',
                       objectFit: 'cover',
@@ -1528,6 +1539,9 @@ const PlayerDetail: React.FC = () => {
                 <div
                   style={{
                     height: '260px',
+                    width: isPortraitDevice ? '146px' : '100%',
+                    maxWidth: '100%',
+                    margin: isPortraitDevice ? '0 auto' : undefined,
                     borderRadius: '8px',
                     background: 'var(--bs-tertiary-bg, #f0f0f0)',
                     display: 'flex',
@@ -1546,16 +1560,6 @@ const PlayerDetail: React.FC = () => {
                         ? t('players.screenshotUnavailable')
                         : t('players.offline')}
                   </small>
-                  {screenshotUnsupported && player.is_online && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={handleSidecarScreenshot}
-                      disabled={screenshotLoading}
-                    >
-                      {screenshotLoading ? t('common.loading') : t('players.sidecarCapture')}
-                    </button>
-                  )}
                 </div>
               )}
               {/* Playback controls under screenshot */}
@@ -1573,16 +1577,16 @@ const PlayerDetail: React.FC = () => {
                 )}
                 <button
                   className="fm-btn-primary fm-btn-sm"
-                  onClick={handleScreenshot}
-                  disabled={screenshotLoading || !player.is_online || screenshotUnsupported}
-                  title={screenshotUnsupported ? t('players.screenshotNotSupported') : t('players.takeScreenshot')}
+                  onClick={screenshotUnsupported ? handleSidecarScreenshot : handleScreenshot}
+                  disabled={screenshotLoading || !player.is_online}
+                  title={screenshotUnsupported ? t('players.sidecarCapture') : t('players.takeScreenshot')}
                 >
                   {screenshotLoading ? (
                     <span className="spinner-border spinner-border-sm me-1" />
                   ) : (
                     <FaCamera className="me-1" />
                   )}
-                  {t('players.takeScreenshot')}
+                  {screenshotUnsupported ? t('players.sidecarCapture') : t('players.takeScreenshot')}
                 </button>
                 {hasPlaybackControl && (
                   <button
@@ -1597,6 +1601,8 @@ const PlayerDetail: React.FC = () => {
                 )}
               </div>
             </div>
+              )
+            })()}
 
             {/* Info column */}
             <div className="col-lg-7 col-md-6 d-flex flex-column">
