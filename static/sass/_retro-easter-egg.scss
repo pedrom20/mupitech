@@ -1,8 +1,9 @@
 // =============================================================================
 // Easter egg — "Modo Arquivo 2016" retro theme
 // Triggered by the Konami code (see static/src/hooks/use-konami-code.ts).
-// Deliberately ugly: flat maroon ribbon, hard corners, visible gridlines,
-// Segoe UI, no shadows/radius/transitions anywhere. Scoped entirely under
+// Deliberately ugly and unintuitive: clashing fonts, gaudy colors, no
+// pointer cursors on buttons, chunky beveled everything, visible
+// gridlines, zero shadows/radius/transitions. Scoped entirely under
 // [data-retro-theme="true"] so it never affects the normal theme.
 // =============================================================================
 
@@ -18,6 +19,45 @@
     text-shadow: none !important;
   }
 
+  // Clashing typography on purpose — mismatched fonts/sizes read as
+  // "someone who didn't know what they were doing" put this together.
+  h1, h2, h3, .page-title, .card-title, .modal-title {
+    font-family: 'Comic Sans MS', 'Comic Sans', cursive, 'Segoe UI', sans-serif !important;
+  }
+
+  table, .fm-table {
+    font-family: 'Times New Roman', Times, serif !important;
+  }
+
+  // Buttons look clickable-ish but don't behave like it — no pointer
+  // cursor, no hover feedback beyond an inset border on press.
+  button, .btn, a {
+    cursor: default !important;
+  }
+
+  // Garish, inconsistent link color instead of the app's own palette.
+  a:not(.btn):not(.nav-link) {
+    color: #0000ee !important;
+    text-decoration: underline !important;
+
+    &:visited {
+      color: #551a8b !important;
+    }
+  }
+
+  // Chunky, ugly scrollbars everywhere.
+  ::-webkit-scrollbar {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  ::-webkit-scrollbar-track {
+    background: #d4d0c8 !important;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #a4373a !important;
+    border: 2px outset #fff !important;
+  }
+
   // Ribbon-style navbar
   .fm-navbar {
     background: #a4373a !important;
@@ -30,6 +70,7 @@
 
     .nav-link {
       font-size: 0.78rem !important;
+      text-transform: uppercase !important;
       border: 1px solid transparent;
 
       &:hover {
@@ -47,6 +88,13 @@
 
   .fm-content {
     background: #ece9d8 !important;
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.015),
+      rgba(0, 0, 0, 0.015) 2px,
+      transparent 2px,
+      transparent 12px
+    ) !important;
   }
 
   // Datasheet-style cards
@@ -72,6 +120,10 @@
     color: #000 !important;
     border: 2px outset #fff !important;
 
+    &:hover {
+      background: #d4d0c8 !important;
+    }
+
     &:active {
       border-style: inset !important;
     }
@@ -92,12 +144,13 @@
     th,
     td {
       border: 1px solid #808080 !important;
-      font-size: 0.78rem !important;
+      font-size: 0.82rem !important;
     }
 
     thead th {
       background: #d4d0c8 !important;
       color: #000 !important;
+      font-family: 'Segoe UI', Tahoma, sans-serif !important;
     }
 
     tbody tr:nth-child(even) {
@@ -105,14 +158,16 @@
     }
   }
 
-  // Flat, thin-bordered inputs — no focus glow
+  // Flat, thin-bordered inputs — harsh focus outline instead of a glow
   .form-control,
   .form-select {
     border: 1px solid #808080 !important;
     background: #fff !important;
+    border-radius: 0 !important;
 
     &:focus {
-      outline: 2px solid #000080 !important;
+      outline: 3px solid #000080 !important;
+      outline-offset: 0 !important;
       box-shadow: none !important;
     }
   }
