@@ -779,7 +779,9 @@
     "push": "Push",
     "pushed": "Branding pushed",
     "pushFailed": "Failed to push branding",
-    "pushPartial": "Failed on some devices"
+    "pushPartial": "Failed on some devices",
+    "groupOverrideTitle": "Branding override for this group",
+    "locationOverrideTitle": "Branding override for this location"
   },
   "users": {
     "title": "Users",

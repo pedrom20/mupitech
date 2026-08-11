@@ -279,6 +279,26 @@ export const groups = {
       push_logo: pushLogo, push_standby: pushStandby,
     })
   },
+
+  uploadLogo(id: string, file: File): Promise<{ success: boolean; logo_url: string }> {
+    const data = new FormData()
+    data.append('logo', file)
+    return apiRequest('POST', `/groups/${id}/logo/`, data)
+  },
+
+  deleteLogo(id: string): Promise<void> {
+    return apiRequest('DELETE', `/groups/${id}/logo/`)
+  },
+
+  uploadStandby(id: string, file: File): Promise<{ success: boolean; standby_url: string }> {
+    const data = new FormData()
+    data.append('standby', file)
+    return apiRequest('POST', `/groups/${id}/standby/`, data)
+  },
+
+  deleteStandby(id: string): Promise<void> {
+    return apiRequest('DELETE', `/groups/${id}/standby/`)
+  },
 }
 
 export const locations = {
@@ -300,6 +320,26 @@ export const locations = {
 
   delete(id: string): Promise<void> {
     return apiRequest<void>('DELETE', `/locations/${id}/`)
+  },
+
+  uploadLogo(id: string, file: File): Promise<{ success: boolean; logo_url: string }> {
+    const data = new FormData()
+    data.append('logo', file)
+    return apiRequest('POST', `/locations/${id}/logo/`, data)
+  },
+
+  deleteLogo(id: string): Promise<void> {
+    return apiRequest('DELETE', `/locations/${id}/logo/`)
+  },
+
+  uploadStandby(id: string, file: File): Promise<{ success: boolean; standby_url: string }> {
+    const data = new FormData()
+    data.append('standby', file)
+    return apiRequest('POST', `/locations/${id}/standby/`, data)
+  },
+
+  deleteStandby(id: string): Promise<void> {
+    return apiRequest('DELETE', `/locations/${id}/standby/`)
   },
 }
 

@@ -15,6 +15,14 @@ class Group(models.Model):
         blank=True,
         related_name='groups',
     )
+    splash_logo = models.FileField(
+        upload_to='branding/groups/', null=True, blank=True,
+        help_text='Overrides the fleet-wide splash logo for devices in this group.',
+    )
+    standby_image = models.FileField(
+        upload_to='branding/groups/', null=True, blank=True,
+        help_text='Overrides the fleet-wide standby image for devices in this group.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

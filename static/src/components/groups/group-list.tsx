@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FaLayerGroup,
@@ -46,6 +46,10 @@ const GroupList: React.FC = () => {
   const [pushTargetLogo, setPushTargetLogo] = useState(true)
   const [pushTargetStandby, setPushTargetStandby] = useState(false)
   const [brandingHasStandby, setBrandingHasStandby] = useState(false)
+  const [uploadingGroupLogo, setUploadingGroupLogo] = useState(false)
+  const [uploadingGroupStandby, setUploadingGroupStandby] = useState(false)
+  const groupLogoInputRef = useRef<HTMLInputElement>(null)
+  const groupStandbyInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     dispatch(fetchGroups())
@@ -172,6 +176,60 @@ const GroupList: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
     } finally {
       setPushingLogo(false)
+    }
+  }
+
+  const handleGroupLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !detailGroup) return
+    setUploadingGroupLogo(true)
+    try {
+      const res = await groupsApi.uploadLogo(detailGroup.id, file)
+      setDetailGroup({ ...detailGroup, splash_logo: res.logo_url })
+      dispatch(fetchGroups())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingGroupLogo(false)
+      if (groupLogoInputRef.current) groupLogoInputRef.current.value = ''
+    }
+  }
+
+  const handleGroupLogoDelete = async () => {
+    if (!detailGroup) return
+    try {
+      await groupsApi.deleteLogo(detailGroup.id)
+      setDetailGroup({ ...detailGroup, splash_logo: null })
+      dispatch(fetchGroups())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
+  const handleGroupStandbyChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !detailGroup) return
+    setUploadingGroupStandby(true)
+    try {
+      const res = await groupsApi.uploadStandby(detailGroup.id, file)
+      setDetailGroup({ ...detailGroup, standby_image: res.standby_url })
+      dispatch(fetchGroups())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingGroupStandby(false)
+      if (groupStandbyInputRef.current) groupStandbyInputRef.current.value = ''
+    }
+  }
+
+  const handleGroupStandbyDelete = async () => {
+    if (!detailGroup) return
+    try {
+      await groupsApi.deleteStandby(detailGroup.id)
+      setDetailGroup({ ...detailGroup, standby_image: null })
+      dispatch(fetchGroups())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
     }
   }
 
@@ -681,6 +739,62 @@ const GroupList: React.FC = () => {
                     {detailGroup.location_detail.name}
                   </p>
                 )}
+
+                <div className="border rounded p-2 mb-3">
+                  <p className="fw-semibold mb-2" style={{ fontSize: '0.85rem' }}>
+                    <FaImage className="me-1" />
+                    {t('branding.groupOverrideTitle')}
+                  </p>
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="border rounded d-flex align-items-center justify-content-center p-1"
+                          style={{ width: '70px', height: '44px', background: 'var(--bs-tertiary-bg, #f5f5f5)', flexShrink: 0 }}
+                        >
+                          {detailGroup.splash_logo && (
+                            <img src={detailGroup.splash_logo} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          )}
+                        </div>
+                        <div className="d-flex flex-column gap-1">
+                          <input ref={groupLogoInputRef} type="file" accept=".svg,.png,.jpg,.jpeg" className="d-none" onChange={handleGroupLogoChange} />
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => groupLogoInputRef.current?.click()} disabled={uploadingGroupLogo} style={{ fontSize: '0.72rem' }}>
+                            {t('branding.logoLabel')}
+                          </button>
+                          {detailGroup.splash_logo && (
+                            <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleGroupLogoDelete} style={{ fontSize: '0.72rem' }}>
+                              {t('common.delete')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-6">
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="border rounded d-flex align-items-center justify-content-center p-1"
+                          style={{ width: '70px', height: '44px', background: '#000', flexShrink: 0 }}
+                        >
+                          {detailGroup.standby_image && (
+                            <img src={detailGroup.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          )}
+                        </div>
+                        <div className="d-flex flex-column gap-1">
+                          <input ref={groupStandbyInputRef} type="file" accept=".png,.jpg,.jpeg" className="d-none" onChange={handleGroupStandbyChange} />
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => groupStandbyInputRef.current?.click()} disabled={uploadingGroupStandby} style={{ fontSize: '0.72rem' }}>
+                            {t('branding.standbyLabel')}
+                          </button>
+                          {detailGroup.standby_image && (
+                            <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleGroupStandbyDelete} style={{ fontSize: '0.72rem' }}>
+                              {t('common.delete')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {getPlayersInGroup(detailGroup.id).length === 0 ? (
                   <p className="text-muted mb-0">{t('common.noResults')}</p>
                 ) : (

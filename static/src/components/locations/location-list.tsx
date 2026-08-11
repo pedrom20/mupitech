@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FaMapMarkerAlt,
@@ -9,12 +9,14 @@ import {
   FaDesktop,
   FaSitemap,
   FaCircle,
+  FaImage,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchLocations, createLocation, updateLocation, deleteLocation } from '@/store/locationsSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchPlayers } from '@/store/playersSlice'
+import { locations as locationsApi } from '@/services/api'
 import type { Location } from '@/types'
 
 const LocationList: React.FC = () => {
@@ -32,6 +34,10 @@ const LocationList: React.FC = () => {
   const [saving, setSaving] = useState(false)
   const [detailLocation, setDetailLocation] = useState<Location | null>(null)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+  const [uploadingLocationLogo, setUploadingLocationLogo] = useState(false)
+  const [uploadingLocationStandby, setUploadingLocationStandby] = useState(false)
+  const locationLogoInputRef = useRef<HTMLInputElement>(null)
+  const locationStandbyInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     dispatch(fetchLocations())
@@ -53,6 +59,60 @@ const LocationList: React.FC = () => {
 
   const toggleGroupCollapsed = (groupId: string) => {
     setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }))
+  }
+
+  const handleLocationLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !detailLocation) return
+    setUploadingLocationLogo(true)
+    try {
+      const res = await locationsApi.uploadLogo(detailLocation.id, file)
+      setDetailLocation({ ...detailLocation, splash_logo: res.logo_url })
+      dispatch(fetchLocations())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingLocationLogo(false)
+      if (locationLogoInputRef.current) locationLogoInputRef.current.value = ''
+    }
+  }
+
+  const handleLocationLogoDelete = async () => {
+    if (!detailLocation) return
+    try {
+      await locationsApi.deleteLogo(detailLocation.id)
+      setDetailLocation({ ...detailLocation, splash_logo: null })
+      dispatch(fetchLocations())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
+  const handleLocationStandbyChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !detailLocation) return
+    setUploadingLocationStandby(true)
+    try {
+      const res = await locationsApi.uploadStandby(detailLocation.id, file)
+      setDetailLocation({ ...detailLocation, standby_image: res.standby_url })
+      dispatch(fetchLocations())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingLocationStandby(false)
+      if (locationStandbyInputRef.current) locationStandbyInputRef.current.value = ''
+    }
+  }
+
+  const handleLocationStandbyDelete = async () => {
+    if (!detailLocation) return
+    try {
+      await locationsApi.deleteStandby(detailLocation.id)
+      setDetailLocation({ ...detailLocation, standby_image: null })
+      dispatch(fetchLocations())
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
   }
 
   const handleAdd = () => {
@@ -375,6 +435,61 @@ const LocationList: React.FC = () => {
                 />
               </div>
               <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                <div className="border rounded p-2 mb-3">
+                  <p className="fw-semibold mb-2" style={{ fontSize: '0.85rem' }}>
+                    <FaImage className="me-1" />
+                    {t('branding.locationOverrideTitle')}
+                  </p>
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="border rounded d-flex align-items-center justify-content-center p-1"
+                          style={{ width: '70px', height: '44px', background: 'var(--bs-tertiary-bg, #f5f5f5)', flexShrink: 0 }}
+                        >
+                          {detailLocation.splash_logo && (
+                            <img src={detailLocation.splash_logo} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          )}
+                        </div>
+                        <div className="d-flex flex-column gap-1">
+                          <input ref={locationLogoInputRef} type="file" accept=".svg,.png,.jpg,.jpeg" className="d-none" onChange={handleLocationLogoChange} />
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => locationLogoInputRef.current?.click()} disabled={uploadingLocationLogo} style={{ fontSize: '0.72rem' }}>
+                            {t('branding.logoLabel')}
+                          </button>
+                          {detailLocation.splash_logo && (
+                            <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleLocationLogoDelete} style={{ fontSize: '0.72rem' }}>
+                              {t('common.delete')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-6">
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="border rounded d-flex align-items-center justify-content-center p-1"
+                          style={{ width: '70px', height: '44px', background: '#000', flexShrink: 0 }}
+                        >
+                          {detailLocation.standby_image && (
+                            <img src={detailLocation.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          )}
+                        </div>
+                        <div className="d-flex flex-column gap-1">
+                          <input ref={locationStandbyInputRef} type="file" accept=".png,.jpg,.jpeg" className="d-none" onChange={handleLocationStandbyChange} />
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => locationStandbyInputRef.current?.click()} disabled={uploadingLocationStandby} style={{ fontSize: '0.72rem' }}>
+                            {t('branding.standbyLabel')}
+                          </button>
+                          {detailLocation.standby_image && (
+                            <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleLocationStandbyDelete} style={{ fontSize: '0.72rem' }}>
+                              {t('common.delete')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {getGroupsInLocation(detailLocation.id).length === 0
                   && getUngroupedPlayersInLocation(detailLocation.id).length === 0 ? (
                   <p className="text-muted mb-0">{t('common.noResults')}</p>

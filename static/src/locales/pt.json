@@ -779,7 +779,9 @@
     "push": "Enviar",
     "pushed": "Marca enviada",
     "pushFailed": "Falha ao enviar a marca",
-    "pushPartial": "Falhou em alguns dispositivos"
+    "pushPartial": "Falhou em alguns dispositivos",
+    "groupOverrideTitle": "Marca personalizada deste grupo",
+    "locationOverrideTitle": "Marca personalizada desta localização"
   },
   "users": {
     "title": "Utilizadores",

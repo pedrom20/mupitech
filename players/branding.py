@@ -90,18 +90,66 @@ def _png_bytes(img):
     return buf.getvalue()
 
 
-def get_logo_path():
-    """Absolute path to the logo that would be pushed: the uploaded
-    fleet-wide custom one if set, otherwise the bundled MupiTech default.
+def get_logo_path(player=None):
+    """Absolute path to the logo that would be pushed for `player`.
+
+    Precedence: the player's group's own logo, then its effective
+    location's own logo, then the fleet-wide custom logo, then the
+    bundled MupiTech default. Passing no player skips straight to the
+    fleet-wide resolution (used by the Settings page preview).
     """
+    if player is not None:
+        if player.group_id and player.group.splash_logo:
+            return player.group.splash_logo.path
+        location = player.effective_location
+        if location and location.splash_logo:
+            return location.splash_logo.path
     custom = os.path.join(BRANDING_DIR, BRANDING_LOGO_FILENAME)
     return custom if os.path.isfile(custom) else DEFAULT_LOGO_PATH
 
 
-def get_standby_path():
-    """Absolute path to the custom standby ("no content") image, or None."""
+def get_standby_path(player=None):
+    """Absolute path to the standby image that would be pushed for
+    `player`, or None if nothing is set at any level (group, location,
+    fleet-wide) — same precedence as get_logo_path, but with no bundled
+    default.
+    """
+    if player is not None:
+        if player.group_id and player.group.standby_image:
+            return player.group.standby_image.path
+        location = player.effective_location
+        if location and location.standby_image:
+            return location.standby_image.path
     path = os.path.join(BRANDING_DIR, STANDBY_FILENAME)
     return path if os.path.isfile(path) else None
+
+
+def save_logo_upload(instance, uploaded_file):
+    """Save an SVG/PNG/JPEG upload as `instance.splash_logo` (a Group or
+    Location). Raises ValueError on an unsupported format."""
+    from django.core.files.base import ContentFile
+
+    name_lower = uploaded_file.name.lower()
+    if name_lower.endswith('.svg'):
+        instance.splash_logo.save('logo.svg', uploaded_file, save=True)
+    elif name_lower.endswith(('.png', '.jpg', '.jpeg')):
+        svg_bytes = wrap_raster_as_svg(uploaded_file, uploaded_file.name)
+        instance.splash_logo.save('logo.svg', ContentFile(svg_bytes), save=True)
+    else:
+        raise ValueError('Only SVG, PNG or JPEG files are supported')
+
+
+def save_standby_upload(instance, uploaded_file):
+    """Save a PNG/JPEG upload as `instance.standby_image` (a Group or
+    Location), always converted to real PNG bytes. Raises ValueError on
+    an unsupported format."""
+    from django.core.files.base import ContentFile
+
+    name_lower = uploaded_file.name.lower()
+    if not name_lower.endswith(('.png', '.jpg', '.jpeg')):
+        raise ValueError('Only PNG or JPEG files are supported')
+    png_bytes = convert_to_png(uploaded_file)
+    instance.standby_image.save('standby.png', ContentFile(png_bytes), save=True)
 
 
 def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
@@ -153,10 +201,14 @@ def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
 
 
 def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and replace its Anthias splash-page logo."""
+    """SSH into `player`'s host and replace its Anthias splash-page logo.
+
+    Uses the most specific logo set for this player: its group's, else
+    its location's, else the fleet-wide one, else the bundled default.
+    """
     _push_file_to_player(
         player, ssh_user, ssh_password, ssh_port, timeout,
-        local_path=get_logo_path(),
+        local_path=get_logo_path(player),
         remote_tmp_path=REMOTE_TMP_LOGO_PATH,
         container_path=CONTAINER_LOGO_PATH,
     )
@@ -165,11 +217,12 @@ def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, time
 def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
     """SSH into `player`'s host and replace its "no content" standby image.
 
-    Raises BrandingPushError if no custom standby image has been uploaded —
-    unlike the logo there's no bundled default (a good placeholder needs
-    real design input, not just this app's own icon stretched to fill it).
+    Same group/location/fleet-wide precedence as the logo, but raises
+    BrandingPushError if nothing is set at any level — unlike the logo
+    there's no bundled default (a good placeholder needs real design
+    input, not just this app's own icon stretched to fill it).
     """
-    standby_path = get_standby_path()
+    standby_path = get_standby_path(player)
     if not standby_path:
         raise BrandingPushError('No custom standby image has been uploaded yet.')
     _push_file_to_player(

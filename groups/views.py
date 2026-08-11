@@ -87,3 +87,43 @@ class GroupViewSet(viewsets.ModelViewSet):
             details={'logo': bool(push_logo), 'standby': bool(push_standby), 'results': results},
         )
         return Response({'success': True, 'results': results})
+
+    @action(detail=True, methods=['post', 'delete'], url_path='logo')
+    def logo(self, request, pk=None):
+        """Upload or remove this group's own splash logo override."""
+        group = self.get_object()
+        from players.branding import save_logo_upload
+
+        if request.method == 'DELETE':
+            if group.splash_logo:
+                group.splash_logo.delete(save=True)
+            return Response(status=204)
+
+        file = request.FILES.get('logo')
+        if not file:
+            return Response({'error': 'logo file is required'}, status=400)
+        try:
+            save_logo_upload(group, file)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+        return Response({'success': True, 'logo_url': group.splash_logo.url})
+
+    @action(detail=True, methods=['post', 'delete'], url_path='standby')
+    def standby(self, request, pk=None):
+        """Upload or remove this group's own standby image override."""
+        group = self.get_object()
+        from players.branding import save_standby_upload
+
+        if request.method == 'DELETE':
+            if group.standby_image:
+                group.standby_image.delete(save=True)
+            return Response(status=204)
+
+        file = request.FILES.get('standby')
+        if not file:
+            return Response({'error': 'standby file is required'}, status=400)
+        try:
+            save_standby_upload(group, file)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+        return Response({'success': True, 'standby_url': group.standby_image.url})

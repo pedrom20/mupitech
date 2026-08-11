@@ -3,6 +3,8 @@ export interface Location {
   name: string
   color: string
   description: string
+  splash_logo: string | null
+  standby_image: string | null
   created_at: string
 }
 
@@ -13,6 +15,8 @@ export interface Group {
   description: string
   location: string | null
   location_detail?: Location | null
+  splash_logo: string | null
+  standby_image: string | null
   created_at: string
 }
 
