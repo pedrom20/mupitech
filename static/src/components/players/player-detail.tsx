@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, useContext } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   FaArrowLeft,
@@ -162,6 +162,7 @@ type SortDir = 'asc' | 'desc'
 const PlayerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useTranslation()
   const role = useContext(RoleContext)
 
@@ -599,6 +600,14 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  const handleBack = () => {
+    if (location.key !== 'default') {
+      navigate(-1)
+    } else {
+      navigate('/players')
+    }
+  }
+
   const handleReboot = async () => {
     if (!id) return
     const result = await Swal.fire({
@@ -619,15 +628,6 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
-  const handleOpenBrandingTab = () => {
-    setSaveSshCredentials(false)
-    if (player?.has_ssh_credentials) {
-      setPushLogoSshUser(player.ssh_username || 'pi')
-      setPushLogoSshPort(player.ssh_port || 22)
-    }
-    systemApi.getBranding().then((res) => setBrandingHasStandby(res.has_standby_image)).catch(() => {})
-    handleOpenSettings('branding')
-  }
 
   const handleForgetSshCredentials = async () => {
     if (!id || !player) return
@@ -1102,6 +1102,14 @@ const PlayerDetail: React.FC = () => {
     setShowSettingsModal(true)
     setSettingsActiveTab(tab)
     setSettingsLoading(true)
+    // Branding tab state — initialized alongside the general tab (not
+    // only when it's clicked) since both now live in one modal.
+    setSaveSshCredentials(false)
+    if (player?.has_ssh_credentials) {
+      setPushLogoSshUser(player.ssh_username || 'pi')
+      setPushLogoSshPort(player.ssh_port || 22)
+    }
+    systemApi.getBranding().then((res) => setBrandingHasStandby(res.has_standby_image)).catch(() => {})
     try {
       const data = await playersApi.getSettings(id) as Record<string, string | number | boolean | object>
       setDeviceSettings(data)
@@ -1590,7 +1598,7 @@ const PlayerDetail: React.FC = () => {
         <div>
           <button
             className="fm-btn-outline fm-btn-sm me-3"
-            onClick={() => navigate('/')}
+            onClick={handleBack}
           >
             <FaArrowLeft />
           </button>
@@ -1642,15 +1650,6 @@ const PlayerDetail: React.FC = () => {
             >
               <FaSyncAlt />
             </button>
-            {isAdminRole(role) && (
-              <button
-                className="fm-btn-outline fm-btn-sm"
-                onClick={handleOpenBrandingTab}
-                title={t('branding.pushTitle')}
-              >
-                <FaImage />
-              </button>
-            )}
             {isAdminRole(role) && player.device_type === 'x86' && (
               <button
                 className="fm-btn-outline fm-btn-sm"
@@ -2729,16 +2728,18 @@ const PlayerDetail: React.FC = () => {
                     {t('playerSettings.tabGeneral')}
                   </button>
                 </li>
-                <li className="nav-item">
-                  <button
-                    type="button"
-                    className={`nav-link ${settingsActiveTab === 'branding' ? 'active' : ''}`}
-                    onClick={() => setSettingsActiveTab('branding')}
-                  >
-                    <FaImage className="me-1" />
-                    {t('playerSettings.tabBranding')}
-                  </button>
-                </li>
+                {isAdminRole(role) && (
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link ${settingsActiveTab === 'branding' ? 'active' : ''}`}
+                      onClick={() => setSettingsActiveTab('branding')}
+                    >
+                      <FaImage className="me-1" />
+                      {t('playerSettings.tabBranding')}
+                    </button>
+                  </li>
+                )}
               </ul>
               <div className="modal-body py-2" style={{ maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
                 {settingsLoading ? (

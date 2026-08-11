@@ -382,7 +382,7 @@
     "username": "Username",
     "password": "Password",
     "invalidCredentials": "Invalid username or password",
-    "brandSuffix": "Fleet Manager"
+    "brandSuffix": "Gestor de Mupis Digitais"
   },
   "schedule": {
     "title": "Schedule Slots",
@@ -711,7 +711,7 @@
     "camera": "Camera"
   },
   "footer": {
-    "copyright": "MupiTech Fleet Manager",
+    "copyright": "MupiTech — Gestor de Mupis Digitais",
     "upstream": "Built on the Anthias project"
   },
   "apiErrors": {

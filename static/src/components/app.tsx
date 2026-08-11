@@ -6,6 +6,7 @@ import Navbar from './navbar'
 import Footer from './footer'
 import { useKonamiCode } from '@/hooks/use-konami-code'
 import { useDosCode } from '@/hooks/use-dos-code'
+import { usePageTitle } from '@/hooks/use-page-title'
 import Dashboard from '@/components/dashboard/index'
 import PlayerList from '@/components/players/player-list'
 import PlayerDetail from '@/components/players/player-detail'
@@ -111,6 +112,7 @@ const App: React.FC = () => {
 
   useKonamiCode(toggleRetroTheme)
   useDosCode(toggleDosTheme)
+  usePageTitle()
 
   const refresh = () => {
     usersApi.me().then((u) => {

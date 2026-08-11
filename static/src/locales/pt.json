@@ -382,7 +382,7 @@
     "username": "Utilizador",
     "password": "Palavra-passe",
     "invalidCredentials": "Utilizador ou palavra-passe inválidos",
-    "brandSuffix": "Gestor de Mupis"
+    "brandSuffix": "Gestor de Mupis Digitais"
   },
   "schedule": {
     "title": "Intervalos de Agendamento",
@@ -711,7 +711,7 @@
     "camera": "Câmara"
   },
   "footer": {
-    "copyright": "MupiTech Gestor de Mupis",
+    "copyright": "MupiTech — Gestor de Mupis Digitais",
     "upstream": "Baseado no projeto Anthias"
   },
   "apiErrors": {

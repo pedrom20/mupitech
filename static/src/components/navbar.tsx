@@ -5,7 +5,7 @@ import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboard
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi } from '@/services/api'
 import { RoleContext, AuthContext, isAdminRole } from '@/components/app'
-import { useTapSequence } from '@/hooks/use-tap-sequence'
+import { useTapTrigger } from '@/hooks/use-tap-trigger'
 
 const FLEET_ROUTES = ['/players', '/groups', '/locations']
 
@@ -144,9 +144,10 @@ const UserMenu: React.FC = () => {
 }
 
 interface NavbarProps {
-  /** Called after 5 quick taps on the logo — a touch-friendly stand-in
-   * for keyboard-only easter egg triggers (useDosCode) on devices with
-   * no physical keyboard. */
+  /** Called after the tap sequence completes on the logo — a
+   * touch-friendly stand-in for the keyboard-only useDosCode trigger,
+   * on devices with no physical keyboard. Same useTapTrigger mechanism
+   * the footer already uses for the retro theme's mobile trigger. */
   onLogoTapSequence?: () => void
 }
 
@@ -155,7 +156,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
   const role = useContext(RoleContext)
   const { user, checked } = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
-  const handleLogoTap = useTapSequence(onLogoTapSequence ?? (() => {}))
+  const registerLogoTap = useTapTrigger(() => onLogoTapSequence?.())
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
@@ -178,7 +179,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
   return (
       <nav className="fm-navbar">
         <div className="container-fluid d-flex align-items-center px-3 h-100">
-          <NavLink to="/" className="navbar-brand" onClick={() => { closeMenu(); handleLogoTap() }}>
+          <NavLink to="/" className="navbar-brand" onClick={() => { closeMenu(); registerLogoTap() }}>
             <img src="/static/img/logo.svg" alt="MupiTech Fleet Manager" />
           </NavLink>
 
