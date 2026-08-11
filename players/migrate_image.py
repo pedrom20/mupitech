@@ -102,9 +102,19 @@ def _get_compose_context(ssh, container, timeout):
     return working_dir, compose_path
 
 
+def _backup_exists(ssh, compose_path, timeout):
+    out, _, _ = _ssh_run(
+        ssh, f'[ -f {_shell_quote(compose_path + ".bak")} ] && echo yes || echo no',
+        timeout=timeout, check=False,
+    )
+    return out.strip() == 'yes'
+
+
 def discover_image_source(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """Return (source, image) for the device's currently-running Anthias image,
-    without changing anything on the device."""
+    """Return (source, image, has_backup) for the device's currently-running
+    Anthias image, without changing anything on the device. has_backup
+    reflects whether a previous migration left a .bak compose file behind
+    (i.e. whether "Restore previous" is available)."""
     ssh, _ = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
     try:
         container = _find_anthias_server_container(ssh, timeout)
@@ -112,7 +122,52 @@ def discover_image_source(player, ssh_user, ssh_password, ssh_port=22, timeout=1
             ssh, f"docker inspect -f '{{{{.Config.Image}}}}' {_shell_quote(container)}", timeout=timeout,
         )
         image = image.strip()
-        return _classify_image(image), image
+        try:
+            _, compose_path = _get_compose_context(ssh, container, timeout)
+            has_backup = _backup_exists(ssh, compose_path, timeout)
+        except MigrationError:
+            has_backup = False
+        return _classify_image(image), image, has_backup
+    except MigrationError:
+        raise
+    except Exception as exc:
+        raise MigrationError(str(exc)) from exc
+    finally:
+        ssh.close()
+
+
+def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeout=30):
+    """Roll a device back to the compose file it had before its last
+    migration, using the .bak backup left by migrate_player_to_mupitech_image.
+    Raises MigrationError (no device changes) if there's no backup to restore.
+    """
+    ssh, _ = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
+    try:
+        container = _find_anthias_server_container(ssh, timeout)
+        working_dir, compose_path = _get_compose_context(ssh, container, timeout)
+        backup_path = f'{compose_path}.bak'
+
+        if not _backup_exists(ssh, compose_path, timeout):
+            raise MigrationError(
+                f'No backup found at {backup_path} — nothing to restore. A backup is '
+                'only created the first time a device is migrated to the MupiTech image.'
+            )
+
+        # Keep a copy of what we're restoring FROM (not overwriting .bak
+        # itself), in case the operator wants to go back the other way again.
+        _ssh_run(
+            ssh, f'cp {_shell_quote(compose_path)} {_shell_quote(compose_path + ".before-restore")}',
+            timeout=timeout, check=False,
+        )
+        _ssh_run(ssh, f'cp {_shell_quote(backup_path)} {_shell_quote(compose_path)}', timeout=timeout)
+
+        out, _, _ = _ssh_run(
+            ssh,
+            f'cd {_shell_quote(working_dir)} && docker compose pull && '
+            f'docker compose up -d --remove-orphans 2>&1',
+            timeout=300,
+        )
+        return {'backup_path': backup_path, 'output': out[-2000:]}
     except MigrationError:
         raise
     except Exception as exc:

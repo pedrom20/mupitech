@@ -204,7 +204,7 @@ export const players = {
   },
 
   getImageSource(id: string, sshUser: string, sshPassword: string, sshPort: number): Promise<{
-    source: 'mupitech' | 'official' | 'fork' | 'unknown'; image: string; can_migrate: boolean
+    source: 'mupitech' | 'official' | 'fork' | 'unknown'; image: string; can_migrate: boolean; has_backup: boolean
   }> {
     return apiRequest('POST', `/players/${id}/image-source/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
@@ -218,6 +218,14 @@ export const players = {
     return apiRequest('POST', `/players/${id}/migrate-image/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
       save_credentials: saveCredentials,
+    })
+  },
+
+  restoreImage(id: string, sshUser: string, sshPassword: string, sshPort: number): Promise<{
+    success: boolean; backup_path: string
+  }> {
+    return apiRequest('POST', `/players/${id}/restore-image/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
     })
   },
 

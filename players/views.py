@@ -453,11 +453,11 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
         from .migrate_image import MigrationError, discover_image_source
         try:
-            source, image = discover_image_source(player, ssh_user, ssh_password, ssh_port)
+            source, image, has_backup = discover_image_source(player, ssh_user, ssh_password, ssh_port)
         except MigrationError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         return Response({
-            'source': source, 'image': image,
+            'source': source, 'image': image, 'has_backup': has_backup,
             'can_migrate': player.device_type == 'x86' and source != 'unknown',
         })
 
@@ -501,6 +501,31 @@ class PlayerViewSet(viewsets.ModelViewSet):
             'previous_source': result['previous_source'], 'previous_image': result['previous_image'],
             'backup_path': result['backup_path'],
         })
+
+    @action(detail=True, methods=['post'], url_path='restore-image')
+    def restore_image(self, request, pk=None):
+        """Roll a device back to the compose file it had before its last
+        migration to the MupiTech image, using the .bak backup that
+        migrate-image left behind. Fails clearly if there's no backup."""
+        player = self.get_object()
+        ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
+        if not ssh_password:
+            return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
+
+        from .migrate_image import MigrationError, restore_previous_compose
+        try:
+            result = restore_previous_compose(player, ssh_user, ssh_password, ssh_port)
+        except MigrationError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        from history.logging import log_action
+        log_action(
+            request, 'restore_image', 'player', target_id=player.id, target_name=player.name,
+            details={'backup_path': result['backup_path']},
+        )
+        return Response({'success': True, 'backup_path': result['backup_path']})
 
     @action(detail=True, methods=['post', 'delete'], url_path='ssh-credentials')
     def ssh_credentials(self, request, pk=None):

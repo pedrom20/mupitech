@@ -851,7 +851,14 @@
     "confirmButton": "Migrar",
     "migrated": "Dispositivo migrado para a imagem MupiTech",
     "updated": "Dispositivo atualizado (já estava na imagem MupiTech)",
-    "failed": "Falha na migração"
+    "failed": "Falha na migração",
+    "backupAvailable": "Há um backup do docker-compose.yml anterior disponível.",
+    "restoreButton": "Restaurar anterior",
+    "restoreConfirmTitle": "Restaurar a imagem anterior?",
+    "restoreConfirmText": "Isto substitui o docker-compose.yml atual pelo backup .bak e reinicia os contentores.",
+    "restoreConfirmButton": "Restaurar",
+    "restored": "Dispositivo restaurado para a imagem anterior",
+    "restoreFailed": "Falha ao restaurar"
   },
   "users": {
     "title": "Utilizadores",

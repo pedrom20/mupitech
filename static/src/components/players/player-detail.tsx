@@ -198,7 +198,8 @@ const PlayerDetail: React.FC = () => {
   // Migrate to MupiTech Anthias image (x86 only for now)
   const [showMigrateImageModal, setShowMigrateImageModal] = useState(false)
   const [checkingImageSource, setCheckingImageSource] = useState(false)
-  const [imageSourceResult, setImageSourceResult] = useState<{ source: string; image: string; can_migrate: boolean } | null>(null)
+  const [imageSourceResult, setImageSourceResult] = useState<{ source: string; image: string; can_migrate: boolean; has_backup: boolean } | null>(null)
+  const [restoringImage, setRestoringImage] = useState(false)
   const [imageSourceError, setImageSourceError] = useState('')
   const [migratingImage, setMigratingImage] = useState(false)
 
@@ -755,6 +756,30 @@ const PlayerDetail: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('migrateImage.failed'), text: String(err) })
     } finally {
       setMigratingImage(false)
+    }
+  }
+
+  const handleRestoreImage = async () => {
+    const canUseSavedPassword = !!player?.has_ssh_credentials && !pushLogoSshPassword
+    if (!id || (!pushLogoSshPassword && !canUseSavedPassword)) return
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: t('migrateImage.restoreConfirmTitle'),
+      text: t('migrateImage.restoreConfirmText'),
+      showCancelButton: true,
+      confirmButtonText: t('migrateImage.restoreConfirmButton'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!result.isConfirmed) return
+    setRestoringImage(true)
+    try {
+      await playersApi.restoreImage(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
+      showToast('success', t('migrateImage.restored'))
+      setShowMigrateImageModal(false)
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('migrateImage.restoreFailed'), text: String(err) })
+    } finally {
+      setRestoringImage(false)
     }
   }
 
@@ -3336,6 +3361,20 @@ const PlayerDetail: React.FC = () => {
                   <div className={`alert py-2 px-2 ${imageSourceResult.source === 'mupitech' ? 'alert-success' : 'alert-info'}`} style={{ fontSize: '0.8rem' }}>
                     <div><strong>{t('migrateImage.currentSource')}:</strong> {t(`migrateImage.source.${imageSourceResult.source}`)}</div>
                     <div className="text-muted" style={{ wordBreak: 'break-all' }}>{imageSourceResult.image}</div>
+                  </div>
+                )}
+                {imageSourceResult?.has_backup && (
+                  <div className="alert alert-warning py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.8rem' }}>
+                    <span>{t('migrateImage.backupAvailable')}</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-dark"
+                      onClick={handleRestoreImage}
+                      disabled={restoringImage}
+                    >
+                      {restoringImage ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                      {t('migrateImage.restoreButton')}
+                    </button>
                   </div>
                 )}
 

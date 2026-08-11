@@ -851,7 +851,14 @@
     "confirmButton": "Migrate",
     "migrated": "Device migrated to the MupiTech image",
     "updated": "Device updated (already on the MupiTech image)",
-    "failed": "Migration failed"
+    "failed": "Migration failed",
+    "backupAvailable": "A backup of the previous docker-compose.yml is available.",
+    "restoreButton": "Restore previous",
+    "restoreConfirmTitle": "Restore the previous image?",
+    "restoreConfirmText": "This replaces the current docker-compose.yml with the .bak backup and restarts the containers.",
+    "restoreConfirmButton": "Restore",
+    "restored": "Device restored to its previous image",
+    "restoreFailed": "Restore failed"
   },
   "users": {
     "title": "Users",
