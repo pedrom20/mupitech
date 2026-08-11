@@ -8,7 +8,9 @@
 // =============================================================================
 
 [data-retro-theme='true'] {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  // Times New Roman as the base "body" font, instead of the app's own
+  // sans-serif — reads as a 2003-era office document, not an app.
+  font-family: 'Times New Roman', Times, serif !important;
   background: #ece9d8 !important;
 
   * {
@@ -21,8 +23,12 @@
 
   // Clashing typography on purpose — mismatched fonts/sizes read as
   // "someone who didn't know what they were doing" put this together.
-  h1, h2, h3, .page-title, .card-title, .modal-title {
-    font-family: 'Comic Sans MS', 'Comic Sans', cursive, 'Segoe UI', sans-serif !important;
+  // Comic Sans is deliberately spread across anything clickable/labeled,
+  // clashing against the Times New Roman body text everywhere else.
+  h1, h2, h3, .page-title, .card-title, .modal-title,
+  .btn, .fm-btn-primary, .fm-btn-outline, .fm-btn-accent, button,
+  .nav-link, .form-label, .badge, label {
+    font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif !important;
   }
 
   table, .fm-table {
@@ -178,7 +184,7 @@
     thead th {
       background: #d4d0c8 !important;
       color: #000 !important;
-      font-family: 'Segoe UI', Tahoma, sans-serif !important;
+      font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif !important;
     }
 
     tbody tr:nth-child(even) {
@@ -220,7 +226,7 @@
   z-index: 2000;
   background: #a4373a;
   color: #fff;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif;
   font-size: 0.75rem;
   padding: 4px 10px;
   border: 2px outset #c96063;
