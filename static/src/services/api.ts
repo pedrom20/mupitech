@@ -392,7 +392,11 @@ export const playlists = {
   },
 
   update(id: string, data: Partial<Playlist>): Promise<Playlist> {
-    return apiRequest<Playlist>('PUT', `/playlists/${id}/`, data)
+    // PATCH, not PUT — the "apply to" flow sends only target_players/
+    // target_groups/target_locations, and PUT would fail DRF's
+    // full-payload validation (or worse, wipe other fields) for a
+    // partial body.
+    return apiRequest<Playlist>('PATCH', `/playlists/${id}/`, data)
   },
 
   delete(id: string): Promise<void> {

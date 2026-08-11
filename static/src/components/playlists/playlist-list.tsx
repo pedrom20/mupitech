@@ -11,6 +11,10 @@ import {
   FaArrowDown,
   FaTimes,
   FaSearch,
+  FaShareSquare,
+  FaDesktop,
+  FaLayerGroup,
+  FaMapMarkerAlt,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -44,11 +48,17 @@ const PlaylistList: React.FC = () => {
   const [formDescription, setFormDescription] = useState('')
   const [formItems, setFormItems] = useState<FormItem[]>([])
   const [contentSearch, setContentSearch] = useState('')
-  const [formTargetPlayers, setFormTargetPlayers] = useState<string[]>([])
-  const [formTargetGroups, setFormTargetGroups] = useState<string[]>([])
-  const [formTargetLocations, setFormTargetLocations] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [deployingId, setDeployingId] = useState<string | null>(null)
+
+  // Apply-to (players/groups/locations) — a separate modal from
+  // add/edit, so picking where a playlist plays never risks touching
+  // its name/description/content.
+  const [applyingPlaylist, setApplyingPlaylist] = useState<Playlist | null>(null)
+  const [applyTargetPlayers, setApplyTargetPlayers] = useState<string[]>([])
+  const [applyTargetGroups, setApplyTargetGroups] = useState<string[]>([])
+  const [applyTargetLocations, setApplyTargetLocations] = useState<string[]>([])
+  const [applying, setApplying] = useState(false)
 
   useEffect(() => {
     dispatch(fetchPlaylists())
@@ -77,9 +87,6 @@ const PlaylistList: React.FC = () => {
     setFormDescription('')
     setFormItems([])
     setContentSearch('')
-    setFormTargetPlayers([])
-    setFormTargetGroups([])
-    setFormTargetLocations([])
   }
 
   const handleAdd = () => {
@@ -95,9 +102,6 @@ const PlaylistList: React.FC = () => {
     setFormItems(playlist.items.map((it: PlaylistItem) => ({
       media_file: it.media_file, order: it.order, duration: it.duration,
     })))
-    setFormTargetPlayers(playlist.target_players || [])
-    setFormTargetGroups(playlist.target_groups || [])
-    setFormTargetLocations(playlist.target_locations || [])
     setShowForm(true)
   }
 
@@ -128,21 +132,17 @@ const PlaylistList: React.FC = () => {
     setFormItems((prev) => prev.map((it, i) => i === index ? { ...it, duration: value ? Number(value) : null } : it))
   }
 
-  const toggleMultiSelect = (list: string[], setList: (v: string[]) => void, id: string) => {
-    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
-  }
-
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
 
+    // Targets (players/groups/locations) are edited exclusively via the
+    // "Apply" modal, not here — omitting them lets the PATCH leave
+    // whatever the playlist is already applied to untouched.
     const data = {
       name: formName,
       description: formDescription,
       items: formItems,
-      target_players: formTargetPlayers,
-      target_groups: formTargetGroups,
-      target_locations: formTargetLocations,
     }
 
     try {
@@ -197,12 +197,38 @@ const PlaylistList: React.FC = () => {
     }
   }
 
-  const targetSummary = (playlist: Playlist) => {
-    const parts = []
-    if (playlist.target_players_detail?.length) parts.push(`${playlist.target_players_detail.length} ${t('nav.players')}`)
-    if (playlist.target_groups_detail?.length) parts.push(`${playlist.target_groups_detail.length} ${t('nav.groups')}`)
-    if (playlist.target_locations_detail?.length) parts.push(`${playlist.target_locations_detail.length} ${t('nav.locations')}`)
-    return parts.length ? parts.join(', ') : t('playlists.noTargets')
+  const toggleMultiSelect = (list: string[], setList: (v: string[]) => void, id: string) => {
+    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
+  }
+
+  const handleOpenApply = (playlist: Playlist) => {
+    setApplyingPlaylist(playlist)
+    setApplyTargetPlayers(playlist.target_players || [])
+    setApplyTargetGroups(playlist.target_groups || [])
+    setApplyTargetLocations(playlist.target_locations || [])
+  }
+
+  const handleCloseApply = () => setApplyingPlaylist(null)
+
+  const handleSaveApply = async () => {
+    if (!applyingPlaylist) return
+    setApplying(true)
+    try {
+      await dispatch(updatePlaylist({
+        id: applyingPlaylist.id,
+        data: {
+          target_players: applyTargetPlayers,
+          target_groups: applyTargetGroups,
+          target_locations: applyTargetLocations,
+        },
+      })).unwrap()
+      Swal.fire({ icon: 'success', title: t('common.success'), timer: 1500, showConfirmButton: false })
+      setApplyingPlaylist(null)
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
+    } finally {
+      setApplying(false)
+    }
   }
 
   return (
@@ -256,9 +282,46 @@ const PlaylistList: React.FC = () => {
                   {playlist.description && (
                     <p className="text-muted mb-2" style={{ fontSize: '0.875rem' }}>{playlist.description}</p>
                   )}
-                  <p className="text-muted mb-1" style={{ fontSize: '0.8rem' }}>
-                    {playlist.items.length} {t('playlists.items')} · {targetSummary(playlist)}
+                  <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>
+                    {playlist.items.length} {t('playlists.items')}
                   </p>
+
+                  <div className="mb-2">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="fw-semibold" style={{ fontSize: '0.78rem' }}>{t('playlists.appliedTo')}</span>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary py-0 px-2"
+                        style={{ fontSize: '0.72rem' }}
+                        onClick={() => handleOpenApply(playlist)}
+                      >
+                        <FaShareSquare className="me-1" />
+                        {t('playlists.apply')}
+                      </button>
+                    </div>
+                    {!playlist.target_players_detail?.length && !playlist.target_groups_detail?.length && !playlist.target_locations_detail?.length ? (
+                      <span className="text-muted" style={{ fontSize: '0.78rem' }}>{t('playlists.noTargets')}</span>
+                    ) : (
+                      <div className="d-flex flex-wrap gap-1">
+                        {playlist.target_players_detail?.map((p) => (
+                          <span key={`p-${p.id}`} className="badge bg-secondary-subtle text-secondary-emphasis d-inline-flex align-items-center gap-1" style={{ fontSize: '0.7rem', fontWeight: 500 }}>
+                            <FaDesktop style={{ fontSize: '0.65rem' }} />{p.name}
+                          </span>
+                        ))}
+                        {playlist.target_groups_detail?.map((g) => (
+                          <span key={`g-${g.id}`} className="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1" style={{ fontSize: '0.7rem', fontWeight: 500 }}>
+                            <FaLayerGroup style={{ fontSize: '0.65rem' }} />{g.name}
+                          </span>
+                        ))}
+                        {playlist.target_locations_detail?.map((l) => (
+                          <span key={`l-${l.id}`} className="badge bg-info-subtle text-info-emphasis d-inline-flex align-items-center gap-1" style={{ fontSize: '0.7rem', fontWeight: 500 }}>
+                            <FaMapMarkerAlt style={{ fontSize: '0.65rem' }} />{l.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {playlist.last_deployed_at && (
                     <p className="text-muted mb-0" style={{ fontSize: '0.75rem' }}>
                       {t('playlists.lastDeployed')}: {new Date(playlist.last_deployed_at).toLocaleString()}
@@ -378,59 +441,6 @@ const PlaylistList: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="row">
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label fw-semibold">{t('nav.players')}</label>
-                      <div className="border rounded p-2" style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                        {players.map((p) => (
-                          <div className="form-check" key={p.id}>
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              checked={formTargetPlayers.includes(p.id)}
-                              onChange={() => toggleMultiSelect(formTargetPlayers, setFormTargetPlayers, p.id)}
-                              id={`pl-player-${p.id}`}
-                            />
-                            <label className="form-check-label" htmlFor={`pl-player-${p.id}`} style={{ fontSize: '0.85rem' }}>{p.name}</label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label fw-semibold">{t('nav.groups')}</label>
-                      <div className="border rounded p-2" style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                        {groups.map((g) => (
-                          <div className="form-check" key={g.id}>
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              checked={formTargetGroups.includes(g.id)}
-                              onChange={() => toggleMultiSelect(formTargetGroups, setFormTargetGroups, g.id)}
-                              id={`pl-group-${g.id}`}
-                            />
-                            <label className="form-check-label" htmlFor={`pl-group-${g.id}`} style={{ fontSize: '0.85rem' }}>{g.name}</label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label fw-semibold">{t('nav.locations')}</label>
-                      <div className="border rounded p-2" style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                        {locations.map((l) => (
-                          <div className="form-check" key={l.id}>
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              checked={formTargetLocations.includes(l.id)}
-                              onChange={() => toggleMultiSelect(formTargetLocations, setFormTargetLocations, l.id)}
-                              id={`pl-location-${l.id}`}
-                            />
-                            <label className="form-check-label" htmlFor={`pl-location-${l.id}`} style={{ fontSize: '0.85rem' }}>{l.name}</label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={handleFormClose}>{t('common.cancel')}</button>
@@ -439,6 +449,84 @@ const PlaylistList: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {applyingPlaylist && (
+        <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={handleCloseApply}>
+          <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold text-purple-dark">
+                  <FaShareSquare className="me-2" />
+                  {t('playlists.applyTitle', { name: applyingPlaylist.name })}
+                </h5>
+                <button type="button" className="btn-close" onClick={handleCloseApply} aria-label={t('common.close')} />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('playlists.applyDesc')}</p>
+                <div className="row">
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label fw-semibold d-flex align-items-center gap-1"><FaDesktop />{t('nav.players')}</label>
+                    <div className="border rounded p-2" style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {players.map((p) => (
+                        <div className="form-check" key={p.id}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={applyTargetPlayers.includes(p.id)}
+                            onChange={() => toggleMultiSelect(applyTargetPlayers, setApplyTargetPlayers, p.id)}
+                            id={`apply-player-${p.id}`}
+                          />
+                          <label className="form-check-label" htmlFor={`apply-player-${p.id}`} style={{ fontSize: '0.85rem' }}>{p.name}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label fw-semibold d-flex align-items-center gap-1"><FaLayerGroup />{t('nav.groups')}</label>
+                    <div className="border rounded p-2" style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {groups.map((g) => (
+                        <div className="form-check" key={g.id}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={applyTargetGroups.includes(g.id)}
+                            onChange={() => toggleMultiSelect(applyTargetGroups, setApplyTargetGroups, g.id)}
+                            id={`apply-group-${g.id}`}
+                          />
+                          <label className="form-check-label" htmlFor={`apply-group-${g.id}`} style={{ fontSize: '0.85rem' }}>{g.name}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label fw-semibold d-flex align-items-center gap-1"><FaMapMarkerAlt />{t('nav.locations')}</label>
+                    <div className="border rounded p-2" style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {locations.map((l) => (
+                        <div className="form-check" key={l.id}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={applyTargetLocations.includes(l.id)}
+                            onChange={() => toggleMultiSelect(applyTargetLocations, setApplyTargetLocations, l.id)}
+                            id={`apply-location-${l.id}`}
+                          />
+                          <label className="form-check-label" htmlFor={`apply-location-${l.id}`} style={{ fontSize: '0.85rem' }}>{l.name}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseApply}>{t('common.cancel')}</button>
+                <button type="button" className="fm-btn-primary" onClick={handleSaveApply} disabled={applying}>
+                  {applying ? t('common.loading') : t('playlists.apply')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
