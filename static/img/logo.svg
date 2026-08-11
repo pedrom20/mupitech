@@ -9,9 +9,15 @@
   </defs>
   <!-- Mark: a mupi — a tall illuminated panel on a slim post, not a TV -->
   <rect x="2" y="12" width="86" height="86" rx="20" fill="url(#mupitech-mark-nav)"/>
-  <rect x="30" y="24" width="30" height="42" rx="4" fill="#FFE72D"/>
-  <rect x="43" y="66" width="4" height="9" fill="#FDED3A"/>
-  <rect x="35" y="75" width="20" height="5" rx="2.5" fill="#FDED3A"/>
+  <rect x="28" y="21" width="34" height="48" rx="4" fill="#FFE72D"/>
+  <!-- Punk head silhouette on the mupi screen: 5-spike mohawk fan, eyes, smirk -->
+  <polygon points="32,45 34,37 37,41 39.5,31 42.5,41 45,25 47.5,41 50.5,31 53,41 56,37 58,45" fill="#04182B"/>
+  <circle cx="45" cy="56" r="10" fill="#04182B"/>
+  <circle cx="41" cy="54" r="1.6" fill="#FFE72D"/>
+  <circle cx="49" cy="54" r="1.6" fill="#FFE72D"/>
+  <rect x="41" y="60" width="8" height="1.8" rx="0.9" fill="#FFE72D" transform="rotate(-12 45 61)"/>
+  <rect x="43" y="69" width="4" height="9" fill="#FDED3A"/>
+  <rect x="35" y="78" width="20" height="5" rx="2.5" fill="#FDED3A"/>
   <text x="104" y="55" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="-0.8">
     <tspan fill="#ffffff">Mupi</tspan><tspan fill="#FFE72D">Tech</tspan>
   </text>

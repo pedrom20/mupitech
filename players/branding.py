@@ -81,6 +81,15 @@ THEME_COLOR_REPLACEMENTS = [
     ('rgba(124, 48, 205,', 'rgba(0, 130, 200,'),  # splash radial glow 1
     ('rgba(91, 32, 144,', 'rgba(12, 58, 92,'),    # splash radial glow 2
 ]
+# Anthias's splash-page logo defaults to a small clamp()'d height
+# (.splash-logo in _styles.scss) — bumped ~20% so the MupiTech logo
+# reads clearly on a TV viewed from a distance. Matched against the
+# exact compressed (--style=compressed) output, confirmed by compiling
+# the source scss locally — dart-sass strips all whitespace inside the
+# clamp() argument list in compressed mode.
+SPLASH_LOGO_SIZE_REPLACEMENTS = [
+    ('height:clamp(2.5rem,6vh,4.5rem)', 'height:clamp(3rem,7vh,5.5rem)'),
+]
 
 
 class BrandingPushError(Exception):
@@ -379,7 +388,7 @@ def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, time
     _sed_patch_container_file(
         player, ssh_user, ssh_password, ssh_port, timeout,
         container_path=CONTAINER_CSS_PATH,
-        replacements=THEME_COLOR_REPLACEMENTS,
+        replacements=THEME_COLOR_REPLACEMENTS + SPLASH_LOGO_SIZE_REPLACEMENTS,
     )
 
 
