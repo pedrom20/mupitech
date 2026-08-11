@@ -5,6 +5,7 @@ import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboard
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi } from '@/services/api'
 import { RoleContext, AuthContext, isAdminRole } from '@/components/app'
+import { useTapSequence } from '@/hooks/use-tap-sequence'
 
 const FLEET_ROUTES = ['/players', '/groups', '/locations']
 
@@ -142,11 +143,19 @@ const UserMenu: React.FC = () => {
   )
 }
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  /** Called after 5 quick taps on the logo — a touch-friendly stand-in
+   * for keyboard-only easter egg triggers (useDosCode) on devices with
+   * no physical keyboard. */
+  onLogoTapSequence?: () => void
+}
+
+const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
   const { t } = useTranslation()
   const role = useContext(RoleContext)
   const { user, checked } = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
+  const handleLogoTap = useTapSequence(onLogoTapSequence ?? (() => {}))
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
@@ -169,7 +178,7 @@ const Navbar: React.FC = () => {
   return (
       <nav className="fm-navbar">
         <div className="container-fluid d-flex align-items-center px-3 h-100">
-          <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
+          <NavLink to="/" className="navbar-brand" onClick={() => { closeMenu(); handleLogoTap() }}>
             <img src="/static/img/logo.svg" alt="MupiTech Fleet Manager" />
           </NavLink>
 

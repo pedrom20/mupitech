@@ -133,7 +133,7 @@ const App: React.FC = () => {
     <AuthContext.Provider value={{ user, checked, refresh, clear }}>
       <RoleContext.Provider value={user?.role ?? null}>
         <FeaturesProvider>
-          <Navbar />
+          <Navbar onLogoTapSequence={toggleDosTheme} />
           <main className="fm-content">
             <Routes>
               <Route path="/" element={<Dashboard />} />
