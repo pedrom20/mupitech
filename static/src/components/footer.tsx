@@ -5,11 +5,17 @@ import { FaGithub, FaSync } from 'react-icons/fa'
 import { system } from '@/services/api'
 import { APP_VERSION } from '../changelog'
 import { AuthContext } from '@/components/app'
+import { useTapTrigger } from '@/hooks/use-tap-trigger'
 
-const Footer: React.FC = () => {
+interface FooterProps {
+  onSecretTrigger?: () => void
+}
+
+const Footer: React.FC<FooterProps> = ({ onSecretTrigger }) => {
   const { t } = useTranslation()
   const { user } = useContext(AuthContext)
   const currentYear = new Date().getFullYear()
+  const registerTap = useTapTrigger(() => onSecretTrigger?.())
 
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [versionMismatch, setVersionMismatch] = useState(false)
@@ -60,7 +66,13 @@ const Footer: React.FC = () => {
           </p>
           <ul className="footer-links">
             <li>
-              <Link to="/changelog" className="fm-version-badge">
+              <Link
+                to="/changelog"
+                className="fm-version-badge"
+                onClick={(e) => {
+                  if (registerTap()) e.preventDefault()
+                }}
+              >
                 v{APP_VERSION}
                 {updateAvailable && <span className="fm-update-dot" title={t('updates.newVersion')} />}
               </Link>

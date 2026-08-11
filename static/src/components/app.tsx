@@ -121,7 +121,7 @@ const App: React.FC = () => {
               <Route path="/login" element={<Login />} />
             </Routes>
           </main>
-          <Footer />
+          <Footer onSecretTrigger={toggleRetroTheme} />
           {retroTheme && (
             <button
               type="button"
