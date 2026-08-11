@@ -45,6 +45,34 @@
     }
   }
 
+  // Windows-98-style icon treatment: flat monochrome glyphs in chunky
+  // raised boxes, like a classic toolbar — instead of the app's own
+  // colored, borderless icon buttons.
+  svg {
+    filter: grayscale(1) contrast(1.5) !important;
+  }
+
+  .fm-btn-icon {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #d4d0c8 !important;
+    border: 2px outset #fff !important;
+    padding: 0 !important;
+
+    svg {
+      width: 15px !important;
+      height: 15px !important;
+    }
+
+    &:active {
+      border-style: inset !important;
+    }
+  }
+
   // Chunky, ugly scrollbars everywhere.
   ::-webkit-scrollbar {
     width: 18px !important;
