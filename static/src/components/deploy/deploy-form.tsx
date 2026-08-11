@@ -1290,9 +1290,9 @@ const ContentPage: React.FC = () => {
             </div>
           ) : (
             /* ===== GRID VIEW ===== */
-            <div className="row g-3">
+            <div className="row g-2">
               {filteredFiles.map((file) => (
-                <div key={file.id} className="col-6 col-md-4 col-lg-3">
+                <div key={file.id} className="col-6 col-sm-4 col-md-3 col-lg-2">
                   <div
                     className="card h-100"
                     style={{ cursor: 'pointer', transition: 'all 0.15s' }}
