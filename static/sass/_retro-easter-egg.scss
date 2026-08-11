@@ -13,31 +13,41 @@
   font-family: 'Times New Roman', Times, serif !important;
   background: #ece9d8 !important;
 
+  // Times New Roman as the universal default — highest-specificity
+  // selector (`*`) with !important so it always wins over any
+  // component's own font-family, no matter how the normal theme sets
+  // it. The Comic Sans list below then overrides specific elements
+  // back, since a class/type selector always beats `*`.
   * {
+    font-family: 'Times New Roman', Times, serif !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     transition: none !important;
     animation: none !important;
     text-shadow: none !important;
+    image-rendering: pixelated;
   }
 
   // Clashing typography on purpose — mismatched fonts/sizes read as
   // "someone who didn't know what they were doing" put this together.
   // Comic Sans is deliberately spread across anything clickable/labeled,
   // clashing against the Times New Roman body text everywhere else.
-  h1, h2, h3, .page-title, .card-title, .modal-title,
+  h1, h2, h3, h4, h5, h6, .page-title, .card-title, .modal-title,
   .btn, .fm-btn-primary, .fm-btn-outline, .fm-btn-accent, button,
-  .nav-link, .form-label, .badge, label {
+  .nav-link, .form-label, .badge, label, .empty-title, .empty-icon,
+  .stat-value, .stat-label, .dropdown-item, .alert, .fm-version-badge,
+  .fm-retro-badge {
     font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif !important;
   }
 
-  table, .fm-table {
+  table, .fm-table, input, textarea, select, p, span, .card-body {
     font-family: 'Times New Roman', Times, serif !important;
   }
 
-  // Buttons look clickable-ish but don't behave like it — no pointer
-  // cursor, no hover feedback beyond an inset border on press.
-  button, .btn, a {
+  // Buttons/links/inputs all get the flat "nothing here behaves the way
+  // you expect" cursor — no pointer, no text caret hint, consistent with
+  // the rest of the theme's deliberate unfriendliness.
+  * {
     cursor: default !important;
   }
 
@@ -51,14 +61,16 @@
     }
   }
 
-  // Windows-98-style icon treatment: flat monochrome glyphs in chunky
-  // raised boxes, like a classic toolbar — instead of the app's own
-  // colored, borderless icon buttons.
+  // Windows-98-style icon treatment: flat monochrome glyphs, aged/sepia
+  // tinted like a scanned manual illustration — instead of the app's
+  // own crisp, colored icon set.
   svg {
-    filter: grayscale(1) contrast(1.5) !important;
+    filter: grayscale(1) contrast(1.6) sepia(0.15) !important;
   }
 
-  .fm-btn-icon {
+  .fm-btn-icon,
+  .stat-icon,
+  .empty-icon {
     width: 30px !important;
     height: 30px !important;
     min-width: 30px !important;
@@ -68,6 +80,7 @@
     background: #d4d0c8 !important;
     border: 2px outset #fff !important;
     padding: 0 !important;
+    color: #000 !important;
 
     svg {
       width: 15px !important;
@@ -77,6 +90,22 @@
     &:active {
       border-style: inset !important;
     }
+  }
+
+  .empty-icon {
+    width: 56px !important;
+    height: 56px !important;
+    margin: 0 auto 1rem;
+
+    svg {
+      width: 28px !important;
+      height: 28px !important;
+    }
+  }
+
+  .page-icon {
+    filter: grayscale(1) contrast(1.6) sepia(0.15) !important;
+    margin-right: 0.4rem;
   }
 
   // Chunky, ugly scrollbars everywhere.

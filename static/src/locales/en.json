@@ -895,6 +895,9 @@
     "activated": "Archive Mode 2016 activated",
     "deactivated": "Archive Mode 2016 deactivated",
     "badge": "Archive Mode 2016",
-    "exitHint": "Click to exit Archive Mode 2016"
+    "exitHint": "Click to exit",
+    "dosActivated": "MS-DOS mode activated",
+    "dosDeactivated": "MS-DOS mode deactivated",
+    "dosBadge": "EXIT"
   }
 }

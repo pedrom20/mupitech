@@ -5,6 +5,7 @@ import Swal from 'sweetalert2'
 import Navbar from './navbar'
 import Footer from './footer'
 import { useKonamiCode } from '@/hooks/use-konami-code'
+import { useDosCode } from '@/hooks/use-dos-code'
 import Dashboard from '@/components/dashboard/index'
 import PlayerList from '@/components/players/player-list'
 import PlayerDetail from '@/components/players/player-detail'
@@ -47,12 +48,14 @@ export const AuthContext = createContext<AuthContextValue>({
 })
 
 const RETRO_STORAGE_KEY = 'fm_retro_theme'
+const DOS_STORAGE_KEY = 'fm_dos_theme'
 
 const App: React.FC = () => {
   const { i18n, t } = useTranslation()
   const [user, setUser] = useState<User | null>(null)
   const [checked, setChecked] = useState(false)
   const [retroTheme, setRetroTheme] = useState(() => localStorage.getItem(RETRO_STORAGE_KEY) === '1')
+  const [dosTheme, setDosTheme] = useState(() => localStorage.getItem(DOS_STORAGE_KEY) === '1')
 
   useEffect(() => {
     document.documentElement.lang = i18n.language
@@ -67,9 +70,21 @@ const App: React.FC = () => {
     localStorage.setItem(RETRO_STORAGE_KEY, retroTheme ? '1' : '0')
   }, [retroTheme])
 
+  useEffect(() => {
+    if (dosTheme) {
+      document.documentElement.setAttribute('data-dos-theme', 'true')
+    } else {
+      document.documentElement.removeAttribute('data-dos-theme')
+    }
+    localStorage.setItem(DOS_STORAGE_KEY, dosTheme ? '1' : '0')
+  }, [dosTheme])
+
+  // The two easter-egg themes are mutually exclusive — activating one
+  // turns the other off, since both are full-page reskins.
   const toggleRetroTheme = useCallback(() => {
     setRetroTheme((prev) => {
       const next = !prev
+      if (next) setDosTheme(false)
       Swal.fire({
         icon: 'info',
         title: next ? t('easterEgg.activated') : t('easterEgg.deactivated'),
@@ -80,7 +95,22 @@ const App: React.FC = () => {
     })
   }, [t])
 
+  const toggleDosTheme = useCallback(() => {
+    setDosTheme((prev) => {
+      const next = !prev
+      if (next) setRetroTheme(false)
+      Swal.fire({
+        icon: 'info',
+        title: next ? t('easterEgg.dosActivated') : t('easterEgg.dosDeactivated'),
+        timer: 2000,
+        showConfirmButton: false,
+      })
+      return next
+    })
+  }, [t])
+
   useKonamiCode(toggleRetroTheme)
+  useDosCode(toggleDosTheme)
 
   const refresh = () => {
     usersApi.me().then((u) => {
@@ -130,6 +160,16 @@ const App: React.FC = () => {
               title={t('easterEgg.exitHint')}
             >
               🗄️ {t('easterEgg.badge')}
+            </button>
+          )}
+          {dosTheme && (
+            <button
+              type="button"
+              className="fm-dos-badge"
+              onClick={() => setDosTheme(false)}
+              title={t('easterEgg.exitHint')}
+            >
+              C:\&gt; {t('easterEgg.dosBadge')}_
             </button>
           )}
         </FeaturesProvider>

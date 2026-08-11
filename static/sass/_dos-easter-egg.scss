@@ -1,0 +1,215 @@
+// =============================================================================
+// Easter egg #2 — MS-DOS style theme
+// Triggered by typing "msdos" anywhere on the page (see
+// static/src/hooks/use-dos-code.ts). Black background, monospace,
+// phosphor-green everything — a command-line terminal look, not a
+// polished UI. Mutually exclusive with the "Modo Arquivo 2016" theme
+// (see app.tsx) and scoped entirely under [data-dos-theme="true"].
+// =============================================================================
+
+$dos-green: #33ff33;
+$dos-green-dim: #1f9c1f;
+$dos-bg: #000;
+
+// Approximates the phosphor-green tint on a black/white icon glyph —
+// react-icons render with fill="currentColor" so `color` below already
+// tints most icons correctly; this filter chain covers the few raster
+// assets (e.g. the navbar logo <img>) that ignore `color`.
+@mixin dos-green-filter {
+  filter: grayscale(1) brightness(1.4) sepia(1) hue-rotate(65deg) saturate(4) contrast(1.1) !important;
+}
+
+[data-dos-theme='true'] {
+  font-family: 'Courier New', Courier, monospace !important;
+  background: $dos-bg !important;
+  color: $dos-green !important;
+
+  * {
+    font-family: 'Courier New', Courier, monospace !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: 0 0 2px rgba(51, 255, 51, 0.5) !important;
+    transition: none !important;
+    animation: none !important;
+    color: $dos-green !important;
+    background-color: transparent !important;
+    cursor: default !important;
+    image-rendering: pixelated;
+  }
+
+  // Pixel/monochrome icon treatment — blocky and phosphor-green,
+  // regardless of the normal theme's colored icon set.
+  svg {
+    color: $dos-green !important;
+  }
+
+  img {
+    @include dos-green-filter;
+  }
+
+  ::selection {
+    background: $dos-green !important;
+    color: #000 !important;
+  }
+
+  a {
+    color: $dos-green !important;
+    text-decoration: underline !important;
+  }
+
+  .fm-navbar {
+    background: $dos-bg !important;
+    background-image: none !important;
+    border-bottom: 1px solid $dos-green !important;
+
+    .navbar-brand img {
+      @include dos-green-filter;
+    }
+
+    .nav-link {
+      border: 1px solid transparent;
+      text-transform: uppercase;
+
+      &::before {
+        content: '> ';
+      }
+
+      &:hover,
+      &.active {
+        border: 1px solid $dos-green !important;
+        background: rgba(51, 255, 51, 0.08) !important;
+      }
+    }
+  }
+
+  .fm-content {
+    background: $dos-bg !important;
+  }
+
+  // Everything boxed in thin green rules — no fills, no depth, pure
+  // terminal-window framing.
+  .fm-card,
+  .modal-content,
+  .fm-telemetry-card,
+  .fm-stat-card {
+    background: $dos-bg !important;
+    border: 1px solid $dos-green !important;
+  }
+
+  .fm-card-header,
+  .modal-header,
+  .telemetry-header {
+    background: $dos-bg !important;
+    border-bottom: 1px solid $dos-green-dim !important;
+  }
+
+  .modal-footer {
+    border-top: 1px solid $dos-green-dim !important;
+  }
+
+  .stat-icon {
+    background: $dos-bg !important;
+    border: 1px solid $dos-green !important;
+    border-radius: 0 !important;
+  }
+
+  .btn,
+  .fm-btn-primary,
+  .fm-btn-outline,
+  .fm-btn-accent,
+  .fm-btn-icon,
+  button {
+    background: $dos-bg !important;
+    border: 1px solid $dos-green !important;
+
+    &:hover {
+      background: $dos-green !important;
+      color: #000 !important;
+
+      svg { color: #000 !important; }
+    }
+
+    &:active {
+      background: $dos-green-dim !important;
+    }
+  }
+
+  .fm-table,
+  table {
+    border-collapse: collapse !important;
+
+    th,
+    td {
+      border: 1px solid $dos-green-dim !important;
+    }
+
+    thead th {
+      background: $dos-bg !important;
+      text-transform: uppercase;
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(51, 255, 51, 0.05) !important;
+    }
+  }
+
+  .form-control,
+  .form-select {
+    background: $dos-bg !important;
+    border: 1px solid $dos-green !important;
+    border-radius: 0 !important;
+    caret-color: $dos-green !important;
+
+    &:focus {
+      outline: 1px solid $dos-green !important;
+      outline-offset: 2px;
+      box-shadow: none !important;
+    }
+
+    &::placeholder {
+      color: $dos-green-dim !important;
+    }
+  }
+
+  ::-webkit-scrollbar {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  ::-webkit-scrollbar-track {
+    background: $dos-bg !important;
+    border-left: 1px solid $dos-green-dim;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: $dos-green-dim !important;
+    border: 1px solid $dos-green !important;
+  }
+
+  .badge {
+    background: $dos-bg !important;
+    border: 1px solid $dos-green !important;
+    border-radius: 0 !important;
+  }
+}
+
+// Blinking terminal-cursor exit badge, bottom-right so it doesn't
+// collide with the retro theme's badge if both were somehow triggered
+// back to back.
+@keyframes dos-cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.15; }
+}
+
+.fm-dos-badge {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 2000;
+  background: #000;
+  color: #33ff33;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border: 1px solid #33ff33;
+  cursor: pointer;
+  animation: dos-cursor-blink 1s steps(1) infinite !important;
+}
