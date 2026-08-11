@@ -4,27 +4,35 @@ Official Anthias's x86/arm64/pi5 viewer renders through `cage`, a kiosk
 Wayland compositor — confirmed from source
 (tools/image_builder/utils.py, bin/lib/viewer/common.sh) to run with
 XDG_RUNTIME_DIR=/run/user/1000 and WAYLAND_DISPLAY=wayland-0 — but the
-image does not ship `grim` (or any screenshot tool), and that runtime
-directory is plain container-writable-layer storage, not a declared
-volume (confirmed against docker-compose.yml.tmpl's anthias-viewer
-volumes: none of them touch /run).
+image does not ship `grim` (or any screenshot tool).
 
-Since we don't control/rebuild that image, this runs a tiny throwaway
-sidecar container instead: it reaches the viewer's runtime directory
-via /proc/<pid>/root/run/user/1000 — bind-mounting into another
-container's rootfs through procfs, the standard trick for exposing a
-path that was never declared as a volume — and connects to the same
-Wayland socket any other client on that compositor would.
+An earlier version of this tried to reach that runtime directory from a
+throwaway sidecar container via /proc/<pid>/root/run/user/1000 (that
+path is plain container-writable-layer storage, not a declared volume,
+so a bind mount was the only way to expose it without touching the
+image). In practice Docker/runc reject bind-mounting through a
+/proc/<pid>/root magic-link source with EINVAL — modern container
+runtimes specifically harden against this exact cross-container mount
+pattern.
+
+Instead, this installs `grim` directly inside the already-running
+anthias-viewer container (same mount namespace as the compositor, so
+no cross-container mount trick is needed at all) and runs it there via
+`docker exec`. The install is a one-off per container lifetime — `which
+grim` short-circuits it on every capture after the first — and only
+touches that container's writable layer, not the image.
 """
 
 from urllib.parse import urlparse
 
-SIDECAR_IMAGE = 'mupitech-grim-sidecar'
-SIDECAR_DOCKERFILE = 'FROM alpine:latest\nRUN apk add --no-cache grim\n'
+GRIM_INSTALL_CMD = (
+    'which grim > /dev/null 2>&1 || '
+    '(apt-get update -qq && apt-get install -y -qq --no-install-recommends grim)'
+)
 
 
 class ScreenshotSidecarError(Exception):
-    """Raised when the SSH-based sidecar screenshot capture fails."""
+    """Raised when the SSH-based screenshot capture fails."""
 
 
 def _ssh_exec_bytes(ssh, cmd, timeout):
@@ -48,9 +56,9 @@ def _ssh_exec_bytes(ssh, cmd, timeout):
 
 
 def capture_screenshot_via_sidecar(player, ssh_user, ssh_password, ssh_port=22, timeout=30):
-    """SSH into `player`'s host, ensure the tiny grim sidecar image
-    exists (building it once if missing), and capture a PNG of
-    whatever the viewer container is currently displaying.
+    """SSH into `player`'s host, ensure `grim` is installed inside the
+    running anthias-viewer container, and capture a PNG of whatever it
+    is currently displaying.
     """
     import paramiko
 
@@ -78,31 +86,28 @@ def capture_screenshot_via_sidecar(player, ssh_user, ssh_password, ssh_port=22, 
             raise ScreenshotSidecarError(
                 'Could not find a running anthias-viewer container on this device.'
             )
+        quoted_container = _shell_quote(container)
 
-        pid_out, _, _ = _ssh_run(
+        # Install grim in-place (root, default exec user) if it isn't
+        # there already — idempotent, and a no-op after the first call.
+        _, install_err, install_rc = _ssh_exec_bytes(
             ssh,
-            f'docker inspect -f {_shell_quote("{{.State.Pid}}")} {_shell_quote(container)}',
-            timeout=timeout,
+            f'docker exec -e DEBIAN_FRONTEND=noninteractive {quoted_container} '
+            f'sh -c {_shell_quote(GRIM_INSTALL_CMD)}',
+            max(timeout, 60),
         )
-        pid = pid_out.strip()
-        if not pid.isdigit():
-            raise ScreenshotSidecarError(f'Could not determine the viewer container PID (got: {pid!r}).')
+        if install_rc != 0:
+            raise ScreenshotSidecarError(
+                f'Could not install grim inside the viewer container (exit {install_rc}): '
+                f'{install_err.strip() or "no output"}'
+            )
 
-        # Build the sidecar image once — a cheap no-op on every capture
-        # after the first, since the image then already exists.
-        _ssh_run(
-            ssh,
-            f'docker image inspect {SIDECAR_IMAGE} > /dev/null 2>&1 || '
-            f'echo {_shell_quote(SIDECAR_DOCKERFILE)} | docker build -t {SIDECAR_IMAGE} -',
-            timeout=max(timeout, 60),
-        )
-
-        runtime_mount = f'/proc/{pid}/root/run/user/1000'
+        # Capture as the viewer user (UID 1000) so grim connects to its
+        # Wayland socket with matching ownership.
         cmd = (
-            f'docker run --rm '
-            f'-v {_shell_quote(runtime_mount)}:/run/user/1000:ro '
+            f'docker exec --user 1000 '
             f'-e WAYLAND_DISPLAY=wayland-0 -e XDG_RUNTIME_DIR=/run/user/1000 '
-            f'--user 1000 {SIDECAR_IMAGE} grim -t png -'
+            f'{quoted_container} grim -t png -'
         )
         png_bytes, err, exit_code = _ssh_exec_bytes(ssh, cmd, timeout)
         if exit_code != 0 or not png_bytes:
