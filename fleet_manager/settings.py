@@ -205,6 +205,16 @@ ANTHIAS_IMAGE_REGISTRY = os.environ.get('ANTHIAS_IMAGE_REGISTRY', 'ghcr.io/alex1
 ANTHIAS_IMAGE_TAG_SUFFIX_PI4 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'latest-pi4-64')
 ANTHIAS_IMAGE_TAG_SUFFIX_PI5 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'latest-pi5-64')
 
+# Fork próprio (pedrom20/mupitech-player, ramo mupitech-custom — ver
+# MAINTENANCE.md nesse repo) com paridade de funcionalidades construída
+# sobre o Anthias oficial atual, substituindo a dependência do fork
+# alex1981-tech acima. Nomenclatura de imagem diferente da do fork antigo
+# (hífen antes do nome do serviço, não barra) — ver
+# docker-compose-player-x86.yml. Só x86 disponível para já (Fase 0-4 do
+# plano de imagem personalizada); Pi4/Pi5 entram na Fase 5.
+ANTHIAS_IMAGE_REGISTRY_X86 = os.environ.get('ANTHIAS_IMAGE_REGISTRY_X86', 'ghcr.io/pedrom20/mupitech-player')
+ANTHIAS_IMAGE_TAG_SUFFIX_X86 = os.environ.get('ANTHIAS_IMAGE_TAG_SUFFIX_X86', 'latest-x86')
+
 # Shared secret for player phone-home registration (empty = open mode)
 PLAYER_REGISTER_TOKEN = os.environ.get('PLAYER_REGISTER_TOKEN', '')
 

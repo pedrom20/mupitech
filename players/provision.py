@@ -113,29 +113,30 @@ def _shell_quote(s):
     return "'" + s.replace("'", "'\\''") + "'"
 
 
+_COMPOSE_TEMPLATE_BY_DEVICE_TYPE = {
+    'pi5': ('docker-compose-player-pi5.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI5', 'ANTHIAS_IMAGE_REGISTRY'),
+    'x86': ('docker-compose-player-x86.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_X86', 'ANTHIAS_IMAGE_REGISTRY_X86'),
+}
+
+
 def _render_compose(ip_address, ssh_user, watchtower_token, mac_address='', device_type='pi4'):
     """Render docker-compose template with variables."""
     import os
-    template_name = (
-        'docker-compose-player-pi5.yml' if device_type == 'pi5'
-        else 'docker-compose-player.yml'
+    template_name, tag_suffix_setting, registry_setting = _COMPOSE_TEMPLATE_BY_DEVICE_TYPE.get(
+        device_type, ('docker-compose-player.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'ANTHIAS_IMAGE_REGISTRY'),
     )
     template_path = os.path.join(
         settings.BASE_DIR, 'provision', 'templates', template_name,
     )
     with open(template_path) as f:
         template = Template(f.read())
-    tag_suffix = (
-        settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI5 if device_type == 'pi5'
-        else settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI4
-    )
     return template.safe_substitute(
         PI_IP=ip_address,
         PI_USER=ssh_user,
         WATCHTOWER_TOKEN=watchtower_token,
         MAC_ADDRESS=mac_address,
-        ANTHIAS_REGISTRY=settings.ANTHIAS_IMAGE_REGISTRY,
-        ANTHIAS_TAG_SUFFIX=tag_suffix,
+        ANTHIAS_REGISTRY=getattr(settings, registry_setting),
+        ANTHIAS_TAG_SUFFIX=getattr(settings, tag_suffix_setting),
     )
 
 
@@ -248,18 +249,29 @@ try:
             out, _, _ = _ssh_run(ssh, 'uname -m', timeout=10)
             arch = out.strip()
             _append_log(task, f'Connected. Architecture: {arch}')
-            if arch not in ('aarch64', 'armv7l'):
-                raise RuntimeError(f'Unsupported architecture: {arch}. Expected aarch64 or armv7l.')
+            if arch not in ('aarch64', 'armv7l', 'x86_64'):
+                raise RuntimeError(f'Unsupported architecture: {arch}. Expected aarch64, armv7l or x86_64.')
 
-            # Detect Pi model (Pi4 vs Pi5)
-            model_out, _, _ = _ssh_run(ssh, 'cat /proc/device-tree/model 2>/dev/null || echo ""', timeout=5, check=False)
-            model_str = model_out.strip().rstrip('\x00')
-            if 'Raspberry Pi 5' in model_str or 'Compute Module 5' in model_str:
-                device_type = 'pi5'
-            elif 'Raspberry Pi 4' in model_str or 'Compute Module 4' in model_str:
-                device_type = 'pi4'
+            # x86 has no /proc/device-tree (that's a Pi/device-tree-boot
+            # concept) — check it first so an x86 box doesn't fall through
+            # to the Pi-model-detection block below and get mislabeled
+            # pi4. NOTE: the rest of this function (silent-boot config,
+            # SD-card-oriented disk checks, etc.) was written for Pi
+            # devices and has not been fully audited for x86 — this only
+            # fixes device-type detection, not every downstream step.
+            if arch == 'x86_64':
+                device_type = 'x86'
+                model_str = 'x86_64'
             else:
-                device_type = 'pi4'  # fallback
+                # Detect Pi model (Pi4 vs Pi5)
+                model_out, _, _ = _ssh_run(ssh, 'cat /proc/device-tree/model 2>/dev/null || echo ""', timeout=5, check=False)
+                model_str = model_out.strip().rstrip('\x00')
+                if 'Raspberry Pi 5' in model_str or 'Compute Module 5' in model_str:
+                    device_type = 'pi5'
+                elif 'Raspberry Pi 4' in model_str or 'Compute Module 4' in model_str:
+                    device_type = 'pi4'
+                else:
+                    device_type = 'pi4'  # fallback
             _append_log(task, f'Device type: {device_type} ({model_str})')
             _update_step(task, 1, 'ssh_connect', 'success', f'Connected ({arch}, {device_type})')
 

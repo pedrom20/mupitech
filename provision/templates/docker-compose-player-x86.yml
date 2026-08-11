@@ -1,0 +1,113 @@
+services:
+  anthias-server:
+    image: $ANTHIAS_REGISTRY-server:$ANTHIAS_TAG_SUFFIX
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - "80:8080"
+    environment:
+      - LISTEN=0.0.0.0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - HOST_USER=$PI_USER
+      - HOME=/data
+      - WATCHTOWER_TOKEN=$WATCHTOWER_TOKEN
+      - MAC_ADDRESS=$MAC_ADDRESS
+    volumes:
+      - resin-data:/data
+      - /home/$PI_USER/.anthias:/data/.anthias
+      - /home/$PI_USER/anthias_assets:/data/anthias_assets
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - redis
+
+  anthias-viewer:
+    image: $ANTHIAS_REGISTRY-viewer:$ANTHIAS_TAG_SUFFIX
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    privileged: true
+    # cage (x86's Wayland kiosk compositor) doesn't always release the
+    # DRM master on SIGTERM — same rationale as upstream's own
+    # docker-compose.yml.tmpl for this service.
+    stop_grace_period: 3s
+    stop_signal: SIGKILL
+    shm_size: '2460166144'
+    environment:
+      - NOREFRESH=1
+      - LISTEN=anthias-server
+      - HOME=/data
+      - PORT=8080
+    volumes:
+      - resin-data:/data
+      - /home/$PI_USER/.asoundrc:/data/.asoundrc
+      - /home/$PI_USER/.anthias:/data/.anthias
+      - /home/$PI_USER/anthias_assets:/data/anthias_assets
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      # Our own audio/HDMI overrides for x86 — mounted over the
+      # image's copy at its current path (src/anthias_viewer/, not
+      # the old fork's top-level viewer/ — the package moved upstream).
+      - /home/$PI_USER/anthias/media_player.py:/usr/src/app/src/anthias_viewer/media_player.py:ro
+    depends_on:
+      - anthias-server
+      - redis
+
+  anthias-celery:
+    # Runs on the same image as anthias-server with a CMD override —
+    # matches upstream's own current shape (server and celery share one
+    # image; there is no separate anthias-celery image to pull).
+    image: $ANTHIAS_REGISTRY-server:$ANTHIAS_TAG_SUFFIX
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    command: >
+      celery -A anthias_server.celery_tasks.celery worker -B -n worker@anthias
+      --loglevel=info --scheduler celery.beat.Scheduler
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - HOME=/data
+    volumes:
+      - resin-data:/data
+      - /home/$PI_USER/.anthias:/data/.anthias
+      - /home/$PI_USER/anthias_assets:/data/anthias_assets
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - anthias-server
+      - redis
+
+  redis:
+    image: $ANTHIAS_REGISTRY-redis:$ANTHIAS_TAG_SUFFIX
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/var/lib/redis
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    restart: always
+    environment:
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_ROLLING_RESTART=true
+      - DOCKER_API_VERSION=1.44
+      - WATCHTOWER_HTTP_API_UPDATE=true
+      - WATCHTOWER_HTTP_API_PERIODIC_POLLS=true
+      - WATCHTOWER_HTTP_API_TOKEN=$WATCHTOWER_TOKEN
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  resin-data:
+  redis-data:

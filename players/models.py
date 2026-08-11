@@ -19,6 +19,7 @@ def _get_fernet():
 DEVICE_TYPE_CHOICES = [
     ('pi4', 'Raspberry Pi 4'),
     ('pi5', 'Raspberry Pi 5'),
+    ('x86', 'x86'),
     ('unknown', 'Unknown'),
 ]
 
