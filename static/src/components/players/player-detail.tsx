@@ -176,8 +176,8 @@ const PlayerDetail: React.FC = () => {
   const [screenshotFullscreen, setScreenshotFullscreen] = useState(false)
   const [screenshotUnsupported, setScreenshotUnsupported] = useState(false)
 
-  // Push branding (splash logo + standby image)
-  const [showPushLogoModal, setShowPushLogoModal] = useState(false)
+  // Push branding (splash logo + standby image) — now the "branding" tab
+  // of the unified settings modal (showSettingsModal/settingsActiveTab).
   const [pushLogoSshUser, setPushLogoSshUser] = useState('pi')
   const [pushLogoSshPassword, setPushLogoSshPassword] = useState('')
   const [pushLogoSshPort, setPushLogoSshPort] = useState(22)
@@ -252,8 +252,10 @@ const PlayerDetail: React.FC = () => {
   const [cecStatus, setCecStatus] = useState<CecStatus | null>(null)
   const [cecLoading, setCecLoading] = useState(false)
 
-  // Player settings modal state
+  // Player settings modal state — unified with the branding push modal
+  // (splash logo/standby/theme) as tabs of the same dialog.
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [settingsActiveTab, setSettingsActiveTab] = useState<'general' | 'branding'>('general')
   const [_deviceSettings, setDeviceSettings] = useState<Record<string, unknown> | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [settingsSaving, setSettingsSaving] = useState(false)
@@ -608,14 +610,14 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
-  const handleOpenPushLogo = () => {
-    setShowPushLogoModal(true)
+  const handleOpenBrandingTab = () => {
     setSaveSshCredentials(false)
     if (player?.has_ssh_credentials) {
       setPushLogoSshUser(player.ssh_username || 'pi')
       setPushLogoSshPort(player.ssh_port || 22)
     }
     systemApi.getBranding().then((res) => setBrandingHasStandby(res.has_standby_image)).catch(() => {})
+    handleOpenSettings('branding')
   }
 
   const handleForgetSshCredentials = async () => {
@@ -685,7 +687,7 @@ const PlayerDetail: React.FC = () => {
     try {
       await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, pushTargetTheme, saveSshCredentials)
       Swal.fire({ icon: 'success', title: t('branding.pushed'), timer: 1500, showConfirmButton: false })
-      setShowPushLogoModal(false)
+      setShowSettingsModal(false)
       if (saveSshCredentials && player && pushLogoSshPassword) {
         setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
       }
@@ -1027,9 +1029,10 @@ const PlayerDetail: React.FC = () => {
   }
 
   // Open player settings modal
-  const handleOpenSettings = async () => {
+  const handleOpenSettings = async (tab: 'general' | 'branding' = 'general') => {
     if (!id) return
     setShowSettingsModal(true)
+    setSettingsActiveTab(tab)
     setSettingsLoading(true)
     try {
       const data = await playersApi.getSettings(id) as Record<string, string | number | boolean | object>
@@ -1404,7 +1407,7 @@ const PlayerDetail: React.FC = () => {
           <div className="d-flex gap-2">
             <button
               className="fm-btn-outline fm-btn-sm"
-              onClick={handleOpenSettings}
+              onClick={() => handleOpenSettings('general')}
               disabled={!player.is_online}
               title={t('playerSettings.title')}
             >
@@ -1421,7 +1424,7 @@ const PlayerDetail: React.FC = () => {
             {isAdminRole(role) && (
               <button
                 className="fm-btn-outline fm-btn-sm"
-                onClick={handleOpenPushLogo}
+                onClick={handleOpenBrandingTab}
                 title={t('branding.pushTitle')}
               >
                 <FaImage />
@@ -2459,12 +2462,34 @@ const PlayerDetail: React.FC = () => {
                   onClick={() => setShowSettingsModal(false)}
                 />
               </div>
+              <ul className="nav nav-tabs px-3 pt-2">
+                <li className="nav-item">
+                  <button
+                    type="button"
+                    className={`nav-link ${settingsActiveTab === 'general' ? 'active' : ''}`}
+                    onClick={() => setSettingsActiveTab('general')}
+                  >
+                    <FaCog className="me-1" />
+                    {t('playerSettings.tabGeneral')}
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    type="button"
+                    className={`nav-link ${settingsActiveTab === 'branding' ? 'active' : ''}`}
+                    onClick={() => setSettingsActiveTab('branding')}
+                  >
+                    <FaImage className="me-1" />
+                    {t('playerSettings.tabBranding')}
+                  </button>
+                </li>
+              </ul>
               <div className="modal-body py-2" style={{ maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
                 {settingsLoading ? (
                   <div className="text-center py-4">
                     <div className="spinner-border" />
                   </div>
-                ) : (
+                ) : settingsActiveTab === 'general' ? (
                   <div className="row g-4">
                   <div className="col-lg-6">
                     {/* Player Name */}
@@ -2814,51 +2839,8 @@ const PlayerDetail: React.FC = () => {
                     </div>
                   </div>
                   </div>
-                )}
-              </div>
-              <div className="modal-footer py-2">
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowSettingsModal(false)}
-                >
-                  {t('playerSettings.cancel')}
-                </button>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleSaveSettings}
-                  disabled={settingsSaving || settingsLoading}
-                >
-                  {settingsSaving ? (
-                    <span className="spinner-border spinner-border-sm me-1" />
-                  ) : null}
-                  {t('playerSettings.save')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Push splash logo modal */}
-      {showPushLogoModal && (
-        <div
-          className="modal d-block"
-          tabIndex={-1}
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setShowPushLogoModal(false)}
-        >
-          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title fw-bold">{t('branding.pushTitle')}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowPushLogoModal(false)}
-                  aria-label={t('common.close')}
-                />
-              </div>
-              <div className="modal-body">
+                ) : (
+                  <div>
                 <div className="border rounded p-2 mb-3">
                   <p className="fw-semibold mb-2" style={{ fontSize: '0.85rem' }}>
                     <FaImage className="me-1" />
@@ -3015,19 +2997,39 @@ const PlayerDetail: React.FC = () => {
                     </label>
                   </div>
                 )}
+                  </div>
+                )}
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowPushLogoModal(false)}>
-                  {t('common.cancel')}
-                </button>
+              <div className="modal-footer py-2">
                 <button
-                  type="button"
-                  className="fm-btn-primary"
-                  onClick={handlePushBranding}
-                  disabled={pushingLogo || (!pushLogoSshPassword && !player?.has_ssh_credentials) || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowSettingsModal(false)}
                 >
-                  {pushingLogo ? t('common.loading') : t('branding.push')}
+                  {t('playerSettings.cancel')}
                 </button>
+                {settingsActiveTab === 'general' ? (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveSettings}
+                    disabled={settingsSaving || settingsLoading}
+                  >
+                    {settingsSaving ? (
+                      <span className="spinner-border spinner-border-sm me-1" />
+                    ) : null}
+                    {t('playerSettings.save')}
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handlePushBranding}
+                    disabled={pushingLogo || (!pushLogoSshPassword && !player?.has_ssh_credentials) || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
+                  >
+                    {pushingLogo ? (
+                      <span className="spinner-border spinner-border-sm me-1" />
+                    ) : null}
+                    {t('branding.push')}
+                  </button>
+                )}
               </div>
             </div>
           </div>

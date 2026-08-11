@@ -472,6 +472,8 @@
   },
   "playerSettings": {
     "title": "Player Settings",
+    "tabGeneral": "General",
+    "tabBranding": "Branding",
     "playerName": "Player Name",
     "defaultDuration": "Default Duration",
     "defaultStreamingDuration": "Default Streaming Duration",

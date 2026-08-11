@@ -472,6 +472,8 @@
   },
   "playerSettings": {
     "title": "Definições do Dispositivo",
+    "tabGeneral": "Geral",
+    "tabBranding": "Marca",
     "playerName": "Nome do Dispositivo",
     "defaultDuration": "Duração Padrão",
     "defaultStreamingDuration": "Duração Padrão de Transmissão",
