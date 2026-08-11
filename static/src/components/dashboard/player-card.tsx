@@ -1,16 +1,18 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaInfoCircle, FaSyncAlt } from 'react-icons/fa'
+import { FaInfoCircle, FaSyncAlt, FaEdit, FaTrash } from 'react-icons/fa'
 import type { Player } from '@/types'
 import { players as playersApi } from '@/services/api'
 import Swal from 'sweetalert2'
 
 interface PlayerCardProps {
   player: Player
+  onEdit?: (player: Player) => void
+  onDelete?: (player: Player) => void
 }
 
-const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
+const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -135,6 +137,25 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
         >
           <FaSyncAlt />
         </button>
+        {onEdit && (
+          <button
+            className="fm-btn-icon"
+            onClick={(e) => { e.stopPropagation(); onEdit(player) }}
+            title={t('common.edit')}
+          >
+            <FaEdit />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            className="fm-btn-icon"
+            onClick={(e) => { e.stopPropagation(); onDelete(player) }}
+            title={t('common.delete')}
+            style={{ color: '#dc3545' }}
+          >
+            <FaTrash />
+          </button>
+        )}
       </div>
     </div>
   )

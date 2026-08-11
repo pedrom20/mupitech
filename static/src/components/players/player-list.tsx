@@ -8,6 +8,8 @@ import {
   FaEdit,
   FaTrash,
   FaNetworkWired,
+  FaThLarge,
+  FaTable,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -16,8 +18,12 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import AddPlayerModal from './add-player-modal'
 import BulkProvision from './bulk-provision'
+import PlayerCard from '@/components/dashboard/player-card'
 import { RoleContext, isAdminRole } from '@/components/app'
 import type { Player } from '@/types'
+
+type PlayerListLayout = 'cards' | 'table'
+const LAYOUT_STORAGE_KEY = 'fm_player_list_layout'
 
 const PlayerList: React.FC = () => {
   const { t } = useTranslation()
@@ -31,6 +37,14 @@ const PlayerList: React.FC = () => {
   const [showForm, setShowForm] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [showBulkProvision, setShowBulkProvision] = useState(false)
+  const [layout, setLayout] = useState<PlayerListLayout>(
+    () => (localStorage.getItem(LAYOUT_STORAGE_KEY) as PlayerListLayout) || 'cards',
+  )
+
+  const changeLayout = (next: PlayerListLayout) => {
+    setLayout(next)
+    localStorage.setItem(LAYOUT_STORAGE_KEY, next)
+  }
 
   useEffect(() => {
     dispatch(fetchPlayers())
@@ -124,8 +138,8 @@ const PlayerList: React.FC = () => {
         </div>
       </div>
 
-      <div className="fm-search-bar">
-        <div className="search-input-wrapper">
+      <div className="fm-search-bar d-flex align-items-center gap-2">
+        <div className="search-input-wrapper flex-grow-1">
           <FaSearch className="search-icon" />
           <input
             type="text"
@@ -135,11 +149,46 @@ const PlayerList: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <div className="btn-group" role="group" aria-label={t('players.layoutToggle')}>
+          <button
+            type="button"
+            className={`btn btn-sm ${layout === 'cards' ? 'fm-btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => changeLayout('cards')}
+            title={t('players.layoutCards')}
+          >
+            <FaThLarge />
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${layout === 'table' ? 'fm-btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => changeLayout('table')}
+            title={t('players.layoutTable')}
+          >
+            <FaTable />
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="fm-loading">
           <div className="spinner" />
+        </div>
+      ) : filteredPlayers.length === 0 ? (
+        <div className="fm-empty-state">
+          <div className="empty-icon">
+            <FaDesktop />
+          </div>
+          <h3 className="empty-title">
+            {players.length === 0 ? t('dashboard.noPlayers') : t('common.noResults')}
+          </h3>
+        </div>
+      ) : layout === 'cards' ? (
+        <div className="row g-3">
+          {filteredPlayers.map((player) => (
+            <div key={player.id} className="col-sm-6 col-lg-4 col-xl-3">
+              <PlayerCard player={player} onEdit={handleEdit} onDelete={handleDelete} />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="fm-card">
@@ -156,15 +205,7 @@ const PlayerList: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredPlayers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-4 text-muted">
-                      {players.length === 0
-                        ? t('dashboard.noPlayers')
-                        : t('common.noResults')}
-                    </td>
-                  </tr>
-                ) : (
+                {
                   filteredPlayers.map((player) => {
                     const group = getPlayerGroup(player)
                     return (
@@ -244,7 +285,7 @@ const PlayerList: React.FC = () => {
                       </tr>
                     )
                   })
-                )}
+                }
               </tbody>
             </table>
           </div>
