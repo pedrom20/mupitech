@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaImage, FaUpload, FaTrash } from 'react-icons/fa'
+import { FaImage, FaUpload, FaTrash, FaPaperPlane } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { system } from '@/services/api'
 
@@ -15,6 +15,15 @@ const BrandingSettings: React.FC = () => {
   const [uploadingStandby, setUploadingStandby] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const standbyInputRef = useRef<HTMLInputElement>(null)
+
+  const [showPushAllModal, setShowPushAllModal] = useState(false)
+  const [pushAllSshUser, setPushAllSshUser] = useState('pi')
+  const [pushAllSshPassword, setPushAllSshPassword] = useState('')
+  const [pushAllSshPort, setPushAllSshPort] = useState(22)
+  const [pushingAll, setPushingAll] = useState(false)
+  const [pushAllTargetLogo, setPushAllTargetLogo] = useState(true)
+  const [pushAllTargetStandby, setPushAllTargetStandby] = useState(false)
+  const [pushAllTargetTheme, setPushAllTargetTheme] = useState(false)
 
   const load = () => {
     system.getBranding()
@@ -107,6 +116,39 @@ const BrandingSettings: React.FC = () => {
       load()
     } catch (err) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
+  const handlePushAll = async () => {
+    if (!pushAllSshPassword || (!pushAllTargetLogo && !pushAllTargetStandby && !pushAllTargetTheme)) return
+    setPushingAll(true)
+    try {
+      const res = await system.pushBrandingToAll(
+        pushAllSshUser, pushAllSshPassword, pushAllSshPort,
+        pushAllTargetLogo, pushAllTargetStandby, pushAllTargetTheme,
+      )
+      const failed = Object.values(res.results).filter((r) => !r.success)
+      if (failed.length === 0) {
+        Swal.fire({
+          icon: 'success',
+          title: t('branding.pushed'),
+          text: t('branding.pushedAllDesc', { count: Object.keys(res.results).length }),
+          timer: 2500,
+          showConfirmButton: false,
+        })
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: t('branding.pushPartial'),
+          text: failed.map((f) => f.name).join(', '),
+        })
+      }
+      setShowPushAllModal(false)
+      setPushAllSshPassword('')
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setPushingAll(false)
     }
   }
 
@@ -212,10 +254,126 @@ const BrandingSettings: React.FC = () => {
           </div>
         )}
 
-        <p className="text-muted mt-3 mb-0" style={{ fontSize: '0.78rem' }}>
+        <p className="text-muted mt-3 mb-2" style={{ fontSize: '0.78rem' }}>
           {t('branding.pushHint')}
         </p>
+        <button type="button" className="fm-btn-outline btn-sm" onClick={() => setShowPushAllModal(true)}>
+          <FaPaperPlane className="me-1" />
+          {t('branding.pushAllTitle')}
+        </button>
       </div>
+
+      {showPushAllModal && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowPushAllModal(false)}
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold">{t('branding.pushAllTitle')}</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowPushAllModal(false)}
+                  aria-label={t('common.close')}
+                />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('branding.pushAllDesc')}</p>
+                <div className="mb-3">
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="push-all-target-logo"
+                      checked={pushAllTargetLogo}
+                      onChange={(e) => setPushAllTargetLogo(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-all-target-logo">
+                      {t('branding.logoLabel')}
+                    </label>
+                  </div>
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="push-all-target-standby"
+                      checked={pushAllTargetStandby}
+                      onChange={(e) => setPushAllTargetStandby(e.target.checked)}
+                      disabled={!hasStandby}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-all-target-standby">
+                      {t('branding.standbyLabel')}
+                      {!hasStandby && (
+                        <span className="text-muted"> ({t('branding.notSet')})</span>
+                      )}
+                    </label>
+                  </div>
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="push-all-target-theme"
+                      checked={pushAllTargetTheme}
+                      onChange={(e) => setPushAllTargetTheme(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-all-target-theme">
+                      {t('branding.themeLabel')}
+                    </label>
+                  </div>
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={pushAllSshUser}
+                    onChange={(e) => setPushAllSshUser(e.target.value)}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPassword')}</label>
+                  <input
+                    type="password"
+                    className="form-control form-control-sm"
+                    value={pushAllSshPassword}
+                    onChange={(e) => setPushAllSshPassword(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPort')}</label>
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    value={pushAllSshPort}
+                    onChange={(e) => setPushAllSshPort(Number(e.target.value))}
+                    min={1}
+                    max={65535}
+                    style={{ maxWidth: '120px' }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPushAllModal(false)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn-primary"
+                  onClick={handlePushAll}
+                  disabled={pushingAll || !pushAllSshPassword || (!pushAllTargetLogo && !pushAllTargetStandby && !pushAllTargetTheme)}
+                >
+                  {pushingAll ? t('common.loading') : t('branding.push')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

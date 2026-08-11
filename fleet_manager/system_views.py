@@ -476,3 +476,49 @@ def branding_delete_standby(request):
         from history.logging import log_action
         log_action(request, 'delete', 'branding_standby')
     return Response(status=204)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def branding_push_all(request):
+    """SSH into every already-added player (same credentials) and (re)push
+    its resolved branding — used to roll out a fleet-wide branding change
+    to devices that were added before it, without visiting each one."""
+    from players.branding import (
+        BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
+        push_theme_color_to_player, push_splash_translation_to_player, get_standby_path,
+    )
+    from players.models import Player
+
+    ssh_password = request.data.get('ssh_password')
+    if not ssh_password:
+        return Response({'error': 'ssh_password is required'}, status=400)
+    ssh_user = request.data.get('ssh_user') or 'pi'
+    try:
+        ssh_port = int(request.data.get('ssh_port', 22))
+    except (TypeError, ValueError):
+        return Response({'error': 'ssh_port must be an integer'}, status=400)
+    push_logo = request.data.get('push_logo', True)
+    push_standby = request.data.get('push_standby', False)
+    push_theme = request.data.get('push_theme', False)
+
+    results = {}
+    for player in Player.objects.all():
+        try:
+            if push_logo:
+                push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+            if push_standby and get_standby_path(player):
+                push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port)
+            if push_theme:
+                push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port)
+                push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port)
+            results[str(player.id)] = {'name': player.name, 'success': True}
+        except BrandingPushError as exc:
+            results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}
+
+    from history.logging import log_action
+    log_action(
+        request, 'push_branding_all', 'system',
+        details={'logo': bool(push_logo), 'standby': bool(push_standby), 'theme': bool(push_theme), 'results': results},
+    )
+    return Response({'success': True, 'results': results})

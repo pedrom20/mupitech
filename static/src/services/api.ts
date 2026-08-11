@@ -653,6 +653,16 @@ export const system = {
   deleteBrandingStandby(): Promise<void> {
     return apiRequest('DELETE', '/system/branding/standby/delete/')
   },
+
+  pushBrandingToAll(sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean): Promise<{
+    success: boolean
+    results: Record<string, { name: string; success: boolean; error?: string }>
+  }> {
+    return apiRequest('POST', '/system/branding/push-all/', {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+      push_logo: pushLogo, push_standby: pushStandby, push_theme: pushTheme,
+    })
+  },
 }
 
 export const auth = {
