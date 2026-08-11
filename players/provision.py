@@ -805,8 +805,33 @@ touch "$FLAG"
                 created = True
 
             task.player = player
+            task.save(update_fields=['player'])
+
+            # Step 13: push branding (logo/theme/translation always available
+            # via the bundled default; standby only if fleet-wide/group/
+            # location has one configured). Best-effort — a device that
+            # provisioned fine but isn't ready for a branding push yet
+            # shouldn't be reported as a failed enrollment.
+            _update_step(task, 13, 'push_branding', 'running', 'Applying branding...')
+            _append_log(task, '[Step 13] Pushing branding to the new device...')
+            try:
+                from .branding import (
+                    BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
+                    push_theme_color_to_player, push_splash_translation_to_player, get_standby_path,
+                )
+                push_splash_logo_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
+                push_theme_color_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
+                push_splash_translation_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
+                if get_standby_path(player):
+                    push_standby_image_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
+                _update_step(task, 13, 'push_branding', 'success', 'Branding applied')
+            except BrandingPushError as e:
+                _update_step(task, 13, 'push_branding', 'skipped', f'Non-fatal: {e}')
+            except Exception as e:
+                _update_step(task, 13, 'push_branding', 'skipped', f'Non-fatal: {e}')
+
             task.status = 'success'
-            task.save(update_fields=['player', 'status'])
+            task.save(update_fields=['status'])
             _append_log(task, f'Provisioning complete! Player "{player.name}" added.')
 
         except Exception as e:

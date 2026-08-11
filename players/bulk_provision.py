@@ -138,7 +138,7 @@ def bulk_provision_task(self, task_id):
                 ssh_port=22,
                 player_name=f'Player-{ip.replace(".", "-")}',
                 status='pending',
-                total_steps=12,
+                total_steps=13,
             )
             # Call the Celery task directly (not .delay()) to run synchronously in this worker
             provision_player(str(prov_task.id), ssh_password)
