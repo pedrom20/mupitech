@@ -120,7 +120,45 @@ class UpdateUserSerializer(serializers.ModelSerializer):
 
     def validate_role(self, value):
         _validate_role_escalation(value, self.context)
+        if self.instance and _user_role(self.instance) == 'superadmin':
+            request = self.context.get('request')
+            if not request or _user_role(request.user) != 'superadmin':
+                raise serializers.ValidationError("Only a superadmin can change another superadmin's role.")
+        if self.instance and value != _user_role(self.instance):
+            self._reject_self_privilege_edit('role')
         return value
+
+    def validate_location_ids(self, value):
+        if self.instance and {str(v) for v in value} != self._current_scope_ids('locations'):
+            self._reject_self_privilege_edit('access scope')
+        return value
+
+    def validate_group_ids(self, value):
+        if self.instance and {str(v) for v in value} != self._current_scope_ids('groups'):
+            self._reject_self_privilege_edit('access scope')
+        return value
+
+    def validate_player_ids(self, value):
+        if self.instance and {str(v) for v in value} != self._current_scope_ids('players'):
+            self._reject_self_privilege_edit('access scope')
+        return value
+
+    def _current_scope_ids(self, relation):
+        scope = getattr(self.instance, 'access_scope', None)
+        if not scope:
+            return set()
+        return {str(pk) for pk in getattr(scope, relation).values_list('id', flat=True)}
+
+    def _reject_self_privilege_edit(self, field_label):
+        """A user editing their own account cannot change their own role or
+        access scope — otherwise they could self-escalate. Superadmins are
+        exempt since they already have unrestricted access."""
+        request = self.context.get('request')
+        if not request or not self.instance or self.instance != request.user:
+            return
+        if _user_role(self.instance) == 'superadmin':
+            return
+        raise serializers.ValidationError(f'You cannot change your own {field_label}.')
 
     def update(self, instance, validated_data):
         role = validated_data.pop('role', None)

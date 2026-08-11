@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { users as usersApi, locations as locationsApi, groups as groupsApi, players as playersApi } from '@/services/api'
-import { RoleContext, isSuperAdminRole } from '@/components/app'
+import { RoleContext, AuthContext, isSuperAdminRole } from '@/components/app'
 import type { User, UserRole, Location, Group, Player } from '@/types'
 
 const ROLE_BADGE: Record<UserRole, string> = {
@@ -16,6 +16,7 @@ const ROLE_BADGE: Record<UserRole, string> = {
 const UsersSettings: React.FC = () => {
   const { t } = useTranslation()
   const currentRole = useContext(RoleContext)
+  const { user: currentUser } = useContext(AuthContext)
   const [userList, setUserList] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -133,6 +134,8 @@ const UsersSettings: React.FC = () => {
     })
   }
 
+  const isEditingSelf = !!editUser && !!currentUser && editUser.id === currentUser.id && !isSuperAdminRole(currentRole)
+
   return (
     <div className="fm-card fm-card-accent h-100">
       <div className="fm-card-header py-2 d-flex justify-content-between align-items-center">
@@ -188,7 +191,7 @@ const UsersSettings: React.FC = () => {
                       <button className="btn btn-sm btn-outline-primary me-1" onClick={() => openEdit(u)} title={t('common.edit')}>
                         <FaEdit />
                       </button>
-                      {u.is_active && (
+                      {u.is_active && (u.role !== 'superadmin' || isSuperAdminRole(currentRole)) && (
                         <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(u)} title={t('common.delete')}>
                           <FaTrash />
                         </button>
@@ -240,7 +243,12 @@ const UsersSettings: React.FC = () => {
                   </div>
                   <div className="mb-2">
                     <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('users.role')}</label>
-                    <select className="form-select form-select-sm" value={role} onChange={(e) => setRole(e.target.value)}>
+                    <select
+                      className="form-select form-select-sm"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      disabled={(!!editUser && editUser.role === 'superadmin' && !isSuperAdminRole(currentRole)) || isEditingSelf}
+                    >
                       <option value="viewer">{t('users.role_viewer')}</option>
                       <option value="editor">{t('users.role_editor')}</option>
                       <option value="admin">{t('users.role_admin')}</option>
@@ -248,13 +256,19 @@ const UsersSettings: React.FC = () => {
                         <option value="superadmin">{t('users.role_superadmin')}</option>
                       )}
                     </select>
+                    {!!editUser && editUser.role === 'superadmin' && !isSuperAdminRole(currentRole) && (
+                      <div className="form-text">{t('users.superadminRoleLocked')}</div>
+                    )}
+                    {isEditingSelf && (
+                      <div className="form-text">{t('users.ownAccessLocked')}</div>
+                    )}
                   </div>
 
                   {role !== 'admin' && role !== 'superadmin' && (
-                    <>
+                    <fieldset disabled={isEditingSelf}>
                       <hr className="my-3" />
                       <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>
-                        {t('users.scopeHint')}
+                        {isEditingSelf ? t('users.ownAccessLocked') : t('users.scopeHint')}
                       </p>
                       <div className="mb-2">
                         <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
@@ -319,7 +333,7 @@ const UsersSettings: React.FC = () => {
                           ))}
                         </div>
                       </div>
-                    </>
+                    </fieldset>
                   )}
                 </div>
                 <div className="modal-footer py-2">

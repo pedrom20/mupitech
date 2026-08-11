@@ -49,6 +49,11 @@ class UserViewSet(viewsets.ModelViewSet):
                 {'error': 'Cannot deactivate yourself'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if _user_role(user) == 'superadmin' and _user_role(request.user) != 'superadmin':
+            return Response(
+                {'error': 'Only a superadmin can deactivate another superadmin'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         user.is_active = False
         user.save(update_fields=['is_active'])
         log_action(request, 'deactivate', 'user', target_id=user.id, target_name=user.username)
