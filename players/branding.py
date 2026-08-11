@@ -114,7 +114,7 @@ def wrap_raster_as_svg(file_obj, filename):
     return svg.encode('utf-8')
 
 
-STANDBY_MARGIN_RATIO = 0.08  # 8% padding on each side, so it doesn't bleed to the screen edges
+STANDBY_MARGIN_RATIO = 0.2  # 20% padding on each side, so it doesn't bleed to the screen edges
 
 
 def convert_to_png(file_obj, add_margin=False, margin_ratio=STANDBY_MARGIN_RATIO):
