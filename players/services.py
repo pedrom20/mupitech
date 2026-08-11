@@ -177,35 +177,54 @@ class AnthiasAPIClient:
                 response_data=response_data,
             ) from exc
 
+    def _json(self, response):
+        """Parse a response as JSON, or raise PlayerConnectionError.
+
+        A 200 OK with non-JSON content (most commonly an HTML login
+        page — the player has auth enabled and the configured
+        username/password didn't authenticate, or credentials are
+        blank) would otherwise raise an uncaught JSONDecodeError deep
+        in a Celery task, silently killing it instead of being
+        reported as a normal connection failure.
+        """
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise PlayerConnectionError(
+                f'Player {self.player.name} returned a non-JSON response '
+                f'(does it require authentication?)',
+                status_code=response.status_code,
+            ) from exc
+
     def get_info(self):
         """GET /api/v2/info - Retrieve player information."""
         response = self._request('GET', '/api/v2/info')
-        return response.json()
+        return self._json(response)
 
     def get_assets(self):
         """GET /api/v2/assets - Retrieve the list of assets on the player."""
         response = self._request('GET', '/api/v2/assets')
-        return response.json()
+        return self._json(response)
 
     def get_device_settings(self):
         """GET /api/v2/device_settings - Retrieve device settings."""
         response = self._request('GET', '/api/v2/device_settings')
-        return response.json()
+        return self._json(response)
 
     def update_device_settings(self, data):
         """PATCH /api/v2/device_settings - Update device settings."""
         response = self._request('PATCH', '/api/v2/device_settings', json=data)
-        return response.json()
+        return self._json(response)
 
     def create_asset(self, data):
         """POST /api/v2/assets - Create a new asset on the player."""
         response = self._request('POST', '/api/v2/assets', json=data)
-        return response.json()
+        return self._json(response)
 
     def update_asset(self, asset_id, data):
         """PATCH /api/v2/assets/{asset_id} - Update an existing asset."""
         response = self._request('PATCH', f'/api/v2/assets/{asset_id}', json=data)
-        return response.json()
+        return self._json(response)
 
     def delete_asset(self, asset_id):
         """DELETE /api/v2/assets/{asset_id} - Delete an asset from the player."""
@@ -215,7 +234,7 @@ class AnthiasAPIClient:
         """POST /api/v2/file_asset - Upload a file to the player (multipart)."""
         files = {'file_upload': file_obj}
         response = self._request('POST', '/api/v2/file_asset', files=files)
-        return response.json()
+        return self._json(response)
 
     def reboot(self):
         """POST /api/v2/reboot - Reboot the player."""
@@ -240,7 +259,7 @@ class AnthiasAPIClient:
         if since:
             params['since'] = since
         response = self._request('GET', '/api/v2/viewlog', params=params)
-        return response.json()
+        return self._json(response)
 
     def get_screenshot(self):
         """GET /api/v2/screenshot - Capture and retrieve a screenshot."""
@@ -257,22 +276,22 @@ class AnthiasAPIClient:
     def get_schedule_slots(self):
         """GET /api/v2/schedule/slots - List all schedule slots."""
         response = self._request('GET', '/api/v2/schedule/slots')
-        return response.json()
+        return self._json(response)
 
     def get_schedule_status(self):
         """GET /api/v2/schedule/status - Get current schedule status."""
         response = self._request('GET', '/api/v2/schedule/status')
-        return response.json()
+        return self._json(response)
 
     def create_schedule_slot(self, data):
         """POST /api/v2/schedule/slots - Create a schedule slot."""
         response = self._request('POST', '/api/v2/schedule/slots', json=data)
-        return response.json()
+        return self._json(response)
 
     def update_schedule_slot(self, slot_id, data):
         """PUT /api/v2/schedule/slots/{slot_id} - Update a schedule slot."""
         response = self._request('PUT', f'/api/v2/schedule/slots/{slot_id}', json=data)
-        return response.json()
+        return self._json(response)
 
     def delete_schedule_slot(self, slot_id):
         """DELETE /api/v2/schedule/slots/{slot_id} - Delete a schedule slot."""
@@ -281,17 +300,17 @@ class AnthiasAPIClient:
     def get_slot_items(self, slot_id):
         """GET /api/v2/schedule/slots/{slot_id}/items - List items in a slot."""
         response = self._request('GET', f'/api/v2/schedule/slots/{slot_id}/items')
-        return response.json()
+        return self._json(response)
 
     def add_slot_item(self, slot_id, data):
         """POST /api/v2/schedule/slots/{slot_id}/items - Add asset to slot."""
         response = self._request('POST', f'/api/v2/schedule/slots/{slot_id}/items', json=data)
-        return response.json()
+        return self._json(response)
 
     def update_slot_item(self, slot_id, item_id, data):
         """PUT /api/v2/schedule/slots/{slot_id}/items/{item_id} - Update slot item."""
         response = self._request('PUT', f'/api/v2/schedule/slots/{slot_id}/items/{item_id}', json=data)
-        return response.json()
+        return self._json(response)
 
     def delete_slot_item(self, slot_id, item_id):
         """DELETE /api/v2/schedule/slots/{slot_id}/items/{item_id} - Remove item."""
@@ -302,36 +321,36 @@ class AnthiasAPIClient:
         response = self._request(
             'POST', f'/api/v2/schedule/slots/{slot_id}/items/order', json={'ids': ids},
         )
-        return response.json()
+        return self._json(response)
 
     def trigger_update(self):
         """POST /api/v2/update - Trigger Watchtower update on the player."""
         response = self._request('POST', '/api/v2/update')
-        return response.json()
+        return self._json(response)
 
     # ── CEC TV control ──
 
     def get_cec_status(self):
         """GET /api/v2/cec/status - Get CEC availability and TV power state."""
         response = self._request('GET', '/api/v2/cec/status')
-        return response.json()
+        return self._json(response)
 
     def cec_standby(self):
         """POST /api/v2/cec/standby - Send TV to standby via HDMI-CEC."""
         response = self._request('POST', '/api/v2/cec/standby')
-        return response.json()
+        return self._json(response)
 
     def cec_wake(self):
         """POST /api/v2/cec/wake - Wake TV via HDMI-CEC."""
         response = self._request('POST', '/api/v2/cec/wake')
-        return response.json()
+        return self._json(response)
 
     # ── IR remote control ──
 
     def get_ir_status(self):
         """GET /api/v2/ir/status - Get IR hardware availability."""
         response = self._request('GET', '/api/v2/ir/status')
-        return response.json()
+        return self._json(response)
 
     def ir_test(self, protocol, scancode):
         """POST /api/v2/ir/test - Send a test IR power code."""
@@ -339,7 +358,7 @@ class AnthiasAPIClient:
             'protocol': protocol,
             'scancode': scancode,
         })
-        return response.json()
+        return self._json(response)
 
 
 # Anthias asset mimetypes, keyed by content.MediaFile.file_type
