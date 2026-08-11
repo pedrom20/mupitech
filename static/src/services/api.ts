@@ -171,11 +171,22 @@ export const players = {
     return apiRequest<PlayerUpdateCheckResult>('GET', `/players/${id}/update-check/`)
   },
 
-  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean): Promise<{ success: boolean }> {
+  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean, saveCredentials = false): Promise<{ success: boolean }> {
     return apiRequest('POST', `/players/${id}/push-branding/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
       push_logo: pushLogo, push_standby: pushStandby, push_theme: pushTheme,
+      save_credentials: saveCredentials,
     })
+  },
+
+  saveSshCredentials(id: string, sshUser: string, sshPassword: string, sshPort: number): Promise<{ success: boolean; has_ssh_credentials: boolean; ssh_username: string; ssh_port: number }> {
+    return apiRequest('POST', `/players/${id}/ssh-credentials/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+    })
+  },
+
+  deleteSshCredentials(id: string): Promise<void> {
+    return apiRequest('DELETE', `/players/${id}/ssh-credentials/`)
   },
 
   uploadLogo(id: string, file: File): Promise<{ success: boolean; logo_url: string }> {

@@ -481,21 +481,24 @@ def branding_delete_standby(request):
 @api_view(['POST'])
 @permission_classes([IsAdmin])
 def branding_push_all(request):
-    """SSH into every already-added player (same credentials) and (re)push
-    its resolved branding — used to roll out a fleet-wide branding change
-    to devices that were added before it, without visiting each one."""
+    """SSH into every already-added player and (re)push its resolved
+    branding — used to roll out a fleet-wide branding change to devices
+    that were added before it, without visiting each one.
+
+    ssh_user/ssh_password/ssh_port are used as a shared fallback for any
+    player without its own saved SSH credentials — a player that has its
+    own takes precedence, so devices with different logins can be pushed
+    in one go."""
     from players.branding import (
         BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
         push_theme_color_to_player, push_splash_translation_to_player, get_standby_path,
     )
     from players.models import Player
 
-    ssh_password = request.data.get('ssh_password')
-    if not ssh_password:
-        return Response({'error': 'ssh_password is required'}, status=400)
-    ssh_user = request.data.get('ssh_user') or 'pi'
+    default_ssh_password = request.data.get('ssh_password')
+    default_ssh_user = request.data.get('ssh_user') or 'pi'
     try:
-        ssh_port = int(request.data.get('ssh_port', 22))
+        default_ssh_port = int(request.data.get('ssh_port', 22))
     except (TypeError, ValueError):
         return Response({'error': 'ssh_port must be an integer'}, status=400)
     push_logo = request.data.get('push_logo', True)
@@ -504,6 +507,16 @@ def branding_push_all(request):
 
     results = {}
     for player in Player.objects.all():
+        if player.has_ssh_credentials:
+            ssh_user, ssh_password, ssh_port = player.ssh_username, player.get_ssh_password(), player.ssh_port
+        else:
+            ssh_user, ssh_password, ssh_port = default_ssh_user, default_ssh_password, default_ssh_port
+        if not ssh_password:
+            results[str(player.id)] = {
+                'name': player.name, 'success': False,
+                'error': 'No SSH credentials available for this device.',
+            }
+            continue
         try:
             if push_logo:
                 push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)

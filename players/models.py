@@ -93,6 +93,12 @@ class Player(models.Model):
         upload_to='branding/players/', null=True, blank=True,
         help_text='Overrides the group/location/fleet-wide standby image for this device only.',
     )
+    ssh_username = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='Saved SSH login for branding pushes/provisioning actions on this device.',
+    )
+    ssh_password_encrypted = models.CharField(max_length=500, blank=True, default='', help_text='Stored encrypted.')
+    ssh_port = models.IntegerField(default=22)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -139,6 +145,34 @@ class Player(models.Model):
         except Exception:
             logger.warning(
                 'Failed to decrypt password for player %s (%s). '
+                'This may indicate a SECRET_KEY rotation.',
+                self.name, self.pk,
+            )
+            return ''
+
+    @property
+    def has_ssh_credentials(self):
+        return bool(self.ssh_password_encrypted)
+
+    def set_ssh_password(self, raw_password):
+        """Encrypt and store the SSH login password used for branding
+        pushes/provisioning actions on this device."""
+        if raw_password:
+            f = _get_fernet()
+            self.ssh_password_encrypted = f.encrypt(raw_password.encode()).decode()
+        else:
+            self.ssh_password_encrypted = ''
+
+    def get_ssh_password(self):
+        """Decrypt and return the stored SSH password."""
+        if not self.ssh_password_encrypted:
+            return ''
+        try:
+            f = _get_fernet()
+            return f.decrypt(self.ssh_password_encrypted.encode()).decode()
+        except Exception:
+            logger.warning(
+                'Failed to decrypt SSH password for player %s (%s). '
                 'This may indicate a SECRET_KEY rotation.',
                 self.name, self.pk,
             )

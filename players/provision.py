@@ -804,6 +804,14 @@ touch "$FLAG"
                 player = Player.objects.create(**player_defaults)
                 created = True
 
+            # Save the SSH login used for this provisioning session on the
+            # device itself, so branding pushes and future management
+            # actions don't need to ask for it again.
+            player.ssh_username = task.ssh_user
+            player.set_ssh_password(ssh_password)
+            player.ssh_port = task.ssh_port
+            player.save(update_fields=['ssh_username', 'ssh_password_encrypted', 'ssh_port'])
+
             task.player = player
             task.save(update_fields=['player'])
 

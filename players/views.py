@@ -325,16 +325,22 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
     def push_branding(self, request, pk=None):
         """SSH into the device once and replace its Anthias branding
         (splash-page logo, "no content" standby image and/or the purple
-        theme colors)."""
+        theme colors).
+
+        ssh_user/ssh_password/ssh_port are optional if this device already
+        has saved SSH credentials (see the ssh-credentials action) — those
+        are used as a fallback so pushes don't require re-entering them
+        every time."""
         player = self.get_object()
-        ssh_password = request.data.get('ssh_password')
+        ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
         if not ssh_password:
             return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
-        ssh_user = request.data.get('ssh_user') or 'pi'
-        ssh_port = _safe_int(request.data.get('ssh_port'), 22, 'ssh_port')
+        ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
         push_logo = request.data.get('push_logo', True)
         push_standby = request.data.get('push_standby', False)
         push_theme = request.data.get('push_theme', False)
+        save_credentials = request.data.get('save_credentials', False)
 
         from .branding import (
             BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
@@ -351,12 +357,47 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
         except BrandingPushError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
+        if save_credentials:
+            player.ssh_username = ssh_user
+            player.set_ssh_password(ssh_password)
+            player.ssh_port = ssh_port
+            player.save(update_fields=['ssh_username', 'ssh_password_encrypted', 'ssh_port'])
+
         from history.logging import log_action
         log_action(
             request, 'push_branding', 'player', target_id=player.id, target_name=player.name,
             details={'logo': bool(push_logo), 'standby': bool(push_standby), 'theme': bool(push_theme)},
         )
         return Response({'success': True})
+
+    @action(detail=True, methods=['post', 'delete'], url_path='ssh-credentials')
+    def ssh_credentials(self, request, pk=None):
+        """Save or clear this device's SSH login, used as a fallback for
+        branding pushes and other SSH-based actions so they don't need to
+        be re-entered every time. The password is stored encrypted and
+        never returned by the API."""
+        player = self.get_object()
+        if request.method == 'DELETE':
+            player.ssh_username = ''
+            player.ssh_password_encrypted = ''
+            player.ssh_port = 22
+            player.save(update_fields=['ssh_username', 'ssh_password_encrypted', 'ssh_port'])
+            return Response(status=204)
+
+        ssh_user = request.data.get('ssh_user')
+        ssh_password = request.data.get('ssh_password')
+        if not ssh_user or not ssh_password:
+            return Response({'error': 'ssh_user and ssh_password are required'}, status=400)
+        ssh_port = _safe_int(request.data.get('ssh_port'), 22, 'ssh_port')
+
+        player.ssh_username = ssh_user
+        player.set_ssh_password(ssh_password)
+        player.ssh_port = ssh_port
+        player.save(update_fields=['ssh_username', 'ssh_password_encrypted', 'ssh_port'])
+
+        from history.logging import log_action
+        log_action(request, 'save_ssh_credentials', 'player', target_id=player.id, target_name=player.name)
+        return Response({'success': True, 'has_ssh_credentials': True, 'ssh_username': ssh_user, 'ssh_port': ssh_port})
 
     @action(detail=True, methods=['post', 'delete'], url_path='logo')
     def logo(self, request, pk=None):

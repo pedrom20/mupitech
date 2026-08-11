@@ -38,6 +38,9 @@ export interface Player {
   tailscale_enabled: boolean
   splash_logo?: string | null
   standby_image?: string | null
+  ssh_username?: string
+  ssh_port?: number
+  has_ssh_credentials?: boolean
   created_at: string
 }
 

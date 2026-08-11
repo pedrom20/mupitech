@@ -187,6 +187,7 @@ const PlayerDetail: React.FC = () => {
   const [pushTargetStandby, setPushTargetStandby] = useState(false)
   const [pushTargetTheme, setPushTargetTheme] = useState(false)
   const [brandingHasStandby, setBrandingHasStandby] = useState(false)
+  const [saveSshCredentials, setSaveSshCredentials] = useState(false)
   const [uploadingDeviceLogo, setUploadingDeviceLogo] = useState(false)
   const [uploadingDeviceStandby, setUploadingDeviceStandby] = useState(false)
   const deviceLogoInputRef = useRef<HTMLInputElement>(null)
@@ -619,7 +620,22 @@ const PlayerDetail: React.FC = () => {
 
   const handleOpenPushLogo = () => {
     setShowPushLogoModal(true)
+    setSaveSshCredentials(false)
+    if (player?.has_ssh_credentials) {
+      setPushLogoSshUser(player.ssh_username || 'pi')
+      setPushLogoSshPort(player.ssh_port || 22)
+    }
     systemApi.getBranding().then((res) => setBrandingHasStandby(res.has_standby_image)).catch(() => {})
+  }
+
+  const handleForgetSshCredentials = async () => {
+    if (!id || !player) return
+    try {
+      await playersApi.deleteSshCredentials(id)
+      setPlayer({ ...player, has_ssh_credentials: false, ssh_username: '', ssh_port: 22 })
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
   }
 
   const handleDeviceLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -673,12 +689,16 @@ const PlayerDetail: React.FC = () => {
   }
 
   const handlePushBranding = async () => {
-    if (!id || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)) return
+    const canUseSavedPassword = !!player?.has_ssh_credentials && !pushLogoSshPassword
+    if (!id || (!pushLogoSshPassword && !canUseSavedPassword) || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)) return
     setPushingLogo(true)
     try {
-      await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, pushTargetTheme)
+      await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, pushTargetTheme, saveSshCredentials)
       Swal.fire({ icon: 'success', title: t('branding.pushed'), timer: 1500, showConfirmButton: false })
       setShowPushLogoModal(false)
+      if (saveSshCredentials && player && pushLogoSshPassword) {
+        setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
+      }
       setPushLogoSshPassword('')
     } catch (err) {
       Swal.fire({ icon: 'error', title: t('branding.pushFailed'), text: String(err) })
@@ -2895,6 +2915,14 @@ const PlayerDetail: React.FC = () => {
                     </label>
                   </div>
                 </div>
+                {player?.has_ssh_credentials && (
+                  <div className="alert alert-secondary py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.78rem' }}>
+                    <span>{t('branding.sshCredentialsSaved', { user: player.ssh_username })}</span>
+                    <button type="button" className="btn btn-link btn-sm p-0 text-danger" onClick={handleForgetSshCredentials}>
+                      {t('branding.sshForget')}
+                    </button>
+                  </div>
+                )}
                 <div className="mb-2">
                   <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
                   <input
@@ -2905,7 +2933,12 @@ const PlayerDetail: React.FC = () => {
                   />
                 </div>
                 <div className="mb-2">
-                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPassword')}</label>
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>
+                    {t('branding.sshPassword')}
+                    {player?.has_ssh_credentials && (
+                      <span className="text-muted fw-normal"> ({t('branding.sshUseSaved')})</span>
+                    )}
+                  </label>
                   <input
                     type="password"
                     className="form-control form-control-sm"
@@ -2926,6 +2959,20 @@ const PlayerDetail: React.FC = () => {
                     style={{ maxWidth: '120px' }}
                   />
                 </div>
+                {pushLogoSshPassword && (
+                  <div className="form-check mb-2">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="save-ssh-credentials"
+                      checked={saveSshCredentials}
+                      onChange={e => setSaveSshCredentials(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="save-ssh-credentials">
+                      {t('branding.sshSaveHint')}
+                    </label>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowPushLogoModal(false)}>
@@ -2935,7 +2982,7 @@ const PlayerDetail: React.FC = () => {
                   type="button"
                   className="fm-btn-primary"
                   onClick={handlePushBranding}
-                  disabled={pushingLogo || !pushLogoSshPassword || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
+                  disabled={pushingLogo || (!pushLogoSshPassword && !player?.has_ssh_credentials) || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
                 >
                   {pushingLogo ? t('common.loading') : t('branding.push')}
                 </button>

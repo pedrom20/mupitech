@@ -33,6 +33,7 @@ class PlayerSerializer(serializers.ModelSerializer):
     group_detail = GroupSerializer(source='group', read_only=True)
     location_detail = LocationSerializer(source='location', read_only=True)
     effective_location_detail = LocationSerializer(source='effective_location', read_only=True)
+    has_ssh_credentials = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Player
@@ -56,9 +57,15 @@ class PlayerSerializer(serializers.ModelSerializer):
             'tailscale_enabled',
             'splash_logo',
             'standby_image',
+            'ssh_username',
+            'ssh_port',
+            'has_ssh_credentials',
             'created_at',
         ]
-        read_only_fields = ['id', 'is_online', 'last_seen', 'last_status', 'mac_address', 'device_type', 'created_at']
+        read_only_fields = [
+            'id', 'is_online', 'last_seen', 'last_status', 'mac_address', 'device_type', 'created_at',
+            'ssh_username', 'ssh_port', 'has_ssh_credentials',
+        ]
 
     def create(self, validated_data):
         raw_password = validated_data.pop('password', '')

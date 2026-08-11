@@ -53,16 +53,18 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='push-branding')
     def push_branding(self, request, pk=None):
-        """SSH into every player in this group (same credentials) and push
-        the custom branding (splash-page logo, standby image and/or the
-        purple theme colors)."""
+        """SSH into every player in this group and push the custom branding
+        (splash-page logo, standby image and/or the purple theme colors).
+
+        ssh_user/ssh_password/ssh_port are used as a shared fallback for
+        any player without its own saved SSH credentials — a player that
+        has its own takes precedence, so a group can mix devices with
+        different logins in one push."""
         group = self.get_object()
-        ssh_password = request.data.get('ssh_password')
-        if not ssh_password:
-            return Response({'error': 'ssh_password is required'}, status=400)
-        ssh_user = request.data.get('ssh_user') or 'pi'
+        default_ssh_password = request.data.get('ssh_password')
+        default_ssh_user = request.data.get('ssh_user') or 'pi'
         try:
-            ssh_port = int(request.data.get('ssh_port', 22))
+            default_ssh_port = int(request.data.get('ssh_port', 22))
         except (TypeError, ValueError):
             return Response({'error': 'ssh_port must be an integer'}, status=400)
         push_logo = request.data.get('push_logo', True)
@@ -76,6 +78,16 @@ class GroupViewSet(viewsets.ModelViewSet):
 
         results = {}
         for player in group.players.all():
+            if player.has_ssh_credentials:
+                ssh_user, ssh_password, ssh_port = player.ssh_username, player.get_ssh_password(), player.ssh_port
+            else:
+                ssh_user, ssh_password, ssh_port = default_ssh_user, default_ssh_password, default_ssh_port
+            if not ssh_password:
+                results[str(player.id)] = {
+                    'name': player.name, 'success': False,
+                    'error': 'No SSH credentials available for this device.',
+                }
+                continue
             try:
                 if push_logo:
                     push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
