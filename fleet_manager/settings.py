@@ -33,7 +33,6 @@ INSTALLED_APPS = [
     'content',
     'cctv',
     'history',
-    'scheduling',
     'players',
     'deploy',
     'playlists',

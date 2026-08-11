@@ -271,57 +271,11 @@ class AnthiasAPIClient:
         response = self._request('GET', f'/api/v2/assets/control/{command}')
         return response.text
 
-    # ── Schedule Slots ──
-
-    def get_schedule_slots(self):
-        """GET /api/v2/schedule/slots - List all schedule slots."""
-        response = self._request('GET', '/api/v2/schedule/slots')
-        return self._json(response)
-
-    def get_schedule_status(self):
-        """GET /api/v2/schedule/status - Get current schedule status."""
-        response = self._request('GET', '/api/v2/schedule/status')
-        return self._json(response)
-
-    def create_schedule_slot(self, data):
-        """POST /api/v2/schedule/slots - Create a schedule slot."""
-        response = self._request('POST', '/api/v2/schedule/slots', json=data)
-        return self._json(response)
-
-    def update_schedule_slot(self, slot_id, data):
-        """PUT /api/v2/schedule/slots/{slot_id} - Update a schedule slot."""
-        response = self._request('PUT', f'/api/v2/schedule/slots/{slot_id}', json=data)
-        return self._json(response)
-
-    def delete_schedule_slot(self, slot_id):
-        """DELETE /api/v2/schedule/slots/{slot_id} - Delete a schedule slot."""
-        self._request('DELETE', f'/api/v2/schedule/slots/{slot_id}')
-
-    def get_slot_items(self, slot_id):
-        """GET /api/v2/schedule/slots/{slot_id}/items - List items in a slot."""
-        response = self._request('GET', f'/api/v2/schedule/slots/{slot_id}/items')
-        return self._json(response)
-
-    def add_slot_item(self, slot_id, data):
-        """POST /api/v2/schedule/slots/{slot_id}/items - Add asset to slot."""
-        response = self._request('POST', f'/api/v2/schedule/slots/{slot_id}/items', json=data)
-        return self._json(response)
-
-    def update_slot_item(self, slot_id, item_id, data):
-        """PUT /api/v2/schedule/slots/{slot_id}/items/{item_id} - Update slot item."""
-        response = self._request('PUT', f'/api/v2/schedule/slots/{slot_id}/items/{item_id}', json=data)
-        return self._json(response)
-
-    def delete_slot_item(self, slot_id, item_id):
-        """DELETE /api/v2/schedule/slots/{slot_id}/items/{item_id} - Remove item."""
-        self._request('DELETE', f'/api/v2/schedule/slots/{slot_id}/items/{item_id}')
-
-    def reorder_slot_items(self, slot_id, ids):
-        """POST /api/v2/schedule/slots/{slot_id}/items/order - Reorder items."""
-        response = self._request(
-            'POST', f'/api/v2/schedule/slots/{slot_id}/items/order', json={'ids': ids},
-        )
-        return self._json(response)
+    # Recurring weekly scheduling (play_days/play_time_from/play_time_to)
+    # is just fields on the asset itself in current official Anthias —
+    # no separate "schedule slot" resource, so no dedicated client
+    # methods here. Read via get_assets()/get_info(), write via
+    # update_asset() (see players/views.py::asset_update).
 
     def trigger_update(self):
         """POST /api/v2/update - Trigger Watchtower update on the player."""

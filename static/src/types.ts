@@ -102,6 +102,13 @@ export interface PlayerAsset {
   is_active: boolean
   is_processing: boolean
   playlist?: { id: string; name: string } | null
+  // Recurring weekly schedule (day-of-week + time-of-day window),
+  // fields on the asset itself in official Anthias — not a separate
+  // "schedule slot" resource. play_days: ISO weekday numbers, 1=Monday.
+  // Empty/all-7 or missing time bounds both mean "always" (no filter).
+  play_days?: number[]
+  play_time_from?: string | null
+  play_time_to?: string | null
 }
 
 export interface PlaybackLogEntry {
@@ -128,46 +135,6 @@ export interface PlaybackLogResponse {
   asset_names: string[]
 }
 
-export type SlotType = 'default' | 'time' | 'event'
-
-export interface ScheduleSlot {
-  slot_id: string
-  name: string
-  slot_type: SlotType
-  time_from: string
-  time_to: string
-  days_of_week: number[]
-  is_default: boolean
-  start_date: string | null
-  end_date: string | null
-  no_loop: boolean
-  sort_order: number
-  items: ScheduleSlotItem[]
-  is_currently_active: boolean
-}
-
-export interface ScheduleSlotItem {
-  item_id: string
-  slot_id: string
-  asset_id: string
-  sort_order: number
-  duration_override: number | null
-  volume: number | null
-  mute: boolean
-  asset_name: string
-  asset_uri: string
-  asset_mimetype: string
-  asset_duration: number
-  effective_duration: number
-}
-
-export interface ScheduleStatus {
-  schedule_enabled: boolean
-  current_slot: ScheduleSlot | null
-  next_change_at: string | null
-  total_slots: number
-  using_default: boolean
-}
 
 export interface CctvCamera {
   id: string

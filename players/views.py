@@ -15,7 +15,6 @@ from rest_framework.views import APIView
 from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
 
 from content.models import MediaFile
-from scheduling.mixins import ScheduleActionsMixin
 from .models import Player, PlayerSnapshot
 from .serializers import PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
 from .services import AnthiasAPIClient, PlayerConnectionError, deploy_media_file_to_player, format_player_error
@@ -119,7 +118,7 @@ def _update_player_status(player, online, info=None):
     player.save(update_fields=['is_online', 'last_seen', 'last_status'])
 
 
-class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
+class PlayerViewSet(viewsets.ModelViewSet):
     """ViewSet for managing Anthias players."""
     queryset = Player.objects.select_related('group').all()
     serializer_class = PlayerSerializer
@@ -562,6 +561,15 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
         if 'nocache' in request.data:
             val = request.data['nocache']
             update_fields['nocache'] = bool(_safe_int(val, 0, 'nocache')) if not isinstance(val, bool) else val
+        # Recurring weekly schedule (day-of-week + time-of-day window) —
+        # fields on the asset itself in current official Anthias, not a
+        # separate "schedule slot" resource. The player's own API
+        # validates the values (e.g. play_days must be non-empty,
+        # play_time_from/to must be set together); this just forwards
+        # whatever was provided.
+        for field in ('play_days', 'play_time_from', 'play_time_to'):
+            if field in request.data:
+                update_fields[field] = request.data[field]
         try:
             data = client.update_asset(asset_id, update_fields)
             from history.logging import log_action

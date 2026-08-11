@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, ScheduleSlot, ScheduleSlotItem, ScheduleStatus, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -255,44 +255,6 @@ export const players = {
 
   irTest(id: string, protocol: string, scancode: string): Promise<{ success: boolean; error?: string }> {
     return apiRequest<{ success: boolean; error?: string }>('POST', `/players/${id}/ir-test/`, { protocol, scancode })
-  },
-}
-
-export const schedule = {
-  getSlots(playerId: string): Promise<ScheduleSlot[]> {
-    return apiRequest<ScheduleSlot[]>('GET', `/players/${playerId}/schedule-slots/`)
-  },
-
-  getStatus(playerId: string): Promise<ScheduleStatus> {
-    return apiRequest<ScheduleStatus>('GET', `/players/${playerId}/schedule-status/`)
-  },
-
-  createSlot(playerId: string, data: Partial<ScheduleSlot>): Promise<{ success: boolean; slot: ScheduleSlot }> {
-    return apiRequest('POST', `/players/${playerId}/schedule-slot-create/`, data)
-  },
-
-  updateSlot(playerId: string, slotId: string, data: Partial<ScheduleSlot>): Promise<{ success: boolean; slot: ScheduleSlot }> {
-    return apiRequest('PUT', `/players/${playerId}/schedule-slot-update/`, { slot_id: slotId, ...data })
-  },
-
-  deleteSlot(playerId: string, slotId: string): Promise<{ success: boolean }> {
-    return apiRequest('POST', `/players/${playerId}/schedule-slot-delete/`, { slot_id: slotId })
-  },
-
-  addItem(playerId: string, slotId: string, data: { asset_id: string; duration_override?: number | null }): Promise<{ success: boolean; item: ScheduleSlotItem }> {
-    return apiRequest('POST', `/players/${playerId}/schedule-slot-item-add/`, { slot_id: slotId, ...data })
-  },
-
-  removeItem(playerId: string, slotId: string, itemId: string): Promise<{ success: boolean }> {
-    return apiRequest('POST', `/players/${playerId}/schedule-slot-item-remove/`, { slot_id: slotId, item_id: itemId })
-  },
-
-  updateItem(playerId: string, slotId: string, itemId: string, data: { duration_override?: number | null; volume?: number | null; mute?: boolean }): Promise<{ success: boolean; item: ScheduleSlotItem }> {
-    return apiRequest('PUT', `/players/${playerId}/schedule-slot-item-update/`, { slot_id: slotId, item_id: itemId, ...data })
-  },
-
-  reorderItems(playerId: string, slotId: string, ids: string[]): Promise<ScheduleSlotItem[]> {
-    return apiRequest('POST', `/players/${playerId}/schedule-slot-items-reorder/`, { slot_id: slotId, ids })
   },
 }
 

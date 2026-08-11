@@ -29,16 +29,20 @@ def check_cctv_schedules(self):
         try:
             from players.services import AnthiasAPIClient
             client = AnthiasAPIClient(player)
-            slots = client._get(f'{client.base_url}/api/v2/schedule-slots/')
-            if not isinstance(slots, list):
+            # Scheduling is per-asset (play_days/play_time_from/play_time_to),
+            # not a separate "schedule slot" resource — is_active already
+            # factors those in server-side (see Asset.is_active() in the
+            # Anthias fork), so a plain asset list is enough here.
+            assets = client.get_assets()
+            if not isinstance(assets, list):
                 continue
-            for slot in slots:
-                items = slot.get('items', [])
-                for item in items:
-                    uri = item.get('asset_uri', '')
-                    match = re.search(r'/cctv/([0-9a-f-]+)/?', uri)
-                    if match:
-                        needed_config_ids.add(match.group(1))
+            for asset in assets:
+                if not asset.get('is_active'):
+                    continue
+                uri = asset.get('uri', '')
+                match = re.search(r'/cctv/([0-9a-f-]+)/?', uri)
+                if match:
+                    needed_config_ids.add(match.group(1))
         except Exception:
             logger.debug('Failed to check schedule for player %s', player.name)
 

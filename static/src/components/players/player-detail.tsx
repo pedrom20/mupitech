@@ -45,11 +45,9 @@ import {
   FaListUl,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { players as playersApi, media as mediaApi, folders as foldersApi, schedule as scheduleApi, cctv as cctvApi, system as systemApi } from '@/services/api'
+import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi } from '@/services/api'
 import { translateApiError } from '@/utils/translateError'
-import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, ScheduleSlot, PlayerUpdateCheckResult, CecStatus, IrStatus } from '@/types'
-import { PlayerSchedule } from './player-schedule'
-import { ScheduleTimeline } from './schedule-timeline'
+import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus } from '@/types'
 import PlayerTerminal from './player-terminal'
 import { RoleContext, isAdminRole } from '@/components/app'
 
@@ -211,6 +209,9 @@ const PlayerDetail: React.FC = () => {
     duration: '',
     nocache: false,
     playFor: 'manual',
+    playDays: [1, 2, 3, 4, 5, 6, 7] as number[],
+    playTimeFrom: '',
+    playTimeTo: '',
   })
   const [showAdvanced, setShowAdvanced] = useState(false)
 
@@ -229,18 +230,9 @@ const PlayerDetail: React.FC = () => {
   const [hoverRect, setHoverRect] = useState<DOMRect | null>(null)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Schedule mode detection
-  const [scheduleEnabled, setScheduleEnabled] = useState(false)
-  const handleScheduleChange = useCallback((enabled: boolean) => setScheduleEnabled(enabled), [])
-
   // Capability detection for standard Anthias players
-  const [hasSchedule, setHasSchedule] = useState<boolean | null>(null)
   const [hasScreenshot, setHasScreenshot] = useState<boolean | null>(null)
   const [hasPlaybackControl, setHasPlaybackControl] = useState(true)
-
-  // Schedule slots for timeline
-  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([])
-  const handleSlotsLoaded = useCallback((slots: ScheduleSlot[]) => setScheduleSlots(slots), [])
 
   // Player update state
   const [updateChecking, setUpdateChecking] = useState(false)
@@ -489,16 +481,6 @@ const PlayerDetail: React.FC = () => {
     mediaApi.list().then(files => setMediaFiles(files)).catch(() => {})
   }, [])
 
-  // Detect schedule mode (also probes capability)
-  useEffect(() => {
-    if (!id || !player?.is_online) return
-    scheduleApi.getStatus(id).then(s => {
-      setScheduleEnabled(s.schedule_enabled)
-      setHasSchedule(true)
-    }).catch(() => {
-      setHasSchedule(false)
-    })
-  }, [id, player])
 
   // Detect CCTV: only show live view if the player is CURRENTLY showing a CCTV asset
   useEffect(() => {
@@ -868,20 +850,9 @@ const PlayerDetail: React.FC = () => {
   const handleDeleteAsset = async (asset: PlayerAsset) => {
     if (!id) return
 
-    // Check if asset is used in any schedule slots
-    const usedInSlots = scheduleSlots.filter(slot =>
-      slot.items.some(item => item.asset_id === asset.asset_id)
-    )
-
-    let confirmText = t('assets.confirmDelete')
-    if (usedInSlots.length > 0) {
-      const slotNames = usedInSlots.map(s => s.name).join(', ')
-      confirmText = t('assets.usedInSlots', { slots: slotNames })
-    }
-
     const result = await Swal.fire({
       title: t('assets.deleteAsset'),
-      text: confirmText,
+      text: t('assets.confirmDelete'),
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: t('common.delete'),
@@ -892,13 +863,6 @@ const PlayerDetail: React.FC = () => {
         await playersApi.deleteAsset(id, asset.asset_id)
         Swal.fire({ icon: 'success', title: t('assets.deleted'), timer: 1500, showConfirmButton: false })
         setAssets(prev => prev.filter(a => a.asset_id !== asset.asset_id))
-        // Update schedule slots — remove deleted asset from items
-        if (usedInSlots.length > 0) {
-          setScheduleSlots(prev => prev.map(slot => ({
-            ...slot,
-            items: slot.items.filter(item => item.asset_id !== asset.asset_id),
-          })))
-        }
       } catch {
         Swal.fire({ icon: 'error', title: t('assets.deleteFailed') })
       }
@@ -919,6 +883,9 @@ const PlayerDetail: React.FC = () => {
       duration: String(typeof asset.duration === 'number' ? asset.duration : 0),
       nocache: !!asset.nocache,
       playFor: 'manual',
+      playDays: asset.play_days && asset.play_days.length > 0 ? asset.play_days : [1, 2, 3, 4, 5, 6, 7],
+      playTimeFrom: (asset.play_time_from || '').slice(0, 5),
+      playTimeTo: (asset.play_time_to || '').slice(0, 5),
     })
     setShowAdvanced(false)
   }
@@ -937,7 +904,7 @@ const PlayerDetail: React.FC = () => {
   // Save edit
   const handleSaveEdit = async () => {
     if (!id || !editAsset) return
-    const updateData: Record<string, string | number | boolean> = {
+    const updateData: Record<string, string | number | boolean | number[] | null> = {
       name: editForm.name,
       nocache: editForm.nocache ? 1 : 0,
     }
@@ -950,6 +917,17 @@ const PlayerDetail: React.FC = () => {
     const sec = parseInt(editForm.duration, 10)
     if (!isNaN(sec)) {
       updateData.duration = sec
+    }
+    // Recurring weekly schedule — play_days must be non-empty (the
+    // player's own API rejects an empty list), and the time window is
+    // only applied when both endpoints are set.
+    updateData.play_days = editForm.playDays.length > 0 ? editForm.playDays : [1, 2, 3, 4, 5, 6, 7]
+    if (editForm.playTimeFrom && editForm.playTimeTo) {
+      updateData.play_time_from = editForm.playTimeFrom
+      updateData.play_time_to = editForm.playTimeTo
+    } else {
+      updateData.play_time_from = null
+      updateData.play_time_to = null
     }
     try {
       await playersApi.updateAsset(id, editAsset.asset_id, updateData as Partial<PlayerAsset>)
@@ -1180,121 +1158,6 @@ const PlayerDetail: React.FC = () => {
     if (fileType === 'video') return <FaVideo className="me-2 text-primary" />
     if (fileType === 'web') return <FaGlobe className="me-2 text-info" />
     return <FaFile className="me-2 text-secondary" />
-  }
-
-  const renderSimpleAssetsTable = (assetList: PlayerAsset[]) => {
-    const sorted = sortAssets(assetList)
-    return (
-    <div className="fm-card fm-card-accent-purple mb-3">
-      <div className="fm-card-header d-flex justify-content-between align-items-center">
-        <h5 className="card-title mb-0">
-          {t('players.assets')}
-          <span className="badge bg-secondary ms-2">{assetList.length}</span>
-        </h5>
-        <button
-          className="fm-btn-primary fm-btn-sm"
-          onClick={handleOpenContentPicker}
-          disabled={!player.is_online}
-        >
-          <FaPlus className="me-1" />
-          {t('assets.addFromContent')}
-        </button>
-      </div>
-      <div className="fm-card-body p-0">
-        {assetList.length > 0 ? (
-          <div className="table-responsive">
-          <table className="fm-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-            <colgroup>
-              <col style={{ width: '72px' }} />
-              <col />
-              <col style={{ width: '15%' }} />
-              <col style={{ width: '15%' }} />
-              <col style={{ width: '25%' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th></th>
-                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('name')}>{t('assets.name')}<SortIcon field="name" /></th>
-                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('duration')}>{t('assets.duration')}<SortIcon field="duration" /></th>
-                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('mimetype')}>{t('schedule.type')}<SortIcon field="mimetype" /></th>
-                <th>{t('assets.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((asset) => (
-                <tr key={asset.asset_id}>
-                  <td>{renderAssetThumbnail(asset)}</td>
-                  <td>
-                    <div
-                      style={{ overflow: 'hidden', cursor: 'pointer' }}
-                      onClick={() => setPreviewAsset(asset)}
-                      onMouseEnter={(e) => {
-                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-                        setHoveredAsset(asset)
-                        setHoverRect(e.currentTarget.getBoundingClientRect())
-                      }}
-                      onMouseLeave={() => {
-                        hoverTimeoutRef.current = setTimeout(() => setHoveredAsset(null), 200)
-                      }}
-                    >
-                      <span
-                        className="fw-semibold text-truncate"
-                        style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' }}
-                      >
-                        {asset.name || 'Untitled'}
-                      </span>
-                      {asset.playlist && (
-                        <div>
-                          <span
-                            className="badge bg-info text-dark"
-                            style={{ cursor: 'pointer', fontSize: '0.7rem' }}
-                            onClick={(e) => { e.stopPropagation(); navigate(`/playlists?edit=${asset.playlist!.id}`) }}
-                            title={t('players.partOfPlaylist', { name: asset.playlist.name })}
-                          >
-                            <FaListUl className="me-1" style={{ fontSize: '0.65rem' }} />
-                            {asset.playlist.name}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="text-nowrap"><small>{formatDuration(asset.duration, t)}</small></td>
-                  <td>
-                    <span className="badge bg-secondary">
-                      {getMimetypeLabel(asset.mimetype)}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button
-                        className="fm-btn-outline fm-btn-sm"
-                        onClick={() => handleOpenEdit(asset)}
-                        title={t('assets.editAsset')}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        className="fm-btn-danger fm-btn-sm"
-                        onClick={() => handleDeleteAsset(asset)}
-                        title={t('assets.deleteAsset')}
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        ) : (
-          <div className="p-4 text-center text-muted">
-            {t('common.noResults')}
-          </div>
-        )}
-      </div>
-    </div>
-  )
   }
 
   const renderAssetsTable = (assetList: PlayerAsset[], title: string) => {
@@ -1993,14 +1856,6 @@ const PlayerDetail: React.FC = () => {
         <PlayerTerminal playerId={id} onClose={() => setShowTerminal(false)} />
       )}
 
-      {/* Schedule Timeline — hidden for standard Anthias players */}
-      {hasSchedule !== false && scheduleSlots.length > 0 && <ScheduleTimeline slots={scheduleSlots} displaySchedule={displaySchedule} />}
-
-      {/* Schedule Slots — hidden for standard Anthias players */}
-      {hasSchedule !== false && (
-        <PlayerSchedule playerId={id!} isOnline={player.is_online} onScheduleChange={handleScheduleChange} onSlotsLoaded={handleSlotsLoaded} />
-      )}
-
       {/* Assets */}
       {assetsLoading ? (
         <div className="fm-card fm-card-accent-purple">
@@ -2013,8 +1868,6 @@ const PlayerDetail: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : scheduleEnabled ? (
-        renderSimpleAssetsTable(assets)
       ) : (
         <>
           {renderAssetsTable(activeAssets, t('assets.activeAssets'))}
@@ -2169,6 +2022,50 @@ const PlayerDetail: React.FC = () => {
                     disabled={editForm.mimetype.toLowerCase().includes('video')}
                     onChange={e => setEditForm({ ...editForm, duration: e.target.value })}
                   />
+                </div>
+
+                {/* Recurring weekly schedule */}
+                <div className="mb-3">
+                  <label className="form-label fw-semibold mb-1">{t('assets.schedule')}</label>
+                  <p className="text-muted mb-2" style={{ fontSize: '0.78rem' }}>{t('assets.scheduleHint')}</p>
+                  <div className="d-flex gap-1 mb-2">
+                    {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                      <button
+                        key={day}
+                        type="button"
+                        className={`btn btn-sm ${editForm.playDays.includes(day) ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        style={{ width: '38px', padding: '4px 0', fontSize: '0.75rem' }}
+                        onClick={() => {
+                          const next = editForm.playDays.includes(day)
+                            ? editForm.playDays.filter(d => d !== day)
+                            : [...editForm.playDays, day].sort()
+                          setEditForm({ ...editForm, playDays: next })
+                        }}
+                      >
+                        {t(`schedule.days.${day}`)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <label className="form-label mb-1" style={{ fontSize: '0.8rem' }}>{t('assets.scheduleTimeFrom')}</label>
+                      <input
+                        type="time"
+                        className="form-control form-control-sm"
+                        value={editForm.playTimeFrom}
+                        onChange={e => setEditForm({ ...editForm, playTimeFrom: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label mb-1" style={{ fontSize: '0.8rem' }}>{t('assets.scheduleTimeTo')}</label>
+                      <input
+                        type="time"
+                        className="form-control form-control-sm"
+                        value={editForm.playTimeTo}
+                        onChange={e => setEditForm({ ...editForm, playTimeTo: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Advanced (collapsible) */}
