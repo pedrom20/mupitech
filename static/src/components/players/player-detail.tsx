@@ -48,6 +48,7 @@ import {
 import Swal from 'sweetalert2'
 import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi } from '@/services/api'
 import { translateApiError } from '@/utils/translateError'
+import { showToast } from '@/utils/toast'
 import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus } from '@/types'
 import PlayerTerminal from './player-terminal'
 import { RoleContext, isAdminRole } from '@/components/app'
@@ -586,7 +587,7 @@ const PlayerDetail: React.FC = () => {
     if (result.isConfirmed && id) {
       try {
         await playersApi.delete(id)
-        Swal.fire({ icon: 'success', title: t('players.forgotten'), timer: 1500, showConfirmButton: false })
+        showToast('success', t('players.forgotten'))
         navigate('/')
       } catch (error) {
         Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
@@ -607,7 +608,7 @@ const PlayerDetail: React.FC = () => {
     if (result.isConfirmed) {
       try {
         await playersApi.reboot(id)
-        Swal.fire({ icon: 'success', title: t('common.success'), timer: 1500, showConfirmButton: false })
+        showToast('success', t('common.success'))
       } catch {
         Swal.fire({ icon: 'error', title: t('common.error') })
       }
@@ -690,7 +691,7 @@ const PlayerDetail: React.FC = () => {
     setPushingLogo(true)
     try {
       await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, pushTargetTheme, saveSshCredentials)
-      Swal.fire({ icon: 'success', title: t('branding.pushed'), timer: 1500, showConfirmButton: false })
+      showToast('success', t('branding.pushed'))
       setShowSettingsModal(false)
       if (saveSshCredentials && player && pushLogoSshPassword) {
         setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
@@ -744,12 +745,7 @@ const PlayerDetail: React.FC = () => {
     setMigratingImage(true)
     try {
       const migrateResult = await playersApi.migrateImage(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials)
-      Swal.fire({
-        icon: 'success',
-        title: migrateResult.action === 'migrated' ? t('migrateImage.migrated') : t('migrateImage.updated'),
-        timer: 2000,
-        showConfirmButton: false,
-      })
+      showToast('success', migrateResult.action === 'migrated' ? t('migrateImage.migrated') : t('migrateImage.updated'))
       setShowMigrateImageModal(false)
       if (saveSshCredentials && player && pushLogoSshPassword) {
         setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
@@ -801,13 +797,7 @@ const PlayerDetail: React.FC = () => {
       const result = await playersApi.triggerUpdate(id)
       if (result.success) {
         setUpdateAvailable(false)
-        Swal.fire({
-          icon: 'success',
-          title: t('players.updatePlayer'),
-          text: t('players.updateTriggered'),
-          timer: 4000,
-          showConfirmButton: false,
-        })
+        showToast('success', t('players.updatePlayer'), t('players.updateTriggered'))
       } else {
         Swal.fire({ icon: 'error', title: t('players.updateFailed'), text: t('players.updateFailed') })
       }
@@ -948,7 +938,7 @@ const PlayerDetail: React.FC = () => {
         assetIds.forEach(assetId => next.delete(assetId))
         return next
       })
-      Swal.fire({ icon: 'success', title: t('assets.deleted'), timer: 1500, showConfirmButton: false })
+      showToast('success', t('assets.deleted'))
     } catch {
       Swal.fire({ icon: 'error', title: t('assets.deleteFailed') })
     }
@@ -968,7 +958,7 @@ const PlayerDetail: React.FC = () => {
     if (result.isConfirmed) {
       try {
         await playersApi.deleteAsset(id, asset.asset_id)
-        Swal.fire({ icon: 'success', title: t('assets.deleted'), timer: 1500, showConfirmButton: false })
+        showToast('success', t('assets.deleted'))
         setAssets(prev => prev.filter(a => a.asset_id !== asset.asset_id))
       } catch {
         Swal.fire({ icon: 'error', title: t('assets.deleteFailed') })
@@ -1038,7 +1028,7 @@ const PlayerDetail: React.FC = () => {
     }
     try {
       await playersApi.updateAsset(id, editAsset.asset_id, updateData as Partial<PlayerAsset>)
-      Swal.fire({ icon: 'success', title: t('assets.updated'), timer: 1500, showConfirmButton: false })
+      showToast('success', t('assets.updated'))
       setEditAsset(null)
       loadAssets()
     } catch {
@@ -1167,7 +1157,7 @@ const PlayerDetail: React.FC = () => {
         }
       }
       setShowSettingsModal(false)
-      Swal.fire({ icon: 'success', title: t('playerSettings.saveSuccess'), timer: 1500, showConfirmButton: false })
+      showToast('success', t('playerSettings.saveSuccess'))
     } catch {
       Swal.fire({ icon: 'error', title: t('playerSettings.saveError') })
     } finally {
@@ -1225,7 +1215,7 @@ const PlayerDetail: React.FC = () => {
       try {
         await playersApi.deployContent(id, file.id)
         await loadAssets()
-        Swal.fire({ icon: 'success', title: t('assets.deployed'), timer: 1500, showConfirmButton: false })
+        showToast('success', t('assets.deployed'))
       } catch {
         Swal.fire({ icon: 'error', title: t('assets.deployFailed') })
       } finally {
@@ -1277,7 +1267,7 @@ const PlayerDetail: React.FC = () => {
     setSelectedContentIds(new Set())
     setDeployingSelected(false)
     if (failed === 0) {
-      Swal.fire({ icon: 'success', title: t('assets.deployed'), timer: 1500, showConfirmButton: false })
+      showToast('success', t('assets.deployed'))
     } else {
       Swal.fire({ icon: 'warning', title: t('assets.deployFailed'), text: t('assets.deployPartialFailed', { failed, total: fileIds.length }) })
     }
@@ -2039,7 +2029,7 @@ const PlayerDetail: React.FC = () => {
                           try {
                             const result = await playersApi.cecStandby(id!)
                             setCecStatus(result)
-                            Swal.fire({ icon: 'success', title: t('players.monitorStandbySent'), timer: 1500, showConfirmButton: false })
+                            showToast('success', t('players.monitorStandbySent'))
                           } catch { /* silent */ } finally { setCecLoading(false) }
                         }}
                       >
@@ -2053,7 +2043,7 @@ const PlayerDetail: React.FC = () => {
                           try {
                             const result = await playersApi.cecWake(id!)
                             setCecStatus(result)
-                            Swal.fire({ icon: 'success', title: t('players.monitorWakeSent'), timer: 1500, showConfirmButton: false })
+                            showToast('success', t('players.monitorWakeSent'))
                           } catch { /* silent */ } finally { setCecLoading(false) }
                         }}
                       >
@@ -2070,7 +2060,7 @@ const PlayerDetail: React.FC = () => {
                               try {
                                 const result = await playersApi.irTest(id!, irProtocol, irScancode)
                                 if (result.success) {
-                                  Swal.fire({ icon: 'success', title: 'IR Power', timer: 1500, showConfirmButton: false })
+                                  showToast('success', 'IR Power')
                                 }
                               } catch { /* silent */ } finally { setIrTesting(false) }
                             }}
@@ -3046,7 +3036,7 @@ const PlayerDetail: React.FC = () => {
                               try {
                                 const result = await playersApi.irTest(id, irProtocol, irScancode)
                                 if (result.success) {
-                                  Swal.fire({ icon: 'success', title: t('playerSettings.irTestSent'), timer: 1500, showConfirmButton: false })
+                                  showToast('success', t('playerSettings.irTestSent'))
                                 } else {
                                   Swal.fire({ icon: 'error', title: t('playerSettings.irTestFailed'), text: result.error || '' })
                                 }

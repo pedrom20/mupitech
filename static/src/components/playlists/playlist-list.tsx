@@ -24,6 +24,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { media as mediaApi } from '@/services/api'
 import { FilePreview } from '@/components/shared/media-preview'
+import { showToast } from '@/utils/toast'
 import type { Playlist, PlaylistItem, MediaFile } from '@/types'
 
 interface FormItem {
@@ -151,7 +152,7 @@ const PlaylistList: React.FC = () => {
       } else {
         await dispatch(createPlaylist(data)).unwrap()
       }
-      Swal.fire({ icon: 'success', title: t('common.success'), timer: 1500, showConfirmButton: false })
+      showToast('success', t('common.success'))
       handleFormClose()
     } catch (error) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
@@ -182,13 +183,7 @@ const PlaylistList: React.FC = () => {
     setDeployingId(playlist.id)
     try {
       const res = await dispatch(deployPlaylist(playlist.id)).unwrap()
-      Swal.fire({
-        icon: 'success',
-        title: t('playlists.deployStarted'),
-        text: t('playlists.deployStartedDesc', { count: res.target_count }),
-        timer: 2500,
-        showConfirmButton: false,
-      })
+      showToast('success', t('playlists.deployStarted'), t('playlists.deployStartedDesc', { count: res.target_count }))
       setTimeout(() => dispatch(fetchPlaylists()), 4000)
     } catch (error) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
@@ -222,7 +217,7 @@ const PlaylistList: React.FC = () => {
           target_locations: applyTargetLocations,
         },
       })).unwrap()
-      Swal.fire({ icon: 'success', title: t('common.success'), timer: 1500, showConfirmButton: false })
+      showToast('success', t('common.success'))
       setApplyingPlaylist(null)
     } catch (error) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
