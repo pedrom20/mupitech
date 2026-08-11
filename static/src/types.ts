@@ -34,6 +34,7 @@ export interface Player {
   last_seen: string | null
   last_status: Record<string, unknown>
   mac_address?: string
+  device_type?: string
   tailscale_ip: string | null
   tailscale_enabled: boolean
   splash_logo?: string | null

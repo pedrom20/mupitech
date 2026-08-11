@@ -1,4 +1,5 @@
 import logging
+import os
 import socket
 import time
 import uuid
@@ -118,10 +119,66 @@ _COMPOSE_TEMPLATE_BY_DEVICE_TYPE = {
     'x86': ('docker-compose-player-x86.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_X86', 'ANTHIAS_IMAGE_REGISTRY_X86'),
 }
 
+# Host-side bind-mount layout expected by each compose template's
+# volumes: section. pi4/pi5 still run the old third-party fork's image,
+# which persists Anthias's settings/assets under .screenly/screenly_assets
+# and bind-mounts the whole viewer/ package (including __init__.py).
+# x86 runs our own mupitech-player image, built from current-upstream
+# Anthias, whose own docker-compose.yml.tmpl uses .anthias/anthias_assets
+# instead and only overrides media_player.py (viewer/__init__.py isn't a
+# bind mount there at all — see docker-compose-player-x86.yml).
+_DEFAULT_HOME_LAYOUT = {
+    'project_dir': 'screenly',
+    'config_dir': '.screenly',
+    'assets_dir': 'screenly_assets',
+    'media_player_rel': 'screenly/viewer/media_player.py',
+    'extract_viewer_init': True,
+    'viewer_init_rel': 'screenly/viewer/__init__.py',
+    'extra_dirs': ['screenly/staticfiles'],
+}
+_HOME_LAYOUT_BY_DEVICE_TYPE = {
+    'x86': {
+        'project_dir': 'anthias',
+        'config_dir': '.anthias',
+        'assets_dir': 'anthias_assets',
+        'media_player_rel': 'anthias/media_player.py',
+        'extract_viewer_init': False,
+        'viewer_init_rel': None,
+        'extra_dirs': [],
+    },
+}
+
+
+def _home_layout(device_type):
+    return _HOME_LAYOUT_BY_DEVICE_TYPE.get(device_type, _DEFAULT_HOME_LAYOUT)
+
+
+def _prepare_player_directories(ssh, home, ssh_user, device_type, sudo_password, timeout=10):
+    """Create (or normalize) the host directories docker-compose bind-mounts
+    into the containers, idempotently — safe to call both on a fresh
+    device and on one already running a different compose shape (e.g.
+    migrating an existing device onto a new image/template)."""
+    layout = _home_layout(device_type)
+    media_player_path = f'{home}/{layout["media_player_rel"]}'
+    dirs = {os.path.dirname(media_player_path), f'{home}/{layout["config_dir"]}', f'{home}/{layout["assets_dir"]}'}
+    dirs.update(f'{home}/{d}' for d in layout['extra_dirs'])
+    dirs_str = ' '.join(sorted(dirs))
+    _ssh_run(ssh, f'sudo mkdir -p {dirs_str}', sudo_password=sudo_password, timeout=timeout)
+    _ssh_run(ssh, f'sudo chown -R {ssh_user}:{ssh_user} {dirs_str}', sudo_password=sudo_password, timeout=timeout)
+
+    placeholder_paths = [media_player_path]
+    if layout['extract_viewer_init']:
+        placeholder_paths.append(f'{home}/{layout["viewer_init_rel"]}')
+    placeholder_cmd = '; '.join(
+        f'[ -d {_shell_quote(p)} ] && rm -rf {_shell_quote(p)}; touch {_shell_quote(p)}'
+        for p in placeholder_paths
+    )
+    _ssh_run(ssh, placeholder_cmd, timeout=timeout)
+    return layout
+
 
 def _render_compose(ip_address, ssh_user, watchtower_token, mac_address='', device_type='pi4'):
     """Render docker-compose template with variables."""
-    import os
     template_name, tag_suffix_setting, registry_setting = _COMPOSE_TEMPLATE_BY_DEVICE_TYPE.get(
         device_type, ('docker-compose-player.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'ANTHIAS_IMAGE_REGISTRY'),
     )
@@ -395,14 +452,7 @@ try:
             _append_log(task, '[Step 4] Creating directories...')
 
             home = f'/home/{task.ssh_user}'
-            _ssh_run(ssh, f'sudo mkdir -p {home}/screenly/viewer {home}/screenly/staticfiles {home}/.screenly {home}/screenly_assets', sudo_password=ssh_password, timeout=10)
-            _ssh_run(ssh, f'sudo chown -R {task.ssh_user}:{task.ssh_user} {home}/screenly {home}/.screenly {home}/screenly_assets', sudo_password=ssh_password, timeout=10)
-            # Create placeholder files for bind mounts (docker compose fails if source files don't exist)
-            # Remove if accidentally created as directory (e.g. by failed docker mount)
-            _ssh_run(ssh, (
-                f'for f in {home}/screenly/viewer/__init__.py {home}/screenly/viewer/media_player.py; do '
-                f'[ -d "$f" ] && rm -rf "$f"; touch "$f"; done'
-            ), timeout=10)
+            layout = _prepare_player_directories(ssh, home, task.ssh_user, device_type, ssh_password)
             _append_log(task, 'Directories created.')
             _update_step(task, 4, 'create_dirs', 'success', 'Directories created')
 
@@ -426,7 +476,8 @@ try:
             host_mac = host_mac.strip()
             compose_content = _render_compose(task.ip_address, task.ssh_user, watchtower_token, host_mac, device_type)
             sftp = ssh.open_sftp()
-            compose_path = f'{home}/screenly/docker-compose.yml'
+            compose_dir = f'{home}/{layout["project_dir"]}'
+            compose_path = f'{compose_dir}/docker-compose.yml'
             with sftp.file(compose_path, 'w') as f:
                 f.write(compose_content)
             _append_log(task, f'Uploaded {compose_path}')
@@ -454,35 +505,37 @@ try:
                 f.write(asoundrc)
             _append_log(task, 'Uploaded .asoundrc')
 
-            # screenly.conf (minimal defaults)
-            screenly_conf = (
-                '[viewer]\n'
-                'player_name =\n'
-                'show_splash = no\n'
-                'audio_output = hdmi\n'
-                'shuffle_playlist = no\n'
-                'default_duration = 10\n'
-                'default_streaming_duration = 300\n'
-                'use_24_hour_clock = yes\n'
-                'date_format = YYYY/MM/DD\n'
-                'debug_logging = no\n'
-                'verify_ssl = no\n'
-            )
-            with sftp.file(f'{home}/.screenly/screenly.conf', 'w') as f:
-                f.write(screenly_conf)
-            _append_log(task, 'Uploaded screenly.conf')
+            # screenly.conf (minimal defaults) — only the old third-party
+            # fork (pi4/pi5) reads this; current upstream Anthias (x86)
+            # keeps its own settings inside .anthias, no ini file needed.
+            if device_type not in _HOME_LAYOUT_BY_DEVICE_TYPE:
+                screenly_conf = (
+                    '[viewer]\n'
+                    'player_name =\n'
+                    'show_splash = no\n'
+                    'audio_output = hdmi\n'
+                    'shuffle_playlist = no\n'
+                    'default_duration = 10\n'
+                    'default_streaming_duration = 300\n'
+                    'use_24_hour_clock = yes\n'
+                    'date_format = YYYY/MM/DD\n'
+                    'debug_logging = no\n'
+                    'verify_ssl = no\n'
+                )
+                with sftp.file(f'{home}/.screenly/screenly.conf', 'w') as f:
+                    f.write(screenly_conf)
+                _append_log(task, 'Uploaded screenly.conf')
 
             # media_player.py (bind-mounted into viewer container)
-            import os
             media_player_src = os.path.join(
                 settings.BASE_DIR, 'provision', 'templates', 'media_player.py'
             )
             if os.path.exists(media_player_src):
                 with open(media_player_src, 'r') as src:
                     mp_content = src.read()
-                with sftp.file(f'{home}/screenly/viewer/media_player.py', 'w') as f:
+                with sftp.file(f'{home}/{layout["media_player_rel"]}', 'w') as f:
                     f.write(mp_content)
-                _append_log(task, 'Uploaded viewer/media_player.py')
+                _append_log(task, f'Uploaded {layout["media_player_rel"]}')
             else:
                 _append_log(task, 'WARNING: media_player.py template not found, skipping')
 
@@ -496,20 +549,33 @@ try:
             _append_log(task, '[Step 7] Pulling Docker images (this may take a while)...')
 
             # Pull images one-by-one instead of `docker compose pull` which can hang
-            registry = settings.ANTHIAS_IMAGE_REGISTRY
-            tag = (
-                settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI5 if device_type == 'pi5'
-                else settings.ANTHIAS_IMAGE_TAG_SUFFIX_PI4
+            _, tag_suffix_setting, registry_setting = _COMPOSE_TEMPLATE_BY_DEVICE_TYPE.get(
+                device_type, ('', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'ANTHIAS_IMAGE_REGISTRY'),
             )
-            images = [
-                ('redis', f'{registry}/anthias-redis:{tag}'),
-                ('watchtower', 'containrrr/watchtower:latest'),
-                ('nginx', f'{registry}/anthias-nginx:{tag}'),
-                ('websocket', f'{registry}/anthias-websocket:{tag}'),
-                ('server', f'{registry}/anthias-server:{tag}'),
-                ('celery', f'{registry}/anthias-celery:{tag}'),
-                ('viewer', f'{registry}/anthias-viewer:{tag}'),
-            ]
+            registry = getattr(settings, registry_setting)
+            tag = getattr(settings, tag_suffix_setting)
+            if device_type == 'x86':
+                # Our own mupitech-player image: 4-service shape, celery
+                # shares the server image (no separate pull), no
+                # nginx/websocket. Registry setting already includes the
+                # full image basename (see docker-compose-player-x86.yml).
+                images = [
+                    ('redis', f'{registry}-redis:{tag}'),
+                    ('watchtower', 'containrrr/watchtower:latest'),
+                    ('server', f'{registry}-server:{tag}'),
+                    ('viewer', f'{registry}-viewer:{tag}'),
+                ]
+            else:
+                # pi4/pi5 still run the old third-party fork's 6-service image shape.
+                images = [
+                    ('redis', f'{registry}/anthias-redis:{tag}'),
+                    ('watchtower', 'containrrr/watchtower:latest'),
+                    ('nginx', f'{registry}/anthias-nginx:{tag}'),
+                    ('websocket', f'{registry}/anthias-websocket:{tag}'),
+                    ('server', f'{registry}/anthias-server:{tag}'),
+                    ('celery', f'{registry}/anthias-celery:{tag}'),
+                    ('viewer', f'{registry}/anthias-viewer:{tag}'),
+                ]
             for idx, (name, image) in enumerate(images, 1):
                 task = ProvisionTask.objects.get(id=task_id)
                 if task.status == 'failed':
@@ -528,13 +594,15 @@ try:
 
             _update_step(task, 7, 'docker_pull', 'success', f'All {len(images)} images pulled')
 
-            # Extract bind-mounted files from viewer image (placeholders would break viewer)
-            viewer_image = f'{registry}/anthias-viewer:{tag}'
-            _ssh_run(ssh, (
-                f'docker run --rm {viewer_image} cat /usr/src/app/viewer/__init__.py'
-                f' > {home}/screenly/viewer/__init__.py'
-            ), timeout=30)
-            _append_log(task, 'Extracted viewer/__init__.py from image')
+            # Extract bind-mounted files from the viewer image (placeholders would
+            # break it) — only the old fork's template mounts viewer/__init__.py.
+            if layout['extract_viewer_init']:
+                viewer_image = f'{registry}/anthias-viewer:{tag}'
+                _ssh_run(ssh, (
+                    f'docker run --rm {viewer_image} cat /usr/src/app/viewer/__init__.py'
+                    f' > {home}/{layout["viewer_init_rel"]}'
+                ), timeout=30)
+                _append_log(task, f'Extracted {layout["viewer_init_rel"]} from image')
 
             # Step 8: Docker up
             task = ProvisionTask.objects.get(id=task_id)
@@ -545,7 +613,7 @@ try:
 
             out, err, _ = _ssh_run(
                 ssh,
-                f'cd {home}/screenly && docker compose up -d 2>&1',
+                f'cd {compose_dir} && docker compose up -d 2>&1',
                 timeout=120,
             )
             _append_log(task, out[-1000:] if len(out) > 1000 else out)
@@ -738,8 +806,15 @@ WantedBy=timers.target
             _update_step(task, 12, 'silent_boot', 'running', 'Configuring silent boot...')
             _append_log(task, '[Step 12] Configuring silent boot (non-fatal)...')
 
-            try:
-                silent_boot_script = '''#!/bin/bash
+            if device_type == 'x86':
+                # Rainbow-splash/HDMI-hotplug/cmdline.txt tweaks below are
+                # all Raspberry Pi bootloader concepts (/boot/firmware) —
+                # nothing to do on a BIOS/UEFI x86 box.
+                _append_log(task, 'Not applicable on x86, skipping.')
+                _update_step(task, 12, 'silent_boot', 'skipped', 'Not applicable on x86')
+            else:
+                try:
+                    silent_boot_script = '''#!/bin/bash
 set -e
 FLAG="$HOME/.screenly/.silent-boot-done"
 [ -f "$FLAG" ] && exit 0
@@ -756,20 +831,20 @@ sudo systemctl disable getty@tty1.service 2>/dev/null || true
 
 touch "$FLAG"
 '''
-                with sftp.file(f'{home}/setup-silent-boot.sh', 'w') as f:
-                    f.write(silent_boot_script)
-                _ssh_run(ssh, f'chmod +x {home}/setup-silent-boot.sh && bash {home}/setup-silent-boot.sh',
-                         sudo_password=ssh_password, timeout=30, check=False)
-                # Disable cursor immediately (kernel param takes effect after reboot)
-                _ssh_run(ssh, 'sudo bash -c "echo 0 > /sys/class/graphics/fbcon/cursor_blink; '
-                         'setterm -cursor off > /dev/tty1 2>/dev/null; '
-                         'setterm -cursor off > /dev/tty0 2>/dev/null" || true',
-                         sudo_password=ssh_password, timeout=10, check=False)
-                _append_log(task, 'Silent boot configured + cursor hidden.')
-                _update_step(task, 12, 'silent_boot', 'success', 'Silent boot configured')
-            except Exception as e:
-                _append_log(task, f'Silent boot setup failed (non-fatal): {e}')
-                _update_step(task, 12, 'silent_boot', 'skipped', f'Non-fatal: {e}')
+                    with sftp.file(f'{home}/setup-silent-boot.sh', 'w') as f:
+                        f.write(silent_boot_script)
+                    _ssh_run(ssh, f'chmod +x {home}/setup-silent-boot.sh && bash {home}/setup-silent-boot.sh',
+                             sudo_password=ssh_password, timeout=30, check=False)
+                    # Disable cursor immediately (kernel param takes effect after reboot)
+                    _ssh_run(ssh, 'sudo bash -c "echo 0 > /sys/class/graphics/fbcon/cursor_blink; '
+                             'setterm -cursor off > /dev/tty1 2>/dev/null; '
+                             'setterm -cursor off > /dev/tty0 2>/dev/null" || true',
+                             sudo_password=ssh_password, timeout=10, check=False)
+                    _append_log(task, 'Silent boot configured + cursor hidden.')
+                    _update_step(task, 12, 'silent_boot', 'success', 'Silent boot configured')
+                except Exception as e:
+                    _append_log(task, f'Silent boot setup failed (non-fatal): {e}')
+                    _update_step(task, 12, 'silent_boot', 'skipped', f'Non-fatal: {e}')
 
             # All done — create Player record
             from .models import Player

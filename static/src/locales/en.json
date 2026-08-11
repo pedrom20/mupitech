@@ -805,6 +805,25 @@
     "locationOverrideTitle": "Branding override for this location",
     "deviceOverrideTitle": "Branding override for this device"
   },
+  "migrateImage": {
+    "title": "Migrate to MupiTech image",
+    "desc": "Moves this device onto our own Anthias image (ghcr.io/pedrom20/mupitech-player), replacing whatever it's running today. The previous docker-compose.yml is backed up as .bak before anything is written. x86 only for now.",
+    "checkButton": "Check current image",
+    "currentSource": "Current image",
+    "source": {
+      "mupitech": "Already on the MupiTech image",
+      "official": "Unmodified official Anthias",
+      "fork": "Third-party fork (Alex1981-tech/Anthias_play)",
+      "unknown": "Unrecognized — cannot migrate automatically"
+    },
+    "migrateButton": "Migrate",
+    "confirmTitle": "Migrate this device?",
+    "confirmText": "This replaces the device's docker-compose.yml and restarts its containers. The previous file is kept as a .bak.",
+    "confirmButton": "Migrate",
+    "migrated": "Device migrated to the MupiTech image",
+    "updated": "Device updated (already on the MupiTech image)",
+    "failed": "Migration failed"
+  },
   "users": {
     "title": "Users",
     "addUser": "Add User",

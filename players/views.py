@@ -413,6 +413,72 @@ class PlayerViewSet(viewsets.ModelViewSet):
         )
         return Response({'success': True})
 
+    @action(detail=True, methods=['post'], url_path='image-source')
+    def image_source(self, request, pk=None):
+        """Read-only (POST only because it carries the SSH password in the
+        body, not because it changes anything): SSH into the device and
+        report which Anthias image it's currently running (our own
+        mupitech-player build, the old third-party fork, unmodified
+        official Anthias, or unrecognized). Used by the Fleet Manager UI
+        to decide whether to offer the "migrate to MupiTech image" action."""
+        player = self.get_object()
+        ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
+        if not ssh_password:
+            return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
+
+        from .migrate_image import MigrationError, discover_image_source
+        try:
+            source, image = discover_image_source(player, ssh_user, ssh_password, ssh_port)
+        except MigrationError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({
+            'source': source, 'image': image,
+            'can_migrate': player.device_type == 'x86' and source != 'unknown',
+        })
+
+    @action(detail=True, methods=['post'], url_path='migrate-image')
+    def migrate_image(self, request, pk=None):
+        """Move an already-provisioned device onto the MupiTech Anthias
+        image: the old third-party fork or unmodified official Anthias
+        get re-provisioned onto our compose template (previous compose
+        file backed up as .bak first); a device already on our image just
+        gets pulled/updated. x86 only for now — see players/migrate_image.py."""
+        player = self.get_object()
+        ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
+        if not ssh_password:
+            return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
+        save_credentials = request.data.get('save_credentials', False)
+
+        from .migrate_image import MigrationError, migrate_player_to_mupitech_image
+        try:
+            result = migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port)
+        except MigrationError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if save_credentials:
+            player.ssh_username = ssh_user
+            player.set_ssh_password(ssh_password)
+            player.ssh_port = ssh_port
+            player.save(update_fields=['ssh_username', 'ssh_password_encrypted', 'ssh_port'])
+
+        from history.logging import log_action
+        log_action(
+            request, 'migrate_image', 'player', target_id=player.id, target_name=player.name,
+            details={
+                'action': result['action'], 'previous_source': result['previous_source'],
+                'previous_image': result['previous_image'],
+            },
+        )
+        return Response({
+            'success': True, 'action': result['action'],
+            'previous_source': result['previous_source'], 'previous_image': result['previous_image'],
+            'backup_path': result['backup_path'],
+        })
+
     @action(detail=True, methods=['post', 'delete'], url_path='ssh-credentials')
     def ssh_credentials(self, request, pk=None):
         """Save or clear this device's SSH login, used as a fallback for

@@ -43,6 +43,7 @@ import {
   FaShieldAlt,
   FaPowerOff,
   FaListUl,
+  FaCloudUploadAlt,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi } from '@/services/api'
@@ -190,6 +191,13 @@ const PlayerDetail: React.FC = () => {
   const [uploadingDeviceStandby, setUploadingDeviceStandby] = useState(false)
   const deviceLogoInputRef = useRef<HTMLInputElement>(null)
   const deviceStandbyInputRef = useRef<HTMLInputElement>(null)
+
+  // Migrate to MupiTech Anthias image (x86 only for now)
+  const [showMigrateImageModal, setShowMigrateImageModal] = useState(false)
+  const [checkingImageSource, setCheckingImageSource] = useState(false)
+  const [imageSourceResult, setImageSourceResult] = useState<{ source: string; image: string; can_migrate: boolean } | null>(null)
+  const [imageSourceError, setImageSourceError] = useState('')
+  const [migratingImage, setMigratingImage] = useState(false)
 
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
@@ -686,6 +694,65 @@ const PlayerDetail: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('branding.pushFailed'), text: String(err) })
     } finally {
       setPushingLogo(false)
+    }
+  }
+
+  const handleOpenMigrateImage = () => {
+    setShowMigrateImageModal(true)
+    setImageSourceResult(null)
+    setImageSourceError('')
+    setSaveSshCredentials(false)
+    if (player?.has_ssh_credentials) {
+      setPushLogoSshUser(player.ssh_username || 'pi')
+      setPushLogoSshPort(player.ssh_port || 22)
+    }
+  }
+
+  const handleCheckImageSource = async () => {
+    const canUseSavedPassword = !!player?.has_ssh_credentials && !pushLogoSshPassword
+    if (!id || (!pushLogoSshPassword && !canUseSavedPassword)) return
+    setCheckingImageSource(true)
+    setImageSourceError('')
+    try {
+      const result = await playersApi.getImageSource(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
+      setImageSourceResult(result)
+    } catch (err) {
+      setImageSourceError(String(err))
+    } finally {
+      setCheckingImageSource(false)
+    }
+  }
+
+  const handleMigrateImage = async () => {
+    const canUseSavedPassword = !!player?.has_ssh_credentials && !pushLogoSshPassword
+    if (!id || (!pushLogoSshPassword && !canUseSavedPassword)) return
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: t('migrateImage.confirmTitle'),
+      text: t('migrateImage.confirmText'),
+      showCancelButton: true,
+      confirmButtonText: t('migrateImage.confirmButton'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!result.isConfirmed) return
+    setMigratingImage(true)
+    try {
+      const migrateResult = await playersApi.migrateImage(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials)
+      Swal.fire({
+        icon: 'success',
+        title: migrateResult.action === 'migrated' ? t('migrateImage.migrated') : t('migrateImage.updated'),
+        timer: 2000,
+        showConfirmButton: false,
+      })
+      setShowMigrateImageModal(false)
+      if (saveSshCredentials && player && pushLogoSshPassword) {
+        setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
+      }
+      setPushLogoSshPassword('')
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('migrateImage.failed'), text: String(err) })
+    } finally {
+      setMigratingImage(false)
     }
   }
 
@@ -1358,6 +1425,15 @@ const PlayerDetail: React.FC = () => {
                 title={t('branding.pushTitle')}
               >
                 <FaImage />
+              </button>
+            )}
+            {isAdminRole(role) && player.device_type === 'x86' && (
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={handleOpenMigrateImage}
+                title={t('migrateImage.title')}
+              >
+                <FaCloudUploadAlt />
               </button>
             )}
             {isAdminRole(role) && player.is_online && (
@@ -2945,6 +3021,130 @@ const PlayerDetail: React.FC = () => {
                   disabled={pushingLogo || (!pushLogoSshPassword && !player?.has_ssh_credentials) || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
                 >
                   {pushingLogo ? t('common.loading') : t('branding.push')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Migrate to MupiTech Anthias image modal */}
+      {showMigrateImageModal && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowMigrateImageModal(false)}
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold">{t('migrateImage.title')}</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowMigrateImageModal(false)}
+                  aria-label={t('common.close')}
+                />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('migrateImage.desc')}</p>
+
+                {player?.has_ssh_credentials && (
+                  <div className="alert alert-secondary py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.78rem' }}>
+                    <span>{t('branding.sshCredentialsSaved', { user: player.ssh_username })}</span>
+                    <button type="button" className="btn btn-link btn-sm p-0 text-danger" onClick={handleForgetSshCredentials}>
+                      {t('branding.sshForget')}
+                    </button>
+                  </div>
+                )}
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshUser}
+                    onChange={e => { setPushLogoSshUser(e.target.value); setImageSourceResult(null) }}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>
+                    {t('branding.sshPassword')}
+                    {player?.has_ssh_credentials && (
+                      <span className="text-muted fw-normal"> ({t('branding.sshUseSaved')})</span>
+                    )}
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshPassword}
+                    onChange={e => { setPushLogoSshPassword(e.target.value); setImageSourceResult(null) }}
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPort')}</label>
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    value={pushLogoSshPort}
+                    onChange={e => { setPushLogoSshPort(Number(e.target.value)); setImageSourceResult(null) }}
+                    min={1}
+                    max={65535}
+                    style={{ maxWidth: '120px' }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary mb-3"
+                  disabled={checkingImageSource || (!pushLogoSshPassword && !player?.has_ssh_credentials)}
+                  onClick={handleCheckImageSource}
+                >
+                  {checkingImageSource ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                  {t('migrateImage.checkButton')}
+                </button>
+
+                {imageSourceError && (
+                  <div className="alert alert-danger py-2 px-2" style={{ fontSize: '0.8rem' }}>{imageSourceError}</div>
+                )}
+                {imageSourceResult && (
+                  <div className={`alert py-2 px-2 ${imageSourceResult.source === 'mupitech' ? 'alert-success' : 'alert-info'}`} style={{ fontSize: '0.8rem' }}>
+                    <div><strong>{t('migrateImage.currentSource')}:</strong> {t(`migrateImage.source.${imageSourceResult.source}`)}</div>
+                    <div className="text-muted" style={{ wordBreak: 'break-all' }}>{imageSourceResult.image}</div>
+                  </div>
+                )}
+
+                {pushLogoSshPassword && (
+                  <div className="form-check mb-2">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="migrate-save-ssh-credentials"
+                      checked={saveSshCredentials}
+                      onChange={e => setSaveSshCredentials(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="migrate-save-ssh-credentials">
+                      {t('branding.sshSaveHint')}
+                    </label>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowMigrateImageModal(false)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn-primary"
+                  onClick={handleMigrateImage}
+                  disabled={
+                    migratingImage
+                    || (!pushLogoSshPassword && !player?.has_ssh_credentials)
+                    || (imageSourceResult ? !imageSourceResult.can_migrate : false)
+                  }
+                >
+                  {migratingImage ? t('common.loading') : t('migrateImage.migrateButton')}
                 </button>
               </div>
             </div>

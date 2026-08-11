@@ -203,6 +203,24 @@ export const players = {
     })
   },
 
+  getImageSource(id: string, sshUser: string, sshPassword: string, sshPort: number): Promise<{
+    source: 'mupitech' | 'official' | 'fork' | 'unknown'; image: string; can_migrate: boolean
+  }> {
+    return apiRequest('POST', `/players/${id}/image-source/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+    })
+  },
+
+  migrateImage(id: string, sshUser: string, sshPassword: string, sshPort: number, saveCredentials = false): Promise<{
+    success: boolean; action: 'updated' | 'migrated'; previous_source: string
+    previous_image: string; backup_path: string | null
+  }> {
+    return apiRequest('POST', `/players/${id}/migrate-image/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+      save_credentials: saveCredentials,
+    })
+  },
+
   saveSshCredentials(id: string, sshUser: string, sshPassword: string, sshPort: number): Promise<{ success: boolean; has_ssh_credentials: boolean; ssh_username: string; ssh_port: number }> {
     return apiRequest('POST', `/players/${id}/ssh-credentials/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
