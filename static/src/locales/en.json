@@ -21,6 +21,8 @@
     "noPlayers": "No players registered",
     "noPlayersDesc": "Add your first Anthias player to get started.",
     "addPlayer": "Add Player",
+    "fleetStatus": "Fleet status",
+    "viewAllPlayers": "View all players",
     "serverTelemetry": "Server Telemetry",
     "cpu": "CPU",
     "memory": "Memory",
@@ -740,7 +742,8 @@
     "stepWaitReady": "Wait for Player",
     "stepPhonehome": "Register with FM",
     "stepTailscale": "Install Tailscale",
-    "stepSilentBoot": "Configure Silent Boot"
+    "stepSilentBoot": "Configure Silent Boot",
+    "stepPushBranding": "Apply Branding"
   },
   "tailscale": {
     "title": "Tailscale VPN",
@@ -763,7 +766,7 @@
     "description": "Images shown on your devices instead of Anthias's own branding. Applies fleet-wide — push it to a device from its detail page, or to a whole group from the groups page.",
     "logoLabel": "Splash screen logo (network/IP screen)",
     "standbyLabel": "Standby image (no content playing)",
-    "themeLabel": "Theme colors (replace Anthias purple with blue)",
+    "themeLabel": "Theme colors + splash-page translation (Anthias purple → blue, English → Portuguese)",
     "standbyDescription": "Shown whenever a device has nothing scheduled. No default is bundled — upload a plain background here to replace Anthias's own.",
     "upload": "Upload",
     "formatHint": "Only SVG, PNG or JPEG files are supported",
@@ -778,6 +781,9 @@
     "pushTitle": "Push branding",
     "pushDesc": "Replaces the selected images on this device. Uses SSH once — the password isn't stored.",
     "pushDescGroup": "Replaces the selected images on every device in this group. Uses SSH once with the same credentials for all — the password isn't stored.",
+    "pushAllTitle": "Resend to all devices",
+    "pushAllDesc": "Re-applies each device's own resolved branding (its device/group/location override, or this fleet-wide default) to every already-added device. Uses SSH once with the same credentials for all — the password isn't stored.",
+    "pushedAllDesc": "Pushed to {{count}} device(s).",
     "sshUser": "SSH username",
     "sshPassword": "SSH password",
     "sshPort": "SSH port",

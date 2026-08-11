@@ -21,6 +21,8 @@
     "noPlayers": "Nenhum dispositivo registado",
     "noPlayersDesc": "Adicione o seu primeiro dispositivo Anthias para começar.",
     "addPlayer": "Adicionar Dispositivo",
+    "fleetStatus": "Estado da frota",
+    "viewAllPlayers": "Ver todos os dispositivos",
     "serverTelemetry": "Telemetria do Servidor",
     "cpu": "CPU",
     "memory": "Memória",
@@ -740,7 +742,8 @@
     "stepWaitReady": "Aguardar Dispositivo",
     "stepPhonehome": "Registar no FM",
     "stepTailscale": "Instalar Tailscale",
-    "stepSilentBoot": "Configurar Arranque Silencioso"
+    "stepSilentBoot": "Configurar Arranque Silencioso",
+    "stepPushBranding": "Aplicar Marca"
   },
   "tailscale": {
     "title": "VPN Tailscale",
@@ -763,7 +766,7 @@
     "description": "Imagens mostradas nos dispositivos em vez da marca do próprio Anthias. Aplica-se a todo o parque — envie a partir da página de detalhe de um dispositivo, ou a um grupo inteiro a partir da página de grupos.",
     "logoLabel": "Logótipo do ecrã inicial (rede/IP)",
     "standbyLabel": "Imagem de repouso (sem conteúdo a reproduzir)",
-    "themeLabel": "Cores do tema (substituir o roxo do Anthias por azul)",
+    "themeLabel": "Cores do tema + tradução do splash-page (roxo do Anthias → azul, inglês → português)",
     "standbyDescription": "Mostrada sempre que um dispositivo não tem nada agendado. Não há omissão incluída — carregue aqui um fundo simples para substituir o do Anthias.",
     "upload": "Carregar",
     "formatHint": "Só são suportados ficheiros SVG, PNG ou JPEG",
@@ -778,6 +781,9 @@
     "pushTitle": "Enviar marca",
     "pushDesc": "Substitui as imagens selecionadas neste dispositivo. Usa SSH uma vez — a palavra-passe não é guardada.",
     "pushDescGroup": "Substitui as imagens selecionadas em todos os dispositivos deste grupo. Usa SSH uma vez com as mesmas credenciais para todos — a palavra-passe não é guardada.",
+    "pushAllTitle": "Reenviar a todos os dispositivos",
+    "pushAllDesc": "Reaplica a cada dispositivo já adicionado a sua marca própria resolvida (a personalização do dispositivo/grupo/localização, ou esta predefinição geral). Usa SSH uma vez com as mesmas credenciais para todos — a palavra-passe não é guardada.",
+    "pushedAllDesc": "Enviado para {{count}} dispositivo(s).",
     "sshUser": "Utilizador SSH",
     "sshPassword": "Palavra-passe SSH",
     "sshPort": "Porta SSH",

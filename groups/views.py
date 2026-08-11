@@ -71,7 +71,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
         from players.branding import (
             BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
-            push_theme_color_to_player,
+            push_theme_color_to_player, push_splash_translation_to_player,
         )
 
         results = {}
@@ -83,6 +83,7 @@ class GroupViewSet(viewsets.ModelViewSet):
                     push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port)
                 if push_theme:
                     push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port)
+                    push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port)
                 results[str(player.id)] = {'name': player.name, 'success': True}
             except BrandingPushError as exc:
                 results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}

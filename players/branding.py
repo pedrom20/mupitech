@@ -17,6 +17,7 @@ See docs/anthias-version-analysis.md.
 
 import base64
 import os
+import re
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -37,6 +38,32 @@ CONTAINER_STANDBY_PATH = '/usr/src/app/staticfiles/img/standby.png'
 REMOTE_TMP_STANDBY_PATH = '/tmp/mupitech-standby-image.png'
 
 CONTAINER_CSS_PATH = '/usr/src/app/staticfiles/dist/css/anthias.css'
+
+# The splash-page is a server-rendered Django template (not a collected
+# static file), so it lives under the app's source tree rather than
+# staticfiles/ — see src/anthias_server/app/templates/splash-page.html
+# in Screenly/Anthias, copied verbatim into /usr/src/app/ by the image's
+# `COPY . /usr/src/app/`.
+CONTAINER_SPLASH_TEMPLATE_PATH = '/usr/src/app/src/anthias_server/app/templates/splash-page.html'
+# Anthias's splash-page ships hardcoded English copy with no i18n of its
+# own. Translated here (and its two "Anthias" brand mentions swapped for
+# MupiTech, consistent with the logo/color rebrand) via the same in-place
+# sed used for the CSS colors above — the strings are unique substrings
+# of the template, so a plain substitution is reliable without needing
+# the device's real file contents.
+SPLASH_TRANSLATION_REPLACEMENTS = [
+    ('<html lang="en">', '<html lang="pt">'),
+    ('<title>Welcome to Anthias</title>', '<title>Bem-vindo ao MupiTech</title>'),
+    ('alt="Anthias"', 'alt="MupiTech"'),
+    ('Detecting network&hellip;', 'A detetar rede&hellip;'),
+    ('Ready to manage', 'Pronto a gerir'),
+    ('Open this on your phone or laptop', 'Abra isto no seu telemóvel ou computador'),
+    (
+        'Point a browser at one of the addresses below, or scan the QR code.',
+        'Aceda a um dos endereços abaixo no navegador, ou leia o código QR.',
+    ),
+    ('Scan to manage', 'Ler para gerir'),
+]
 # Official Anthias's $anthias-purple-1..5 (src/anthias_server/app/static/sass/_variables.scss)
 # and the splash-page's two radial-gradient glows, mapped to this project's
 # own blue palette (static/sass/_variables.scss). Sass's --style=compressed
@@ -284,12 +311,22 @@ def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, ti
     )
 
 
-def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and replace Anthias's purple theme colors
-    (splash-page background gradient, active-state accents) with this
-    project's blue palette, via an in-place sed on the already-compiled
-    anthias.css — no rebuild, no re-uploading the whole file.
-    """
+def _sed_search_escape(value):
+    """Escape a plain string for safe use as a sed search pattern."""
+    return re.sub(r'([\\.*/\[\]^$])', r'\\\1', value)
+
+
+def _sed_replacement_escape(value):
+    """Escape a plain string for safe use as a sed replacement (sed gives
+    `&` and `/` special meaning there; search-only metacharacters like
+    `.`/`*` don't apply)."""
+    return re.sub(r'([\\&/])', r'\\\1', value)
+
+
+def _sed_patch_container_file(player, ssh_user, ssh_password, ssh_port, timeout,
+                               container_path, replacements):
+    """SSH into `player`'s host and run an in-place sed on `container_path`
+    inside the running anthias-server container, then restart it."""
     import paramiko
 
     host = urlparse(player.url).hostname
@@ -316,12 +353,12 @@ def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, time
             )
 
         sed_expr = ' '.join(
-            f"-e {_shell_quote(f's/{old}/{new}/g')}"
-            for old, new in THEME_COLOR_REPLACEMENTS
+            f"-e {_shell_quote(f's/{_sed_search_escape(old)}/{_sed_replacement_escape(new)}/g')}"
+            for old, new in replacements
         )
         _ssh_run(
             ssh,
-            f'docker exec {_shell_quote(container)} sed -i {sed_expr} {CONTAINER_CSS_PATH}',
+            f'docker exec {_shell_quote(container)} sed -i {sed_expr} {container_path}',
             timeout=timeout,
         )
         _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
@@ -331,3 +368,28 @@ def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, time
         raise BrandingPushError(str(exc)) from exc
     finally:
         ssh.close()
+
+
+def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and replace Anthias's purple theme colors
+    (splash-page background gradient, active-state accents) with this
+    project's blue palette, via an in-place sed on the already-compiled
+    anthias.css — no rebuild, no re-uploading the whole file.
+    """
+    _sed_patch_container_file(
+        player, ssh_user, ssh_password, ssh_port, timeout,
+        container_path=CONTAINER_CSS_PATH,
+        replacements=THEME_COLOR_REPLACEMENTS,
+    )
+
+
+def push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and translate the splash-page's hardcoded
+    English copy to Portuguese (and its "Anthias" brand mentions to
+    MupiTech), via an in-place sed on the server-rendered template.
+    """
+    _sed_patch_container_file(
+        player, ssh_user, ssh_password, ssh_port, timeout,
+        container_path=CONTAINER_SPLASH_TEMPLATE_PATH,
+        replacements=SPLASH_TRANSLATION_REPLACEMENTS,
+    )
