@@ -187,6 +187,10 @@ const PlayerDetail: React.FC = () => {
   const [pushTargetStandby, setPushTargetStandby] = useState(false)
   const [pushTargetTheme, setPushTargetTheme] = useState(false)
   const [brandingHasStandby, setBrandingHasStandby] = useState(false)
+  const [uploadingDeviceLogo, setUploadingDeviceLogo] = useState(false)
+  const [uploadingDeviceStandby, setUploadingDeviceStandby] = useState(false)
+  const deviceLogoInputRef = useRef<HTMLInputElement>(null)
+  const deviceStandbyInputRef = useRef<HTMLInputElement>(null)
 
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
@@ -616,6 +620,56 @@ const PlayerDetail: React.FC = () => {
   const handleOpenPushLogo = () => {
     setShowPushLogoModal(true)
     systemApi.getBranding().then((res) => setBrandingHasStandby(res.has_standby_image)).catch(() => {})
+  }
+
+  const handleDeviceLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !id || !player) return
+    setUploadingDeviceLogo(true)
+    try {
+      const res = await playersApi.uploadLogo(id, file)
+      setPlayer({ ...player, splash_logo: res.logo_url })
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingDeviceLogo(false)
+      if (deviceLogoInputRef.current) deviceLogoInputRef.current.value = ''
+    }
+  }
+
+  const handleDeviceLogoDelete = async () => {
+    if (!id || !player) return
+    try {
+      await playersApi.deleteLogo(id)
+      setPlayer({ ...player, splash_logo: null })
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
+  const handleDeviceStandbyChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !id || !player) return
+    setUploadingDeviceStandby(true)
+    try {
+      const res = await playersApi.uploadStandby(id, file)
+      setPlayer({ ...player, standby_image: res.standby_url })
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setUploadingDeviceStandby(false)
+      if (deviceStandbyInputRef.current) deviceStandbyInputRef.current.value = ''
+    }
+  }
+
+  const handleDeviceStandbyDelete = async () => {
+    if (!id || !player) return
+    try {
+      await playersApi.deleteStandby(id)
+      setPlayer({ ...player, standby_image: null })
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
   }
 
   const handlePushBranding = async () => {
@@ -2743,6 +2797,61 @@ const PlayerDetail: React.FC = () => {
                 />
               </div>
               <div className="modal-body">
+                <div className="border rounded p-2 mb-3">
+                  <p className="fw-semibold mb-2" style={{ fontSize: '0.85rem' }}>
+                    <FaImage className="me-1" />
+                    {t('branding.deviceOverrideTitle')}
+                  </p>
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="border rounded d-flex align-items-center justify-content-center p-1"
+                          style={{ width: '70px', height: '44px', background: 'var(--bs-tertiary-bg, #f5f5f5)', flexShrink: 0 }}
+                        >
+                          {player?.splash_logo && (
+                            <img src={player.splash_logo} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          )}
+                        </div>
+                        <div className="d-flex flex-column gap-1">
+                          <input ref={deviceLogoInputRef} type="file" accept=".svg,.png,.jpg,.jpeg" className="d-none" onChange={handleDeviceLogoChange} />
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => deviceLogoInputRef.current?.click()} disabled={uploadingDeviceLogo} style={{ fontSize: '0.72rem' }}>
+                            {t('branding.logoLabel')}
+                          </button>
+                          {player?.splash_logo && (
+                            <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleDeviceLogoDelete} style={{ fontSize: '0.72rem' }}>
+                              {t('common.delete')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-6">
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="border rounded d-flex align-items-center justify-content-center p-1"
+                          style={{ width: '70px', height: '44px', background: '#000', flexShrink: 0 }}
+                        >
+                          {player?.standby_image && (
+                            <img src={player.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          )}
+                        </div>
+                        <div className="d-flex flex-column gap-1">
+                          <input ref={deviceStandbyInputRef} type="file" accept=".png,.jpg,.jpeg" className="d-none" onChange={handleDeviceStandbyChange} />
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => deviceStandbyInputRef.current?.click()} disabled={uploadingDeviceStandby} style={{ fontSize: '0.72rem' }}>
+                            {t('branding.standbyLabel')}
+                          </button>
+                          {player?.standby_image && (
+                            <button type="button" className="btn btn-sm btn-link p-0 text-danger" onClick={handleDeviceStandbyDelete} style={{ fontSize: '0.72rem' }}>
+                              {t('common.delete')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('branding.pushDesc')}</p>
                 <div className="mb-3">
                   <div className="form-check">

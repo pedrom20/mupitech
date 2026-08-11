@@ -85,6 +85,14 @@ class Player(models.Model):
         default=False,
         help_text='Whether to use Tailscale as fallback for connectivity.',
     )
+    splash_logo = models.FileField(
+        upload_to='branding/players/', null=True, blank=True,
+        help_text='Overrides the group/location/fleet-wide splash logo for this device only.',
+    )
+    standby_image = models.FileField(
+        upload_to='branding/players/', null=True, blank=True,
+        help_text='Overrides the group/location/fleet-wide standby image for this device only.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

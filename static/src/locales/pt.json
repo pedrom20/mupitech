@@ -17,6 +17,7 @@
     "online": "Online",
     "offline": "Offline",
     "groups": "Grupos",
+    "locations": "Localizações",
     "noPlayers": "Nenhum dispositivo registado",
     "noPlayersDesc": "Adicione o seu primeiro dispositivo Anthias para começar.",
     "addPlayer": "Adicionar Dispositivo",
@@ -782,7 +783,8 @@
     "pushFailed": "Falha ao enviar a marca",
     "pushPartial": "Falhou em alguns dispositivos",
     "groupOverrideTitle": "Marca personalizada deste grupo",
-    "locationOverrideTitle": "Marca personalizada desta localização"
+    "locationOverrideTitle": "Marca personalizada desta localização",
+    "deviceOverrideTitle": "Marca personalizada deste dispositivo"
   },
   "users": {
     "title": "Utilizadores",
@@ -799,6 +801,8 @@
     "role_admin": "Administrador",
     "role_editor": "Editor",
     "role_viewer": "Visualizador",
+    "superadminRoleLocked": "Só um superadministrador pode alterar a função ou o estado da conta de outro superadministrador.",
+    "ownAccessLocked": "Não pode alterar a sua própria função ou âmbito de acesso.",
     "lastLogin": "Última Sessão",
     "actions": "Ações",
     "created": "Utilizador criado",

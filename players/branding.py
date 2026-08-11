@@ -140,12 +140,14 @@ def _png_bytes(img):
 def get_logo_path(player=None):
     """Absolute path to the logo that would be pushed for `player`.
 
-    Precedence: the player's group's own logo, then its effective
-    location's own logo, then the fleet-wide custom logo, then the
+    Precedence: the player's own logo, then its group's, then its
+    effective location's, then the fleet-wide custom logo, then the
     bundled MupiTech default. Passing no player skips straight to the
     fleet-wide resolution (used by the Settings page preview).
     """
     if player is not None:
+        if player.splash_logo:
+            return player.splash_logo.path
         if player.group_id and player.group.splash_logo:
             return player.group.splash_logo.path
         location = player.effective_location
@@ -157,11 +159,13 @@ def get_logo_path(player=None):
 
 def get_standby_path(player=None):
     """Absolute path to the standby image that would be pushed for
-    `player`, or None if nothing is set at any level (group, location,
-    fleet-wide) — same precedence as get_logo_path, but with no bundled
-    default.
+    `player`, or None if nothing is set at any level (device, group,
+    location, fleet-wide) — same precedence as get_logo_path, but with
+    no bundled default.
     """
     if player is not None:
+        if player.standby_image:
+            return player.standby_image.path
         if player.group_id and player.group.standby_image:
             return player.group.standby_image.path
         location = player.effective_location

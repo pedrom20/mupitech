@@ -36,6 +36,8 @@ export interface Player {
   mac_address?: string
   tailscale_ip: string | null
   tailscale_enabled: boolean
+  splash_logo?: string | null
+  standby_image?: string | null
   created_at: string
 }
 

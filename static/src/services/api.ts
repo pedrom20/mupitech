@@ -178,6 +178,26 @@ export const players = {
     })
   },
 
+  uploadLogo(id: string, file: File): Promise<{ success: boolean; logo_url: string }> {
+    const data = new FormData()
+    data.append('logo', file)
+    return apiRequest('POST', `/players/${id}/logo/`, data)
+  },
+
+  deleteLogo(id: string): Promise<void> {
+    return apiRequest('DELETE', `/players/${id}/logo/`)
+  },
+
+  uploadStandby(id: string, file: File): Promise<{ success: boolean; standby_url: string }> {
+    const data = new FormData()
+    data.append('standby', file)
+    return apiRequest('POST', `/players/${id}/standby/`, data)
+  },
+
+  deleteStandby(id: string): Promise<void> {
+    return apiRequest('DELETE', `/players/${id}/standby/`)
+  },
+
   triggerUpdate(id: string): Promise<{ success: boolean }> {
     return apiRequest<{ success: boolean }>('POST', `/players/${id}/update/`)
   },

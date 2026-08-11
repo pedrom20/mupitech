@@ -54,6 +54,8 @@ class PlayerSerializer(serializers.ModelSerializer):
             'device_type',
             'tailscale_ip',
             'tailscale_enabled',
+            'splash_logo',
+            'standby_image',
             'created_at',
         ]
         read_only_fields = ['id', 'is_online', 'last_seen', 'last_status', 'mac_address', 'device_type', 'created_at']

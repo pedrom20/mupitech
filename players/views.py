@@ -357,6 +357,46 @@ class PlayerViewSet(ScheduleActionsMixin, viewsets.ModelViewSet):
         )
         return Response({'success': True})
 
+    @action(detail=True, methods=['post', 'delete'], url_path='logo')
+    def logo(self, request, pk=None):
+        """Upload or remove this device's own splash logo override."""
+        player = self.get_object()
+        from .branding import save_logo_upload
+
+        if request.method == 'DELETE':
+            if player.splash_logo:
+                player.splash_logo.delete(save=True)
+            return Response(status=204)
+
+        file = request.FILES.get('logo')
+        if not file:
+            return Response({'error': 'logo file is required'}, status=400)
+        try:
+            save_logo_upload(player, file)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+        return Response({'success': True, 'logo_url': player.splash_logo.url})
+
+    @action(detail=True, methods=['post', 'delete'], url_path='standby')
+    def standby(self, request, pk=None):
+        """Upload or remove this device's own standby image override."""
+        player = self.get_object()
+        from .branding import save_standby_upload
+
+        if request.method == 'DELETE':
+            if player.standby_image:
+                player.standby_image.delete(save=True)
+            return Response(status=204)
+
+        file = request.FILES.get('standby')
+        if not file:
+            return Response({'error': 'standby file is required'}, status=400)
+        try:
+            save_standby_upload(player, file)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+        return Response({'success': True, 'standby_url': player.standby_image.url})
+
     @action(detail=True, methods=['post'], url_path='playback-control')
     def playback_control(self, request, pk=None):
         """Control playback on the player (next/previous)."""
