@@ -21,6 +21,11 @@ body {
   padding-top: $navbar-height;
   padding-bottom: $footer-height + 20px;
   min-height: 100vh;
+  // Safety net — an individual card/element overflowing (long
+  // untruncated text, a fixed width) should never make the whole page
+  // scroll sideways on mobile. Fix overflow at its source where
+  // possible; this just stops it from cascading to the page.
+  overflow-x: hidden;
 }
 
 ::selection {
@@ -342,6 +347,10 @@ body {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      // Flex items default to min-width: auto — without this, a long
+      // device name refuses to shrink and pushes the whole card (and
+      // the page) wider than the viewport instead of truncating.
+      min-width: 0;
     }
   }
 
@@ -2257,25 +2266,12 @@ body {
 }
 
 // Settings page — sidebar section nav
+// Desktop-only (md+) — mobile uses a <select> dropdown instead, see settings.tsx.
 .fm-settings-nav {
   flex-shrink: 0;
+  width: 200px;
 
-  @media (min-width: 768px) {
-    width: 200px;
-
-    .btn {
-      width: 100%;
-    }
-  }
-
-  @media (max-width: 767.98px) {
-    overflow-x: auto;
-    flex-wrap: nowrap !important;
-    padding-bottom: 4px;
-
-    .btn {
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
+  .btn {
+    width: 100%;
   }
 }

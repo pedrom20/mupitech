@@ -212,83 +212,43 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
+      {(() => {
+        const settingsTabs = [
+          { id: 'general', label: t('settings.general'), show: true },
+          { id: 'registration', label: t('settings.autoRegistration'), show: true },
+          { id: 'updates', label: t('updates.title'), show: true },
+          { id: 'tailscale', label: t('tailscale.title'), show: isSuperAdminRole(role) },
+          { id: 'alerts', label: t('alerts.title'), show: isSuperAdminRole(role) },
+          { id: 'registry', label: t('registryMirror.title'), show: isSuperAdminRole(role) },
+          { id: 'branding', label: t('branding.title'), show: isAdminRole(role) },
+          { id: 'users', label: t('users.title'), show: isAdminRole(role) },
+          { id: 'audit', label: t('audit.title'), show: isAdminRole(role) },
+        ].filter((tab) => tab.show)
+
+        return (
       <div className="d-flex flex-column flex-md-row gap-3">
-        <div className="fm-settings-nav d-flex flex-row flex-md-column gap-1 flex-wrap">
-          <button
-            type="button"
-            className={`btn btn-sm text-start ${activeSettingsTab === 'general' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-            onClick={() => setActiveSettingsTab('general')}
-          >
-            {t('settings.general')}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm text-start ${activeSettingsTab === 'registration' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-            onClick={() => setActiveSettingsTab('registration')}
-          >
-            {t('settings.autoRegistration')}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm text-start ${activeSettingsTab === 'updates' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-            onClick={() => setActiveSettingsTab('updates')}
-          >
-            {t('updates.title')}
-          </button>
-          {isSuperAdminRole(role) && (
+        {/* Mobile: a dropdown instead of a horizontally-scrolling button strip */}
+        <select
+          className="form-select d-md-none"
+          value={activeSettingsTab}
+          onChange={(e) => setActiveSettingsTab(e.target.value)}
+        >
+          {settingsTabs.map((tab) => (
+            <option key={tab.id} value={tab.id}>{tab.label}</option>
+          ))}
+        </select>
+
+        <div className="fm-settings-nav d-none d-md-flex flex-column gap-1">
+          {settingsTabs.map((tab) => (
             <button
+              key={tab.id}
               type="button"
-              className={`btn btn-sm text-start ${activeSettingsTab === 'tailscale' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-              onClick={() => setActiveSettingsTab('tailscale')}
+              className={`btn btn-sm text-start ${activeSettingsTab === tab.id ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveSettingsTab(tab.id)}
             >
-              {t('tailscale.title')}
+              {tab.label}
             </button>
-          )}
-          {isSuperAdminRole(role) && (
-            <button
-              type="button"
-              className={`btn btn-sm text-start ${activeSettingsTab === 'alerts' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-              onClick={() => setActiveSettingsTab('alerts')}
-            >
-              {t('alerts.title')}
-            </button>
-          )}
-          {isSuperAdminRole(role) && (
-            <button
-              type="button"
-              className={`btn btn-sm text-start ${activeSettingsTab === 'registry' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-              onClick={() => setActiveSettingsTab('registry')}
-            >
-              {t('registryMirror.title')}
-            </button>
-          )}
-          {isAdminRole(role) && (
-            <button
-              type="button"
-              className={`btn btn-sm text-start ${activeSettingsTab === 'branding' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-              onClick={() => setActiveSettingsTab('branding')}
-            >
-              {t('branding.title')}
-            </button>
-          )}
-          {isAdminRole(role) && (
-            <button
-              type="button"
-              className={`btn btn-sm text-start ${activeSettingsTab === 'users' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-              onClick={() => setActiveSettingsTab('users')}
-            >
-              {t('users.title')}
-            </button>
-          )}
-          {isAdminRole(role) && (
-            <button
-              type="button"
-              className={`btn btn-sm text-start ${activeSettingsTab === 'audit' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-              onClick={() => setActiveSettingsTab('audit')}
-            >
-              {t('audit.title')}
-            </button>
-          )}
+          ))}
         </div>
 
         <div className="flex-grow-1" style={{ minWidth: 0 }}>
@@ -653,6 +613,8 @@ const Settings: React.FC = () => {
         )}
         </div>
       </div>
+        )
+      })()}
 
       {/* Post-update polling overlay */}
       {(updatePolling || updateTimedOut) && (
