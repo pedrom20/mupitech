@@ -59,6 +59,7 @@ const UsersSettings: React.FC = () => {
   const [lastName, setLastName] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<string>('viewer')
+  const [receiveOfflineAlerts, setReceiveOfflineAlerts] = useState(true)
   const [saving, setSaving] = useState(false)
 
   // Scope pickers (leave all empty = unrestricted access, the default)
@@ -87,6 +88,7 @@ const UsersSettings: React.FC = () => {
     setLastName('')
     setPassword('')
     setRole('viewer')
+    setReceiveOfflineAlerts(true)
     setScopeLocationIds([])
     setScopeGroupIds([])
     setScopePlayerIds([])
@@ -110,6 +112,7 @@ const UsersSettings: React.FC = () => {
     setLastName(u.last_name)
     setRole(u.role)
     setPassword('')
+    setReceiveOfflineAlerts(u.receive_offline_alerts ?? true)
     setScopeLocationIds(u.scope?.location_ids || [])
     setScopeGroupIds(u.scope?.group_ids || [])
     setScopePlayerIds(u.scope?.player_ids || [])
@@ -141,12 +144,12 @@ const UsersSettings: React.FC = () => {
         player_ids: scopePlayerIds,
       }
       if (editUser) {
-        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, ...scopeData }
+        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, receive_offline_alerts: receiveOfflineAlerts, ...scopeData }
         if (password) data.password = password
         await usersApi.update(editUser.id, data as Parameters<typeof usersApi.update>[1])
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.updated'), timer: 1500, showConfirmButton: false })
       } else {
-        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName, ...scopeData })
+        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName, receive_offline_alerts: receiveOfflineAlerts, ...scopeData })
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.created'), timer: 1500, showConfirmButton: false })
       }
       setShowModal(false)
@@ -312,6 +315,22 @@ const UsersSettings: React.FC = () => {
                     )}
                   </div>
 
+                  {(role === 'admin' || role === 'superadmin') && (
+                    <div className="form-check mb-2">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="receive-offline-alerts"
+                        checked={receiveOfflineAlerts}
+                        onChange={(e) => setReceiveOfflineAlerts(e.target.checked)}
+                      />
+                      <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="receive-offline-alerts">
+                        {t('users.receiveOfflineAlerts')}
+                      </label>
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('users.receiveOfflineAlertsHint')}</div>
+                    </div>
+                  )}
+
                   {role !== 'admin' && role !== 'superadmin' && (
                     <fieldset disabled={isEditingSelf}>
                       <hr className="my-3" />
@@ -442,6 +461,12 @@ const UsersSettings: React.FC = () => {
                     <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.dateJoined')}</div>
                     <div>{new Date(viewUser.date_joined).toLocaleString()}</div>
                   </div>
+                  {(viewUser.role === 'admin' || viewUser.role === 'superadmin') && (
+                    <div className="col-sm-6">
+                      <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.receiveOfflineAlerts')}</div>
+                      <div>{(viewUser.receive_offline_alerts ?? true) ? t('common.yes') : t('common.no')}</div>
+                    </div>
+                  )}
                 </div>
 
                 <hr />

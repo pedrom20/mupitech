@@ -551,6 +551,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "close": "Close",
+    "yes": "Yes",
+    "no": "No",
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
@@ -814,6 +816,24 @@
     "saved": "Tailscale settings saved",
     "saveFailed": "Failed to save Tailscale settings"
   },
+  "alerts": {
+    "title": "Email Alerts",
+    "description": "Send admins an email when a device has been offline for longer than the threshold below. Needs an SMTP server to send through.",
+    "enable": "Enable offline alert emails",
+    "threshold": "Offline threshold",
+    "thresholdDesc": "How long a device must stay offline before an alert is sent.",
+    "smtpTitle": "SMTP server",
+    "smtpHost": "SMTP host",
+    "smtpPort": "Port",
+    "smtpUsername": "Username",
+    "smtpPassword": "Password",
+    "passwordSet": "Password is configured",
+    "fromEmail": "From address",
+    "useTls": "Use TLS",
+    "sendTest": "Send test email",
+    "testSent": "Test email sent — check your inbox.",
+    "testFailed": "Could not send the test email. Check the SMTP settings."
+  },
   "brandingLibrary": {
     "titleLogo": "Choose a logo",
     "titleStandby": "Choose a standby image",
@@ -924,7 +944,9 @@
     "recentActivity": "Recent Activity",
     "noActivity": "No recorded activity for this user.",
     "loadingActivity": "Loading activity...",
-    "viewFullAuditLog": "View full audit log"
+    "viewFullAuditLog": "View full audit log",
+    "receiveOfflineAlerts": "Receive device-offline alert emails",
+    "receiveOfflineAlertsHint": "Only applies if email alerts are enabled system-wide (Settings → Email Alerts)."
   },
   "audit": {
     "title": "Audit Log",

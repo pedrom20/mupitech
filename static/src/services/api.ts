@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -648,6 +648,18 @@ export const system = {
     return apiRequest<TailscaleSettings>('PATCH', '/system/tailscale/', data)
   },
 
+  getAlertSettings(): Promise<AlertSettings> {
+    return apiRequest<AlertSettings>('GET', '/system/alerts/')
+  },
+
+  updateAlertSettings(data: Record<string, unknown>): Promise<AlertSettings> {
+    return apiRequest<AlertSettings>('PATCH', '/system/alerts/', data)
+  },
+
+  sendTestAlertEmail(toEmail?: string): Promise<{ success: boolean; error?: string }> {
+    return apiRequest('POST', '/system/alerts/test/', toEmail ? { to_email: toEmail } : {})
+  },
+
   getTelemetry(): Promise<ServerTelemetry> {
     return apiRequest<ServerTelemetry>('GET', '/system/telemetry/')
   },
@@ -737,6 +749,7 @@ export const users = {
     username: string; email?: string; password: string; role: string
     first_name?: string; last_name?: string
     location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
+    receive_offline_alerts?: boolean
   }): Promise<User> {
     return apiRequest<User>('POST', '/users/', data)
   },
@@ -744,6 +757,7 @@ export const users = {
   update(id: number, data: Partial<User> & {
     password?: string; role?: string
     location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
+    receive_offline_alerts?: boolean
   }): Promise<User> {
     return apiRequest<User>('PATCH', `/users/${id}/`, data)
   },

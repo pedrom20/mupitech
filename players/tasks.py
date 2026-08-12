@@ -30,6 +30,11 @@ def poll_player(self, player_id):
         player.last_seen = timezone.now()
         player.last_status = info
         fields = ['is_online', 'last_seen', 'last_status']
+        # Back online — clear any pending alert flag so the next offline
+        # period sends a fresh email instead of staying silent forever.
+        if player.last_offline_alert_at is not None:
+            player.last_offline_alert_at = None
+            fields.append('last_offline_alert_at')
         # One-time: auto-detect Tailscale IP from URL
         if not player.tailscale_ip:
             from players.serializers import _extract_tailscale_ip
@@ -149,3 +154,43 @@ def poll_all_players():
             poll_player.delay(str(player_id))
     finally:
         cache.delete(lock_id)
+
+
+@shared_task
+def check_offline_players():
+    """Email admins a summary of devices offline longer than the configured
+    threshold. Each qualifying device is only alerted on once per offline
+    period (last_offline_alert_at), reset when it comes back online in
+    poll_player — so this doesn't re-send every run for the same outage."""
+    from datetime import timedelta
+
+    from django.db.models import Q
+
+    from fleet_manager.alerts import get_alert_settings, send_offline_alert_emails
+
+    from .models import Player
+
+    conf = get_alert_settings()
+    if not conf['enabled']:
+        return
+
+    threshold_minutes = conf['threshold_minutes']
+    cutoff = timezone.now() - timedelta(minutes=threshold_minutes)
+
+    qualifying = Player.objects.filter(
+        is_online=False,
+        last_offline_alert_at__isnull=True,
+    ).filter(
+        Q(last_seen__lte=cutoff) | Q(last_seen__isnull=True, created_at__lte=cutoff)
+    )
+
+    players_to_alert = list(qualifying)
+    if not players_to_alert:
+        return
+
+    send_offline_alert_emails(players_to_alert)
+
+    now = timezone.now()
+    for player in players_to_alert:
+        player.last_offline_alert_at = now
+    Player.objects.bulk_update(players_to_alert, ['last_offline_alert_at'])

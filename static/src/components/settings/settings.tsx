@@ -9,6 +9,7 @@ import { APP_VERSION } from '../../changelog'
 import { RoleContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
 import BrandingSettings from './branding-settings'
+import AlertSettings from './alert-settings'
 
 const UPDATE_POLL_INTERVAL = 5000 // 5s
 const UPDATE_TIMEOUT = 120000 // 120s
@@ -247,6 +248,15 @@ const Settings: React.FC = () => {
               onClick={() => setActiveSettingsTab('tailscale')}
             >
               {t('tailscale.title')}
+            </button>
+          )}
+          {isSuperAdminRole(role) && (
+            <button
+              type="button"
+              className={`btn btn-sm text-start ${activeSettingsTab === 'alerts' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveSettingsTab('alerts')}
+            >
+              {t('alerts.title')}
             </button>
           )}
           {isAdminRole(role) && (
@@ -589,6 +599,10 @@ const Settings: React.FC = () => {
           </div>
         </div>
         </div>
+        )}
+
+        {activeSettingsTab === 'alerts' && isSuperAdminRole(role) && (
+          <AlertSettings />
         )}
 
         {activeSettingsTab === 'branding' && isAdminRole(role) && (

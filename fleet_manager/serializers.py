@@ -28,14 +28,24 @@ def _set_scope(user, location_ids=None, group_ids=None, player_ids=None):
         scope.players.set(player_ids)
 
 
+def _set_receive_offline_alerts(user, value):
+    """Set the user's offline-alert opt-in flag (None = leave unchanged)."""
+    if value is None:
+        return
+    scope, _ = UserAccessScope.objects.get_or_create(user=user)
+    scope.receive_offline_alerts = value
+    scope.save(update_fields=['receive_offline_alerts'])
+
+
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     scope = serializers.SerializerMethodField()
+    receive_offline_alerts = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
-                  'is_active', 'role', 'scope', 'last_login', 'date_joined']
+                  'is_active', 'role', 'scope', 'receive_offline_alerts', 'last_login', 'date_joined']
         read_only_fields = ['id', 'last_login', 'date_joined']
 
     def get_role(self, obj):
@@ -46,6 +56,10 @@ class UserSerializer(serializers.ModelSerializer):
         if not scope:
             return {'location_ids': [], 'group_ids': [], 'player_ids': []}
         return ScopeSerializer(scope).data
+
+    def get_receive_offline_alerts(self, obj):
+        scope = getattr(obj, 'access_scope', None)
+        return scope.receive_offline_alerts if scope else True
 
 
 def _validate_role_escalation(role, context):
@@ -84,11 +98,12 @@ class CreateUserSerializer(serializers.ModelSerializer):
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
+    receive_offline_alerts = serializers.BooleanField(required=False, write_only=True)
 
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password', 'role',
-                  'location_ids', 'group_ids', 'player_ids']
+                  'location_ids', 'group_ids', 'player_ids', 'receive_offline_alerts']
 
     def validate_role(self, value):
         _validate_role_escalation(value, self.context)
@@ -100,9 +115,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
         location_ids = validated_data.pop('location_ids', None)
         group_ids = validated_data.pop('group_ids', None)
         player_ids = validated_data.pop('player_ids', None)
+        receive_offline_alerts = validated_data.pop('receive_offline_alerts', None)
         user = User.objects.create_user(**validated_data, password=password)
         _assign_role(user, role)
         _set_scope(user, location_ids, group_ids, player_ids)
+        _set_receive_offline_alerts(user, receive_offline_alerts)
         return user
 
 
@@ -112,11 +129,12 @@ class UpdateUserSerializer(serializers.ModelSerializer):
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
+    receive_offline_alerts = serializers.BooleanField(required=False, write_only=True)
 
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password',
-                  'role', 'is_active', 'location_ids', 'group_ids', 'player_ids']
+                  'role', 'is_active', 'location_ids', 'group_ids', 'player_ids', 'receive_offline_alerts']
 
     def validate_role(self, value):
         _validate_role_escalation(value, self.context)
@@ -166,6 +184,7 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         location_ids = validated_data.pop('location_ids', None)
         group_ids = validated_data.pop('group_ids', None)
         player_ids = validated_data.pop('player_ids', None)
+        receive_offline_alerts = validated_data.pop('receive_offline_alerts', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -179,5 +198,6 @@ class UpdateUserSerializer(serializers.ModelSerializer):
             _assign_role(instance, role)
 
         _set_scope(instance, location_ids, group_ids, player_ids)
+        _set_receive_offline_alerts(instance, receive_offline_alerts)
 
         return instance

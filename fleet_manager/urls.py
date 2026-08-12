@@ -23,6 +23,8 @@ from rest_framework.routers import DefaultRouter
 
 from fleet_manager.permissions import _user_role
 from fleet_manager.system_views import (
+    alert_settings,
+    alert_test_email,
     branding_delete_logo,
     branding_delete_standby,
     branding_push_all,
@@ -148,6 +150,8 @@ urlpatterns = [
     path('api/system/settings/', system_settings),
     path('api/system/telemetry/', system_telemetry),
     path('api/system/tailscale/', tailscale_settings),
+    path('api/system/alerts/', alert_settings),
+    path('api/system/alerts/test/', alert_test_email),
     path('api/system/branding/', branding_settings),
     path('api/system/branding/logo/', branding_upload_logo),
     path('api/system/branding/logo/delete/', branding_delete_logo),

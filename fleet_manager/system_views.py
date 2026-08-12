@@ -354,6 +354,87 @@ def tailscale_settings(request):
     })
 
 
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsSuperAdmin])
+def alert_settings(request):
+    """Get or update device-offline email alert settings.
+
+    SMTP password is write-only — GET reports has_password instead of the
+    actual value, same pattern as Tailscale's authkey.
+    """
+    from fleet_manager.alerts import (
+        ALERTS_ENABLED_KEY, ALERTS_FROM_EMAIL_KEY, ALERTS_SMTP_HOST_KEY,
+        ALERTS_SMTP_PASSWORD_KEY, ALERTS_SMTP_PORT_KEY, ALERTS_SMTP_USE_TLS_KEY,
+        ALERTS_SMTP_USERNAME_KEY, ALERTS_THRESHOLD_MINUTES_KEY, DEFAULT_THRESHOLD_MINUTES,
+    )
+
+    def _current():
+        return {
+            'enabled': cache.get(ALERTS_ENABLED_KEY, False),
+            'threshold_minutes': cache.get(ALERTS_THRESHOLD_MINUTES_KEY, DEFAULT_THRESHOLD_MINUTES),
+            'smtp_host': cache.get(ALERTS_SMTP_HOST_KEY, ''),
+            'smtp_port': cache.get(ALERTS_SMTP_PORT_KEY, 587),
+            'smtp_username': cache.get(ALERTS_SMTP_USERNAME_KEY, ''),
+            'has_password': bool(cache.get(ALERTS_SMTP_PASSWORD_KEY)),
+            'use_tls': cache.get(ALERTS_SMTP_USE_TLS_KEY, True),
+            'from_email': cache.get(ALERTS_FROM_EMAIL_KEY, ''),
+        }
+
+    if request.method == 'GET':
+        return Response(_current())
+
+    data = request.data
+    if 'enabled' in data:
+        cache.set(ALERTS_ENABLED_KEY, bool(data['enabled']), None)
+    if 'threshold_minutes' in data:
+        try:
+            cache.set(ALERTS_THRESHOLD_MINUTES_KEY, max(1, int(data['threshold_minutes'])), None)
+        except (TypeError, ValueError):
+            return Response({'error': 'threshold_minutes must be an integer'}, status=400)
+    if 'smtp_host' in data:
+        cache.set(ALERTS_SMTP_HOST_KEY, data['smtp_host'] or '', None)
+    if 'smtp_port' in data:
+        try:
+            cache.set(ALERTS_SMTP_PORT_KEY, int(data['smtp_port']), None)
+        except (TypeError, ValueError):
+            return Response({'error': 'smtp_port must be an integer'}, status=400)
+    if 'smtp_username' in data:
+        cache.set(ALERTS_SMTP_USERNAME_KEY, data['smtp_username'] or '', None)
+    if 'smtp_password' in data:
+        password = data['smtp_password']
+        if password:
+            encrypted = _get_fernet().encrypt(password.encode()).decode()
+            cache.set(ALERTS_SMTP_PASSWORD_KEY, encrypted, None)
+        else:
+            cache.delete(ALERTS_SMTP_PASSWORD_KEY)
+    if 'use_tls' in data:
+        cache.set(ALERTS_SMTP_USE_TLS_KEY, bool(data['use_tls']), None)
+    if 'from_email' in data:
+        cache.set(ALERTS_FROM_EMAIL_KEY, data['from_email'] or '', None)
+
+    from history.logging import log_action
+    log_action(request, 'update', 'settings', target_name='alerts',
+               details={k: v for k, v in data.items() if k != 'smtp_password'})
+
+    return Response(_current())
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperAdmin])
+def alert_test_email(request):
+    """Send a one-off test email using the currently-saved SMTP settings."""
+    to_email = request.data.get('to_email') or request.user.email
+    if not to_email:
+        return Response({'error': 'No email address to send the test to.'}, status=400)
+
+    from fleet_manager.alerts import send_test_email
+    try:
+        send_test_email(to_email)
+    except Exception as exc:
+        return Response({'success': False, 'error': str(exc)}, status=400)
+    return Response({'success': True})
+
+
 # Fleet-wide custom branding assets, pushed to devices via SSH (players/branding.py).
 # Stored as plain files on the shared media volume — no DB model needed for
 # a couple of fleet-wide assets. Constants live in players.branding; imported

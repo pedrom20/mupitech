@@ -168,6 +168,17 @@ export interface TailscaleSettings {
   status: 'connected' | 'disconnected' | 'not_installed'
 }
 
+export interface AlertSettings {
+  enabled: boolean
+  threshold_minutes: number
+  smtp_host: string
+  smtp_port: number
+  smtp_username: string
+  has_password: boolean
+  use_tls: boolean
+  from_email: string
+}
+
 export interface PlayerUpdateCheckResult {
   current_version: string
   current_sha: string
@@ -222,6 +233,7 @@ export interface User {
   is_active: boolean
   role: UserRole
   scope: UserScope
+  receive_offline_alerts?: boolean
   last_login: string | null
   date_joined: string
 }

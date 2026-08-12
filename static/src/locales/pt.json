@@ -551,6 +551,8 @@
     "delete": "Eliminar",
     "edit": "Editar",
     "close": "Fechar",
+    "yes": "Sim",
+    "no": "Não",
     "loading": "A carregar...",
     "error": "Erro",
     "success": "Sucesso",
@@ -814,6 +816,24 @@
     "saved": "Definições do Tailscale guardadas",
     "saveFailed": "Falha ao guardar as definições do Tailscale"
   },
+  "alerts": {
+    "title": "Alertas por Email",
+    "description": "Envia um email aos administradores quando um dispositivo está offline há mais tempo do que o limite abaixo. Precisa de um servidor SMTP para enviar.",
+    "enable": "Ativar alertas por email",
+    "threshold": "Limite de tempo offline",
+    "thresholdDesc": "Quanto tempo um dispositivo tem de estar offline antes de um alerta ser enviado.",
+    "smtpTitle": "Servidor SMTP",
+    "smtpHost": "Servidor SMTP",
+    "smtpPort": "Porta",
+    "smtpUsername": "Utilizador",
+    "smtpPassword": "Palavra-passe",
+    "passwordSet": "Palavra-passe configurada",
+    "fromEmail": "Endereço de origem",
+    "useTls": "Usar TLS",
+    "sendTest": "Enviar email de teste",
+    "testSent": "Email de teste enviado — verifique a sua caixa de entrada.",
+    "testFailed": "Não foi possível enviar o email de teste. Verifique as definições SMTP."
+  },
   "brandingLibrary": {
     "titleLogo": "Escolher um logótipo",
     "titleStandby": "Escolher uma imagem de repouso",
@@ -924,7 +944,9 @@
     "recentActivity": "Atividade Recente",
     "noActivity": "Sem atividade registada para este utilizador.",
     "loadingActivity": "A carregar atividade...",
-    "viewFullAuditLog": "Ver registo de auditoria completo"
+    "viewFullAuditLog": "Ver registo de auditoria completo",
+    "receiveOfflineAlerts": "Receber emails de alerta de dispositivo offline",
+    "receiveOfflineAlertsHint": "Só se aplica se os alertas por email estiverem ativos globalmente (Definições → Alertas por Email)."
   },
   "audit": {
     "title": "Registo de Auditoria",

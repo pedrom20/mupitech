@@ -26,6 +26,11 @@ class UserAccessScope(models.Model):
     players = models.ManyToManyField(
         'players.Player', blank=True, related_name='scoped_users',
     )
+    receive_offline_alerts = models.BooleanField(
+        default=True,
+        help_text='Whether this user (if admin/superadmin) receives device-offline '
+                   'alert emails. Only relevant if alert emails are enabled system-wide.',
+    )
 
     def __str__(self):
         return f'Access scope for {self.user}'
