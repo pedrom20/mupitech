@@ -46,6 +46,7 @@ import {
   FaCloudUploadAlt,
   FaMapMarkerAlt,
   FaLayerGroup,
+  FaExchangeAlt,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi, groups as groupsApi, locations as locationsApi } from '@/services/api'
@@ -250,6 +251,14 @@ const PlayerDetail: React.FC = () => {
   const [otherPlayers, setOtherPlayers] = useState<Player[]>([])
   const [cloneSourceId, setCloneSourceId] = useState('')
   const [cloningContent, setCloningContent] = useState(false)
+
+  // Replace this device with another (hardware swap) — copies group,
+  // location and content onto the replacement; the old device is left
+  // as-is for the operator to remove/deactivate manually afterwards.
+  const [showReplaceModal, setShowReplaceModal] = useState(false)
+  const [replaceCandidates, setReplaceCandidates] = useState<Player[]>([])
+  const [replaceTargetId, setReplaceTargetId] = useState('')
+  const [replacingDevice, setReplacingDevice] = useState(false)
 
   // Asset preview state
   const [previewAsset, setPreviewAsset] = useState<PlayerAsset | null>(null)
@@ -1320,6 +1329,49 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  const handleOpenReplaceModal = async () => {
+    setShowReplaceModal(true)
+    setReplaceTargetId('')
+    try {
+      const all = await playersApi.list()
+      setReplaceCandidates(all.filter((p) => p.id !== id))
+    } catch {
+      setReplaceCandidates([])
+    }
+  }
+
+  const handleReplaceDevice = async () => {
+    if (!id || !player || !replaceTargetId) return
+    const targetName = replaceCandidates.find((p) => p.id === replaceTargetId)?.name || ''
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: t('players.replaceConfirmTitle'),
+      text: t('players.replaceConfirmText', { name: targetName }),
+      showCancelButton: true,
+      confirmButtonText: t('players.replaceButton'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!result.isConfirmed) return
+    setReplacingDevice(true)
+    try {
+      await playersApi.partialUpdate(replaceTargetId, {
+        group: player.group_detail?.id || player.group?.id || null,
+        location: player.location_detail?.id || player.location || null,
+      } as unknown as Partial<Player>)
+      const cloneResult = await playersApi.cloneContent(replaceTargetId, id)
+      setShowReplaceModal(false)
+      if (cloneResult.failed.length > 0) {
+        showToast('warning', t('players.replaceResultWithFailures', { name: targetName, restored: cloneResult.restored, failed: cloneResult.failed.length }))
+      } else {
+        showToast('success', t('players.replaceResult', { name: targetName, restored: cloneResult.restored }))
+      }
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setReplacingDevice(false)
+    }
+  }
+
   // Open content picker
   const handleOpenContentPicker = async () => {
     setShowContentModal(true)
@@ -1783,6 +1835,15 @@ const PlayerDetail: React.FC = () => {
                 title={t('terminal.title')}
               >
                 <FaTerminalIcon />
+              </button>
+            )}
+            {isAdminRole(role) && (
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={handleOpenReplaceModal}
+                title={t('players.replaceDevice')}
+              >
+                <FaExchangeAlt />
               </button>
             )}
             <button
@@ -2559,6 +2620,37 @@ const PlayerDetail: React.FC = () => {
                 <button type="button" className="fm-btn-primary" onClick={handleCloneContent} disabled={!cloneSourceId || cloningContent}>
                   {cloningContent ? <span className="spinner-border spinner-border-sm me-1" /> : null}
                   {cloningContent ? t('common.loading') : t('assets.cloneButton')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Replace this device with another */}
+      {showReplaceModal && (
+        <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowReplaceModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold text-purple-dark">{t('players.replaceDevice')}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowReplaceModal(false)} aria-label={t('common.close')} />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('players.replaceDesc')}</p>
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('players.replaceTargetDevice')}</label>
+                <select className="form-select form-select-sm" value={replaceTargetId} onChange={e => setReplaceTargetId(e.target.value)}>
+                  <option value="">{t('common.select')}</option>
+                  {replaceCandidates.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowReplaceModal(false)}>{t('common.cancel')}</button>
+                <button type="button" className="fm-btn-primary" onClick={handleReplaceDevice} disabled={!replaceTargetId || replacingDevice}>
+                  {replacingDevice ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                  {replacingDevice ? t('common.loading') : t('players.replaceButton')}
                 </button>
               </div>
             </div>
