@@ -534,6 +534,46 @@ class PlayerViewSet(viewsets.ModelViewSet):
         )
         return Response({'success': True, 'backup_path': result['backup_path']})
 
+    @action(detail=True, methods=['post'], url_path='clone-content')
+    def clone_content(self, request, pk=None):
+        """Copy another device's current asset list onto this one — e.g. a
+        newly-added device in a location that should show the same content
+        as its siblings. Reuses the same snapshot/restore helpers as the
+        image-migration "preserve content" option (players/migrate_image.py),
+        just between two different devices instead of before/after
+        migrating the same one. Both devices need to be online (it works
+        purely over their own v2 REST API, no SSH involved)."""
+        target = self.get_object()
+        source_id = request.data.get('source_player_id')
+        if not source_id:
+            return Response({'error': 'source_player_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if str(source_id) == str(target.id):
+            return Response({'error': 'Source and target must be different devices.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            source = Player.objects.get(pk=source_id)
+        except Player.DoesNotExist:
+            return Response({'error': 'Source device not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from .migrate_image import snapshot_assets, restore_assets
+        snapshot = snapshot_assets(source)
+        if snapshot is None:
+            return Response(
+                {'error': f"Could not read {source.name}'s current content — is it online?"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        if not snapshot:
+            return Response({'success': True, 'restored': 0, 'failed': []})
+
+        restored, failed = restore_assets(target, snapshot)
+
+        from history.logging import log_action
+        log_action(
+            request, 'clone_content', 'player', target_id=target.id, target_name=target.name,
+            details={'source_player_id': str(source.id), 'source_player_name': source.name,
+                     'restored': restored, 'failed': failed},
+        )
+        return Response({'success': True, 'restored': restored, 'failed': failed})
+
     @action(detail=True, methods=['post', 'delete'], url_path='ssh-credentials')
     def ssh_credentials(self, request, pk=None):
         """Save or clear this device's SSH login, used as a fallback for

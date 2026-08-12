@@ -230,6 +230,14 @@ export const players = {
     })
   },
 
+  cloneContent(targetId: string, sourcePlayerId: string): Promise<{
+    success: boolean; restored: number; failed: string[]
+  }> {
+    return apiRequest('POST', `/players/${targetId}/clone-content/`, {
+      source_player_id: sourcePlayerId,
+    })
+  },
+
   saveSshCredentials(id: string, sshUser: string, sshPassword: string, sshPort: number): Promise<{ success: boolean; has_ssh_credentials: boolean; ssh_username: string; ssh_port: number }> {
     return apiRequest('POST', `/players/${id}/ssh-credentials/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,

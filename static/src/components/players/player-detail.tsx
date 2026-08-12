@@ -245,6 +245,12 @@ const PlayerDetail: React.FC = () => {
   const [contentFilterType, setContentFilterType] = useState<'all' | 'video' | 'image' | 'web'>('all')
   const [contentFilterFolder, setContentFilterFolder] = useState<string | null>(null)
 
+  // Clone content from another device
+  const [showCloneModal, setShowCloneModal] = useState(false)
+  const [otherPlayers, setOtherPlayers] = useState<Player[]>([])
+  const [cloneSourceId, setCloneSourceId] = useState('')
+  const [cloningContent, setCloningContent] = useState(false)
+
   // Asset preview state
   const [previewAsset, setPreviewAsset] = useState<PlayerAsset | null>(null)
   const [hoveredAsset, setHoveredAsset] = useState<PlayerAsset | null>(null)
@@ -1274,6 +1280,46 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  const handleOpenCloneModal = async () => {
+    setShowCloneModal(true)
+    setCloneSourceId('')
+    try {
+      const all = await playersApi.list()
+      setOtherPlayers(all.filter((p) => p.id !== id))
+    } catch {
+      setOtherPlayers([])
+    }
+  }
+
+  const handleCloneContent = async () => {
+    if (!id || !cloneSourceId) return
+    const sourceName = otherPlayers.find((p) => p.id === cloneSourceId)?.name || ''
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: t('assets.cloneConfirmTitle'),
+      text: t('assets.cloneConfirmText', { name: sourceName }),
+      showCancelButton: true,
+      confirmButtonText: t('assets.cloneButton'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!result.isConfirmed) return
+    setCloningContent(true)
+    try {
+      const cloneResult = await playersApi.cloneContent(id, cloneSourceId)
+      if (cloneResult.failed.length > 0) {
+        showToast('warning', t('assets.cloneResultWithFailures', { restored: cloneResult.restored, failed: cloneResult.failed.length }))
+      } else {
+        showToast('success', t('assets.cloneResult', { restored: cloneResult.restored }))
+      }
+      setShowCloneModal(false)
+      loadAssets()
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setCloningContent(false)
+    }
+  }
+
   // Open content picker
   const handleOpenContentPicker = async () => {
     setShowContentModal(true)
@@ -1528,6 +1574,17 @@ const PlayerDetail: React.FC = () => {
             >
               <FaTrash className="me-1" />
               {t('assets.deleteSelected', { count: selectedInList.length })}
+            </button>
+          )}
+          {title === t('assets.activeAssets') && (
+            <button
+              className="fm-btn-outline fm-btn-sm"
+              onClick={handleOpenCloneModal}
+              disabled={!player.is_online}
+              title={t('assets.cloneFromDevice')}
+            >
+              <FaCloudUploadAlt className="me-1" />
+              {t('assets.cloneFromDevice')}
             </button>
           )}
           {title === t('assets.activeAssets') && (
@@ -2471,6 +2528,37 @@ const PlayerDetail: React.FC = () => {
                 </button>
                 <button className="btn btn-primary" onClick={handleSaveEdit}>
                   {t('common.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clone content from another device */}
+      {showCloneModal && (
+        <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowCloneModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold text-purple-dark">{t('assets.cloneFromDevice')}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowCloneModal(false)} aria-label={t('common.close')} />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('assets.cloneDesc')}</p>
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('assets.cloneSourceDevice')}</label>
+                <select className="form-select form-select-sm" value={cloneSourceId} onChange={e => setCloneSourceId(e.target.value)}>
+                  <option value="">{t('common.select')}</option>
+                  {otherPlayers.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCloneModal(false)}>{t('common.cancel')}</button>
+                <button type="button" className="fm-btn-primary" onClick={handleCloneContent} disabled={!cloneSourceId || cloningContent}>
+                  {cloningContent ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                  {cloningContent ? t('common.loading') : t('assets.cloneButton')}
                 </button>
               </div>
             </div>

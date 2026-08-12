@@ -212,7 +212,7 @@ def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeou
         ssh.close()
 
 
-def _snapshot_assets(player):
+def snapshot_assets(player):
     """Read the device's current asset list (+ raw file bytes for
     locally-uploaded ones) via its stable v2 REST API, before migrating.
 
@@ -260,7 +260,7 @@ def _snapshot_assets(player):
     return snapshot
 
 
-def _wait_for_player_ready(player, timeout_seconds=90):
+def wait_for_player_ready(player, timeout_seconds=90):
     """Poll the device's own API until it responds again after the compose
     swap restarts its containers, or give up after timeout_seconds."""
     import time as _time
@@ -278,7 +278,7 @@ def _wait_for_player_ready(player, timeout_seconds=90):
     return False
 
 
-def _restore_assets(player, snapshot):
+def restore_assets(player, snapshot):
     """Re-create each snapshotted asset on the device, now running the
     new image. Best-effort per asset — one failure doesn't stop the rest.
     Returns (restored_count, [names_that_failed])."""
@@ -332,7 +332,7 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
     When preserve_content=True, snapshots the device's current asset list
     (+ downloads locally-hosted files) via its REST API before migrating,
     then re-creates them afterwards once the device is back online — see
-    _snapshot_assets/_restore_assets. Best-effort: a failure here doesn't
+    snapshot_assets/restore_assets. Best-effort: a failure here doesn't
     fail the migration itself, it's reported back in the result dict
     (content_restored / content_restore_failed / content_restore_error).
 
@@ -381,7 +381,7 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
         # source is 'fork' or 'official' — treat this as re-provisioning
         # onto our own template, keeping the device's existing bind-mount
         # directories/host user (created by whatever provisioned it before).
-        content_snapshot = _snapshot_assets(player) if preserve_content else None
+        content_snapshot = snapshot_assets(player) if preserve_content else None
 
         layout = _home_layout(player.device_type)
         watchtower_token = 'anthias-player-update'
@@ -438,8 +438,8 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
                     )
                 elif not content_snapshot:
                     result['content_restored'] = 0
-                elif _wait_for_player_ready(player):
-                    restored, failed = _restore_assets(player, content_snapshot)
+                elif wait_for_player_ready(player):
+                    restored, failed = restore_assets(player, content_snapshot)
                     result['content_restored'] = restored
                     if failed:
                         result['content_restore_failed'] = failed
