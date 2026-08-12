@@ -927,7 +927,12 @@
     "restoreConfirmText": "Isto substitui o docker-compose.yml atual pelo backup .bak e reinicia os contentores.",
     "restoreConfirmButton": "Restaurar",
     "restored": "Dispositivo restaurado para a imagem anterior",
-    "restoreFailed": "Falha ao restaurar"
+    "restoreFailed": "Falha ao restaurar",
+    "preserveContent": "Tentar manter o conteúdo atual do dispositivo",
+    "preserveContentHintOn": "Lê a lista de reprodução atual pela própria API do dispositivo antes de migrar, e volta a criá-la depois. Melhor esforço — ficheiros carregados localmente que não seja possível voltar a descarregar são ignorados.",
+    "preserveContentHintOff": "O dispositivo vai ficar sem conteúdo depois de migrar — volte a implementar conteúdo a partir do Fleet Manager depois.",
+    "contentRestoredSummary": "{{restored}} item(ns) restaurado(s)",
+    "contentRestoredSummaryWithFailures": "{{restored}} item(ns) restaurado(s), {{failed}} falhado(s)"
   },
   "users": {
     "title": "Utilizadores",

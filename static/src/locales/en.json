@@ -927,7 +927,12 @@
     "restoreConfirmText": "This replaces the current docker-compose.yml with the .bak backup and restarts the containers.",
     "restoreConfirmButton": "Restore",
     "restored": "Device restored to its previous image",
-    "restoreFailed": "Restore failed"
+    "restoreFailed": "Restore failed",
+    "preserveContent": "Try to keep the device's current content",
+    "preserveContentHintOn": "Reads the current playlist via the device's own API before migrating, and re-creates it afterwards. Best-effort — locally-uploaded files it can't re-download are skipped.",
+    "preserveContentHintOff": "The device will start with no content after migrating — deploy content to it again from Fleet Manager afterwards.",
+    "contentRestoredSummary": "{{restored}} item(s) restored",
+    "contentRestoredSummaryWithFailures": "{{restored}} item(s) restored, {{failed}} failed"
   },
   "users": {
     "title": "Users",

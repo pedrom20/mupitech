@@ -208,6 +208,7 @@ const PlayerDetail: React.FC = () => {
   const [restoringImage, setRestoringImage] = useState(false)
   const [imageSourceError, setImageSourceError] = useState('')
   const [migratingImage, setMigratingImage] = useState(false)
+  const [preserveContent, setPreserveContent] = useState(true)
 
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
@@ -776,8 +777,24 @@ const PlayerDetail: React.FC = () => {
     if (!result.isConfirmed) return
     setMigratingImage(true)
     try {
-      const migrateResult = await playersApi.migrateImage(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials)
-      showToast('success', migrateResult.action === 'migrated' ? t('migrateImage.migrated') : t('migrateImage.updated'))
+      const migrateResult = await playersApi.migrateImage(
+        id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials, preserveContent,
+      )
+      const baseMsg = migrateResult.action === 'migrated' ? t('migrateImage.migrated') : t('migrateImage.updated')
+      if (preserveContent && migrateResult.content_restored != null) {
+        const failedCount = migrateResult.content_restore_failed?.length || 0
+        showToast(
+          failedCount > 0 ? 'warning' : 'success',
+          baseMsg,
+          failedCount > 0
+            ? t('migrateImage.contentRestoredSummaryWithFailures', { restored: migrateResult.content_restored, failed: failedCount })
+            : t('migrateImage.contentRestoredSummary', { restored: migrateResult.content_restored }),
+        )
+      } else if (preserveContent && migrateResult.content_restore_error) {
+        showToast('warning', baseMsg, migrateResult.content_restore_error)
+      } else {
+        showToast('success', baseMsg)
+      }
       setShowMigrateImageModal(false)
       if (saveSshCredentials && player && pushLogoSshPassword) {
         setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
@@ -3509,6 +3526,24 @@ const PlayerDetail: React.FC = () => {
                       {restoringImage ? <span className="spinner-border spinner-border-sm me-1" /> : null}
                       {t('migrateImage.restoreButton')}
                     </button>
+                  </div>
+                )}
+
+                {imageSourceResult?.can_migrate && imageSourceResult.source !== 'mupitech' && (
+                  <div className="form-check mb-2">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="migrate-preserve-content"
+                      checked={preserveContent}
+                      onChange={e => setPreserveContent(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="migrate-preserve-content">
+                      {t('migrateImage.preserveContent')}
+                    </label>
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                      {t(preserveContent ? 'migrateImage.preserveContentHintOn' : 'migrateImage.preserveContentHintOff')}
+                    </div>
                   </div>
                 )}
 

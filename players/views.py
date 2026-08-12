@@ -475,10 +475,13 @@ class PlayerViewSet(viewsets.ModelViewSet):
         ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
         ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
         save_credentials = request.data.get('save_credentials', False)
+        preserve_content = bool(request.data.get('preserve_content', False))
 
         from .migrate_image import MigrationError, migrate_player_to_mupitech_image
         try:
-            result = migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port)
+            result = migrate_player_to_mupitech_image(
+                player, ssh_user, ssh_password, ssh_port, preserve_content=preserve_content,
+            )
         except MigrationError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -494,12 +497,16 @@ class PlayerViewSet(viewsets.ModelViewSet):
             details={
                 'action': result['action'], 'previous_source': result['previous_source'],
                 'previous_image': result['previous_image'],
+                'content_restored': result.get('content_restored'),
             },
         )
         return Response({
             'success': True, 'action': result['action'],
             'previous_source': result['previous_source'], 'previous_image': result['previous_image'],
             'backup_path': result['backup_path'],
+            'content_restored': result.get('content_restored'),
+            'content_restore_failed': result.get('content_restore_failed'),
+            'content_restore_error': result.get('content_restore_error'),
         })
 
     @action(detail=True, methods=['post'], url_path='restore-image')

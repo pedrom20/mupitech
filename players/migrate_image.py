@@ -21,11 +21,14 @@ Extend _MIGRATABLE_DEVICE_TYPES once that's done (see MAINTENANCE.md in
 the mupitech-player fork).
 """
 
+import logging
 from urllib.parse import urlparse
 
 from django.conf import settings
 
 from .provision import _home_layout, _render_compose, _shell_quote, _ssh_run
+
+logger = logging.getLogger(__name__)
 
 IMAGE_SOURCE_MUPITECH = 'mupitech'
 IMAGE_SOURCE_OFFICIAL = 'official'
@@ -209,8 +212,129 @@ def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeou
         ssh.close()
 
 
-def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22, timeout=30):
+def _snapshot_assets(player):
+    """Read the device's current asset list (+ raw file bytes for
+    locally-uploaded ones) via its stable v2 REST API, before migrating.
+
+    Deliberately NOT filesystem/DB-level: the old fork/official image can
+    be a materially different Anthias version, and the v2 asset API is
+    the one thing guaranteed compatible across all of them (migration
+    eligibility already assumes it, via discover_image_source). Returns
+    None (not an empty list) on failure, so callers can tell "nothing to
+    restore" apart from "couldn't read the old assets at all"."""
+    from .services import AnthiasAPIClient
+
+    try:
+        import requests
+        client = AnthiasAPIClient(player)
+        assets = client.get_assets()
+    except Exception:
+        logger.warning('Could not read asset list from %s before migrating.', player.name)
+        return None
+
+    snapshot = []
+    for asset in assets or []:
+        uri = asset.get('uri', '')
+        file_bytes = None
+        if uri and not uri.startswith(('http://', 'https://')):
+            # Locally-hosted on the device — fetch the raw bytes now,
+            # while the pre-migration server can still serve them.
+            try:
+                resp = requests.get(f"{player.get_api_url()}{uri}", timeout=30)
+                resp.raise_for_status()
+                file_bytes = resp.content
+            except Exception:
+                logger.warning('Could not download asset "%s" (%s) from %s.', asset.get('name'), uri, player.name)
+        snapshot.append({
+            'name': asset.get('name', ''),
+            'mimetype': asset.get('mimetype', 'image'),
+            'is_enabled': asset.get('is_enabled', True),
+            'nocache': asset.get('nocache', False),
+            'start_date': asset.get('start_date'),
+            'end_date': asset.get('end_date'),
+            'duration': asset.get('duration', 10),
+            'uri': uri,
+            'ext': asset.get('ext', ''),
+            'file_bytes': file_bytes,
+        })
+    return snapshot
+
+
+def _wait_for_player_ready(player, timeout_seconds=90):
+    """Poll the device's own API until it responds again after the compose
+    swap restarts its containers, or give up after timeout_seconds."""
+    import time as _time
+
+    from .services import AnthiasAPIClient, PlayerConnectionError
+
+    client = AnthiasAPIClient(player)
+    deadline = _time.time() + timeout_seconds
+    while _time.time() < deadline:
+        try:
+            client.get_info()
+            return True
+        except PlayerConnectionError:
+            _time.sleep(5)
+    return False
+
+
+def _restore_assets(player, snapshot):
+    """Re-create each snapshotted asset on the device, now running the
+    new image. Best-effort per asset — one failure doesn't stop the rest.
+    Returns (restored_count, [names_that_failed])."""
+    from io import BytesIO
+
+    from .services import AnthiasAPIClient
+
+    client = AnthiasAPIClient(player)
+    client.timeout = max(client.timeout, 60)
+    restored = 0
+    failed = []
+    for entry in snapshot:
+        name = entry.get('name', '?')
+        try:
+            uri = entry['uri']
+            ext = ''
+            if uri and uri.startswith(('http://', 'https://')):
+                asset_uri = uri
+            elif entry['file_bytes'] is not None:
+                file_obj = BytesIO(entry['file_bytes'])
+                file_obj.name = f"restored{entry['ext'] or ''}"
+                upload_result = client.upload_file(file_obj)
+                asset_uri = upload_result.get('uri', '')
+                ext = upload_result.get('ext', '')
+            else:
+                failed.append(name)
+                continue
+
+            client.create_asset({
+                'name': name,
+                'uri': asset_uri,
+                'ext': ext,
+                'mimetype': entry['mimetype'],
+                'is_enabled': entry['is_enabled'],
+                'nocache': entry['nocache'],
+                'start_date': entry['start_date'],
+                'end_date': entry['end_date'],
+                'duration': entry['duration'],
+                'skip_asset_check': False,
+            })
+            restored += 1
+        except Exception:
+            logger.warning('Could not restore asset "%s" on %s after migration.', name, player.name)
+            failed.append(name)
+    return restored, failed
+
+
+def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22, timeout=30, preserve_content=False):
     """SSH into `player`'s host and move it onto the MupiTech Anthias image.
+
+    When preserve_content=True, snapshots the device's current asset list
+    (+ downloads locally-hosted files) via its REST API before migrating,
+    then re-creates them afterwards once the device is back online — see
+    _snapshot_assets/_restore_assets. Best-effort: a failure here doesn't
+    fail the migration itself, it's reported back in the result dict
+    (content_restored / content_restore_failed / content_restore_error).
 
     Returns a dict describing what happened: {'action': 'updated'|'migrated',
     'previous_source': str, 'previous_image': str, 'backup_path': str|None}.
@@ -257,6 +381,8 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
         # source is 'fork' or 'official' — treat this as re-provisioning
         # onto our own template, keeping the device's existing bind-mount
         # directories/host user (created by whatever provisioned it before).
+        content_snapshot = _snapshot_assets(player) if preserve_content else None
+
         layout = _home_layout(player.device_type)
         watchtower_token = 'anthias-player-update'
         compose_content = _render_compose(
@@ -296,10 +422,34 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
             f'docker compose up -d --remove-orphans 2>&1',
             timeout=300,
         )
-        return {
+        result = {
             'action': 'migrated', 'previous_source': source, 'previous_image': image,
             'backup_path': backup_path, 'output': out[-2000:],
         }
+
+        if preserve_content:
+            # Isolated from the migration's own error handling below — the
+            # compose swap already succeeded at this point, so a restore
+            # failure must not be reported as the whole migration failing.
+            try:
+                if content_snapshot is None:
+                    result['content_restore_error'] = (
+                        "Could not read the device's asset list before migrating — nothing to restore."
+                    )
+                elif not content_snapshot:
+                    result['content_restored'] = 0
+                elif _wait_for_player_ready(player):
+                    restored, failed = _restore_assets(player, content_snapshot)
+                    result['content_restored'] = restored
+                    if failed:
+                        result['content_restore_failed'] = failed
+                else:
+                    result['content_restore_error'] = 'Device did not come back online in time to restore content.'
+            except Exception:
+                logger.exception('Content restore failed after migrating %s.', player.name)
+                result['content_restore_error'] = 'Unexpected error while restoring content.'
+
+        return result
     except MigrationError:
         raise
     except Exception as exc:
