@@ -793,7 +793,7 @@ const GroupList: React.FC = () => {
                           )}
                         </div>
                         <div className="d-flex flex-column gap-1">
-                          <input ref={groupStandbyInputRef} type="file" accept=".png,.jpg,.jpeg" className="d-none" onChange={handleGroupStandbyChange} />
+                          <input ref={groupStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif" className="d-none" onChange={handleGroupStandbyChange} />
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => groupStandbyInputRef.current?.click()} disabled={uploadingGroupStandby} style={{ fontSize: '0.72rem' }}>
                             {t('branding.standbyLabel')}
                           </button>

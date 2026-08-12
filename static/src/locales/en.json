@@ -23,7 +23,9 @@
     "moveGroup": "Move to another location",
     "moveDevice": "Move to another group/location",
     "moveGroupTitle": "Move \"{{name}}\"",
-    "moveDeviceTitle": "Move \"{{name}}\""
+    "moveDeviceTitle": "Move \"{{name}}\"",
+    "matchDestinationContent": "Match content with \"{{name}}\" (already here)",
+    "moveContentMatchFailed": "Moved, but couldn't match the destination's content — try \"Clone from another device\" on the device's own page."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -883,7 +885,8 @@
     "standbyDescription": "Shown whenever a device has nothing scheduled. No default is bundled — upload a plain background here to replace Anthias's own.",
     "upload": "Upload",
     "formatHint": "Only SVG, PNG or JPEG files are supported",
-    "standbyFormatHint": "Only PNG or JPEG files are supported",
+    "standbyFormatHint": "Only PNG, JPEG or GIF files are supported",
+    "standbyGifHint": "An animated GIF plays as-is on the device — no conversion, no extra setup.",
     "confirmDelete": "Revert to the default MupiTech logo?",
     "confirmDeleteStandby": "Remove the custom standby image?",
     "customSet": "Custom image set",

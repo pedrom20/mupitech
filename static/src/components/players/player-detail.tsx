@@ -3347,7 +3347,7 @@ const PlayerDetail: React.FC = () => {
                           )}
                         </div>
                         <div className="d-flex flex-column gap-1">
-                          <input ref={deviceStandbyInputRef} type="file" accept=".png,.jpg,.jpeg" className="d-none" onChange={handleDeviceStandbyChange} />
+                          <input ref={deviceStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif" className="d-none" onChange={handleDeviceStandbyChange} />
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => deviceStandbyInputRef.current?.click()} disabled={uploadingDeviceStandby} style={{ fontSize: '0.72rem' }}>
                             {t('branding.standbyLabel')}
                           </button>

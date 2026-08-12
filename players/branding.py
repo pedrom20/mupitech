@@ -127,20 +127,30 @@ STANDBY_MARGIN_RATIO = 0.2  # 20% padding on each side, so it doesn't bleed to t
 
 
 def convert_to_png(file_obj, add_margin=False, margin_ratio=STANDBY_MARGIN_RATIO):
-    """Convert an uploaded SVG/PNG/JPEG to real PNG bytes.
+    """Convert an uploaded PNG/JPEG/GIF to real image bytes for the
+    standby slot.
 
-    Unlike the logo, standby.png's fixed filename is loaded by the
-    viewer as a plain raster image — serving SVG bytes under a .png
-    name isn't reliable there, so this always rasterizes to real PNG.
+    An animated GIF is passed through unchanged rather than rasterized —
+    the viewer's C++ webview already plays animated GIFs natively via
+    QMovie (anthias_webview/src/view.cpp: tryLoadAsAnimatedGif), decoding
+    by the actual byte signature rather than the file extension, so
+    serving GIF bytes under the fixed standby.png filename/URL still
+    animates correctly on the device (and in a plain browser <img> tag
+    for previews here — same content-sniffing behaviour). The safety-
+    margin treatment below is static-image-only: re-flowing it across
+    every frame of an animated GIF isn't worth the complexity for what's
+    a cosmetic border.
 
-    With add_margin=True (used for the standby image), the picture is
-    scaled down and centered on a black canvas with a safety margin
-    instead of filling every pixel edge-to-edge.
+    Any other upload (including a non-animated/single-frame GIF) is
+    rasterized to a real PNG same as before.
     """
     from PIL import Image
 
     file_obj.seek(0)
     with Image.open(file_obj) as img:
+        if getattr(img, 'is_animated', False):
+            file_obj.seek(0)
+            return file_obj.read()
         if add_margin:
             img = _with_safety_margin(img, margin_ratio)
         buf = _png_bytes(img)
@@ -227,16 +237,17 @@ def save_logo_upload(instance, uploaded_file):
 
 
 def save_standby_upload(instance, uploaded_file):
-    """Save a PNG/JPEG upload as `instance.standby_image` (a Group or
-    Location), always converted to real PNG bytes. Raises ValueError on
-    an unsupported format."""
+    """Save a PNG/JPEG/GIF upload as `instance.standby_image` (a Group or
+    Location) — an animated GIF is kept as-is (see convert_to_png),
+    anything else converted to real PNG bytes. Raises ValueError on an
+    unsupported format."""
     from django.core.files.base import ContentFile
 
     name_lower = uploaded_file.name.lower()
-    if not name_lower.endswith(('.png', '.jpg', '.jpeg')):
-        raise ValueError('Only PNG or JPEG files are supported')
-    png_bytes = convert_to_png(uploaded_file, add_margin=True)
-    instance.standby_image.save('standby.png', ContentFile(png_bytes), save=True)
+    if not name_lower.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+        raise ValueError('Only PNG, JPEG or GIF files are supported')
+    image_bytes = convert_to_png(uploaded_file, add_margin=True)
+    instance.standby_image.save('standby.png', ContentFile(image_bytes), save=True)
 
 
 def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,

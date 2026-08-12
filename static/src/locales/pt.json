@@ -23,7 +23,9 @@
     "moveGroup": "Mover para outra localização",
     "moveDevice": "Mover para outro grupo/localização",
     "moveGroupTitle": "Mover \"{{name}}\"",
-    "moveDeviceTitle": "Mover \"{{name}}\""
+    "moveDeviceTitle": "Mover \"{{name}}\"",
+    "matchDestinationContent": "Igualar conteúdo com \"{{name}}\" (já aqui)",
+    "moveContentMatchFailed": "Movido, mas não foi possível igualar o conteúdo do destino — tente \"Clonar de outro dispositivo\" na própria página do dispositivo."
   },
   "dashboard": {
     "title": "Painel",
@@ -883,7 +885,8 @@
     "standbyDescription": "Mostrada sempre que um dispositivo não tem nada agendado. Não há omissão incluída — carregue aqui um fundo simples para substituir o do Anthias.",
     "upload": "Carregar",
     "formatHint": "Só são suportados ficheiros SVG, PNG ou JPEG",
-    "standbyFormatHint": "Só são suportados ficheiros PNG ou JPEG",
+    "standbyFormatHint": "Só são suportados ficheiros PNG, JPEG ou GIF",
+    "standbyGifHint": "Um GIF animado reproduz tal como está no dispositivo — sem conversão, sem configuração extra.",
     "confirmDelete": "Reverter para o logótipo MupiTech por omissão?",
     "confirmDeleteStandby": "Remover a imagem de repouso personalizada?",
     "customSet": "Imagem personalizada definida",

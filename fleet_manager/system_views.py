@@ -569,28 +569,32 @@ def branding_delete_logo(request):
 @api_view(['POST'])
 @permission_classes([IsAdmin])
 def branding_upload_standby(request):
-    """Upload the fleet-wide "no content" standby image (PNG or JPEG).
+    """Upload the fleet-wide "no content" standby image (PNG, JPEG or an
+    animated GIF).
 
-    Always converted to real PNG bytes at the fixed standby.png path the
-    device expects. SVG isn't accepted here (unlike the logo) — Pillow
-    can't rasterize vectors, and standby.png is loaded by the viewer as
-    a plain raster image, not through a browser that could render one.
+    A static image is always converted to real PNG bytes at the fixed
+    standby.png path the device expects; an animated GIF is kept as-is
+    (see players.branding.convert_to_png — the viewer's webview plays
+    GIFs natively, decoding by content rather than the .png filename).
+    SVG isn't accepted here (unlike the logo) — Pillow can't rasterize
+    vectors, and standby.png is loaded by the viewer as a plain raster
+    image, not through a browser that could render one.
     """
     image = request.FILES.get('standby')
     if not image:
         return Response({'error': 'standby file is required'}, status=400)
 
     name_lower = image.name.lower()
-    if not name_lower.endswith(('.png', '.jpg', '.jpeg')):
-        return Response({'error': 'Only PNG or JPEG files are supported'}, status=400)
+    if not name_lower.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+        return Response({'error': 'Only PNG, JPEG or GIF files are supported'}, status=400)
 
     os.makedirs(BRANDING_DIR, exist_ok=True)
     try:
-        png_bytes = convert_to_png(image, add_margin=True)
+        image_bytes = convert_to_png(image, add_margin=True)
     except Exception as exc:
         return Response({'error': f'Could not process image: {exc}'}, status=400)
     with open(_branding_standby_path(), 'wb') as f:
-        f.write(png_bytes)
+        f.write(image_bytes)
 
     from history.logging import log_action
     log_action(request, 'upload', 'branding_standby')

@@ -50,6 +50,7 @@ const FleetOverview: React.FC = () => {
   const [moveDevice, setMoveDevice] = useState<Player | null>(null)
   const [moveDeviceGroupId, setMoveDeviceGroupId] = useState('')
   const [moveDeviceLocationId, setMoveDeviceLocationId] = useState('')
+  const [matchDestinationContent, setMatchDestinationContent] = useState(false)
   const [savingMoveDevice, setSavingMoveDevice] = useState(false)
 
   useEffect(() => {
@@ -157,6 +158,21 @@ const FleetOverview: React.FC = () => {
     setMoveDevice(player)
     setMoveDeviceGroupId(player.group_detail?.id || player.group?.id || '')
     setMoveDeviceLocationId(player.location_detail?.id || player.location || '')
+    setMatchDestinationContent(false)
+  }
+
+  // A device already at the destination group (or, lacking a group,
+  // the destination location) — used as the content source when the
+  // user asks to match what's already showing there.
+  const findDestinationSibling = (): Player | null => {
+    if (!moveDevice) return null
+    if (moveDeviceGroupId) {
+      return players.find((p) => p.id !== moveDevice.id && (p.group_detail?.id || p.group?.id) === moveDeviceGroupId) || null
+    }
+    if (moveDeviceLocationId) {
+      return players.find((p) => p.id !== moveDevice.id && !p.group && (p.location_detail?.id || p.location) === moveDeviceLocationId) || null
+    }
+    return null
   }
 
   const handleSaveMoveDevice = async () => {
@@ -167,6 +183,20 @@ const FleetOverview: React.FC = () => {
         group: moveDeviceGroupId || null,
         location: moveDeviceLocationId || null,
       } as unknown as Partial<Player>)
+
+      if (matchDestinationContent) {
+        const sibling = findDestinationSibling()
+        if (sibling) {
+          try {
+            await playersApi.cloneContent(moveDevice.id, sibling.id)
+          } catch {
+            // Non-fatal — the move itself already succeeded; surfaced
+            // via a separate toast so it doesn't look like the move failed.
+            showToast('warning', t('fleetOverview.moveContentMatchFailed'))
+          }
+        }
+      }
+
       dispatch(fetchPlayers())
       setExpandedGroups((prev) => (moveDeviceGroupId ? new Set(prev).add(moveDeviceGroupId) : prev))
       setExpandedLocations((prev) => new Set(prev).add(moveDeviceLocationId || NO_LOCATION))
@@ -491,6 +521,20 @@ const FleetOverview: React.FC = () => {
                     <small className="text-muted">{t('players.locationFromGroupHint')}</small>
                   )}
                 </div>
+                {findDestinationSibling() && (
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="move-match-content"
+                      checked={matchDestinationContent}
+                      onChange={(e) => setMatchDestinationContent(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="move-match-content">
+                      {t('fleetOverview.matchDestinationContent', { name: findDestinationSibling()?.name })}
+                    </label>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setMoveDevice(null)}>{t('common.cancel')}</button>

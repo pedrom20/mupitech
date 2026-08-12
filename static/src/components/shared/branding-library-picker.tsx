@@ -96,7 +96,7 @@ const BrandingLibraryPicker: React.FC<BrandingLibraryPickerProps> = ({ kind, sho
             <input
               ref={fileInputRef}
               type="file"
-              accept={kind === 'logo' ? '.svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg' : '.png,image/png,.jpg,.jpeg,image/jpeg'}
+              accept={kind === 'logo' ? '.svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg' : '.png,image/png,.jpg,.jpeg,image/jpeg,.gif,image/gif'}
               className="d-none"
               onChange={handleUploadNew}
             />

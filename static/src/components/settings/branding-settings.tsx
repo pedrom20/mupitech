@@ -107,7 +107,7 @@ const BrandingSettings: React.FC = () => {
     const file = e.target.files?.[0]
     if (!file) return
     const name = file.name.toLowerCase()
-    if (!name.endsWith('.png') && !name.endsWith('.jpg') && !name.endsWith('.jpeg')) {
+    if (!name.endsWith('.png') && !name.endsWith('.jpg') && !name.endsWith('.jpeg') && !name.endsWith('.gif')) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: t('branding.standbyFormatHint') })
       return
     }
@@ -236,7 +236,8 @@ const BrandingSettings: React.FC = () => {
             {/* Standby image (no content playing) */}
             <div>
               <label className="form-label fw-semibold mb-2" style={{ fontSize: '0.85rem' }}>{t('branding.standbyLabel')}</label>
-              <p className="text-muted mb-2" style={{ fontSize: '0.78rem' }}>{t('branding.standbyDescription')}</p>
+              <p className="text-muted mb-1" style={{ fontSize: '0.78rem' }}>{t('branding.standbyDescription')}</p>
+              <p className="text-muted mb-2" style={{ fontSize: '0.72rem' }}>{t('branding.standbyGifHint')}</p>
               <div className="d-flex align-items-center gap-3">
                 <div
                   className="border rounded d-flex align-items-center justify-content-center p-2"
@@ -253,7 +254,7 @@ const BrandingSettings: React.FC = () => {
                   <input
                     ref={standbyInputRef}
                     type="file"
-                    accept=".png,image/png,.jpg,.jpeg,image/jpeg"
+                    accept=".png,image/png,.jpg,.jpeg,image/jpeg,.gif,image/gif"
                     className="d-none"
                     onChange={handleStandbyChange}
                   />

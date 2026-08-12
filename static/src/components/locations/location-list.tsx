@@ -475,7 +475,7 @@ const LocationList: React.FC = () => {
                           )}
                         </div>
                         <div className="d-flex flex-column gap-1">
-                          <input ref={locationStandbyInputRef} type="file" accept=".png,.jpg,.jpeg" className="d-none" onChange={handleLocationStandbyChange} />
+                          <input ref={locationStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif" className="d-none" onChange={handleLocationStandbyChange} />
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => locationStandbyInputRef.current?.click()} disabled={uploadingLocationStandby} style={{ fontSize: '0.72rem' }}>
                             {t('branding.standbyLabel')}
                           </button>
