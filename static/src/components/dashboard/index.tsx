@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="row g-3 mb-4 align-items-start">
-        <div className="col-lg-5 d-flex">
+        <div className="col-lg-6 d-flex">
           <div className="d-flex flex-column gap-3 flex-grow-1">
             <StatusGauge online={stats.online} total={stats.total} onClick={() => navigate('/players')} />
             <div className="row g-3 flex-grow-1 align-content-stretch">
@@ -98,7 +98,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="col-lg-7">
+        <div className="col-lg-6">
           <ServerTelemetryCard />
         </div>
       </div>

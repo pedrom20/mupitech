@@ -53,24 +53,16 @@ const StatusGauge: React.FC<StatusGaugeProps> = ({ online, total, onClick }) => 
         )}
         <text
           x="50%"
-          y="47%"
+          y="50%"
           textAnchor="middle"
-          dominantBaseline="middle"
-          style={{ fontSize: '1.3rem', fontWeight: 700, fill: 'var(--fm-stat-gauge-text, #2b1c48)' }}
+          dominantBaseline="central"
+          style={{ fontSize: '1.5rem', fontWeight: 700, fill: 'var(--fm-stat-gauge-text, #2b1c48)' }}
         >
           {total}
         </text>
-        <text
-          x="50%"
-          y="66%"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          style={{ fontSize: '0.5rem', fill: 'var(--fm-stat-gauge-subtext, #999)', textTransform: 'uppercase', letterSpacing: '0.03em' }}
-        >
-          {t('dashboard.totalPlayers')}
-        </text>
       </svg>
       <div className="stat-content">
+        <div className="stat-label mb-1">{t('dashboard.totalPlayers')}</div>
         <div className="d-flex align-items-center gap-1" style={{ fontSize: '0.85rem' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#28a745', flexShrink: 0 }} />
           <span className="fw-semibold">{online}</span>
