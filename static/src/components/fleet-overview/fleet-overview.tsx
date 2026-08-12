@@ -194,8 +194,8 @@ const FleetOverview: React.FC = () => {
     return (
       <div key={group.id} className="border rounded mb-2">
         <div
-          className="d-flex align-items-center gap-2 p-2"
-          style={{ cursor: 'pointer', background: 'var(--bs-tertiary-bg, #f8f9fa)' }}
+          className="d-flex align-items-center gap-2 p-2 flex-wrap"
+          style={{ cursor: 'pointer', background: 'var(--bs-tertiary-bg, #f8f9fa)', rowGap: '0.5rem' }}
           onClick={() => toggleGroup(group.id)}
         >
           {isExpanded ? <FaChevronDown style={{ fontSize: '0.75rem' }} /> : <FaChevronRight style={{ fontSize: '0.75rem' }} />}

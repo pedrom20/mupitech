@@ -278,6 +278,11 @@ body {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid $gray-200;
+    // Button clusters (page/card action rows commonly render several
+    // icon buttons here) need to drop to a second line on narrow
+    // screens instead of overflowing the card horizontally.
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
 
     .card-title {
       font-size: $font-size-lg;
@@ -290,6 +295,7 @@ body {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      flex-wrap: wrap;
     }
   }
 
