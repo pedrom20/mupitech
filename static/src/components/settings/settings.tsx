@@ -6,7 +6,7 @@ import Swal from 'sweetalert2'
 import { pushLanguageToPlayers, system } from '@/services/api'
 import type { TailscaleSettings } from '@/types'
 import { APP_VERSION } from '../../changelog'
-import { RoleContext, isAdminRole, isSuperAdminRole } from '@/components/app'
+import { RoleContext, ThemeContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
 import BrandingSettings from './branding-settings'
 import AlertSettings from './alert-settings'
@@ -17,14 +17,12 @@ const UPDATE_TIMEOUT = 120000 // 120s
 const Settings: React.FC = () => {
   const { t, i18n } = useTranslation()
   const role = useContext(RoleContext)
+  const { pref: theme, setPref: setTheme } = useContext(ThemeContext)
 
   const [pollInterval, setPollInterval] = useState(
     localStorage.getItem('fm_poll_interval') || '60',
   )
   const [language, setLanguage] = useState(i18n.language)
-  const [theme, setTheme] = useState(
-    localStorage.getItem('fm_theme') || 'light',
-  )
   const [serverUrl, setServerUrl] = useState(window.location.origin)
   const [copied, setCopied] = useState(false)
   const [activeSettingsTab, setActiveSettingsTab] = useState('general')
@@ -88,10 +86,6 @@ const Settings: React.FC = () => {
   useEffect(() => {
     return () => stopPolling()
   }, [stopPolling])
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-bs-theme', theme)
-  }, [theme])
 
   useEffect(() => {
     system.getVersion().then((res) => {
@@ -189,7 +183,6 @@ const Settings: React.FC = () => {
 
   const handleSave = () => {
     localStorage.setItem('fm_poll_interval', pollInterval)
-    localStorage.setItem('fm_theme', theme)
 
     if (language !== i18n.language) {
       i18n.changeLanguage(language)
@@ -332,7 +325,7 @@ const Settings: React.FC = () => {
                 <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
                   {t('settings.theme')}
                 </label>
-                <div className="d-flex gap-3">
+                <div className="d-flex gap-3 flex-wrap">
                   <div className="form-check">
                     <input
                       className="form-check-input"
@@ -341,7 +334,7 @@ const Settings: React.FC = () => {
                       id="theme-light"
                       value="light"
                       checked={theme === 'light'}
-                      onChange={(e) => setTheme(e.target.value)}
+                      onChange={() => setTheme('light')}
                     />
                     <label className="form-check-label" htmlFor="theme-light">
                       {t('settings.lightTheme')}
@@ -355,10 +348,24 @@ const Settings: React.FC = () => {
                       id="theme-dark"
                       value="dark"
                       checked={theme === 'dark'}
-                      onChange={(e) => setTheme(e.target.value)}
+                      onChange={() => setTheme('dark')}
                     />
                     <label className="form-check-label" htmlFor="theme-dark">
                       {t('settings.darkTheme')}
+                    </label>
+                  </div>
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="theme"
+                      id="theme-system"
+                      value="system"
+                      checked={theme === 'system'}
+                      onChange={() => setTheme('system')}
+                    />
+                    <label className="form-check-label" htmlFor="theme-system">
+                      {t('settings.systemTheme')}
                     </label>
                   </div>
                 </div>

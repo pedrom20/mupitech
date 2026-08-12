@@ -384,6 +384,7 @@
     "theme": "Tema",
     "lightTheme": "Claro",
     "darkTheme": "Escuro",
+    "systemTheme": "Seguir o sistema",
     "saved": "Definições guardadas",
     "autoRegistration": "Registo Automático",
     "autoRegistrationDesc": "Execute este comando num dispositivo para ativar o registo automático no Fleet Manager.",

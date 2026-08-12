@@ -384,6 +384,7 @@
     "theme": "Theme",
     "lightTheme": "Light",
     "darkTheme": "Dark",
+    "systemTheme": "Follow system",
     "saved": "Settings saved",
     "autoRegistration": "Auto-Registration",
     "autoRegistrationDesc": "Run this command on a player to enable automatic registration with Fleet Manager.",

@@ -24,6 +24,7 @@ import Login from '@/components/auth/login'
 import ChangelogPage from '@/components/changelog-page'
 import { users as usersApi } from '@/services/api'
 import { FeaturesProvider } from '@/context/features-context'
+import { applyTheme, watchSystemTheme, type ThemePreference } from '@/utils/theme'
 import type { User } from '@/types'
 
 export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin' | null
@@ -50,8 +51,19 @@ export const AuthContext = createContext<AuthContextValue>({
   clear: () => {},
 })
 
+interface ThemeContextValue {
+  pref: ThemePreference
+  setPref: (pref: ThemePreference) => void
+}
+
+export const ThemeContext = createContext<ThemeContextValue>({
+  pref: 'light',
+  setPref: () => {},
+})
+
 const RETRO_STORAGE_KEY = 'fm_retro_theme'
 const DOS_STORAGE_KEY = 'fm_dos_theme'
+const THEME_STORAGE_KEY = 'fm_theme'
 
 const App: React.FC = () => {
   const { i18n, t } = useTranslation()
@@ -62,6 +74,17 @@ const App: React.FC = () => {
   // Plays the typing boot banner whenever the DOS theme is (re)activated —
   // both on toggle and on a fresh page load while it was already on.
   const [showDosBoot, setShowDosBoot] = useState(() => localStorage.getItem(DOS_STORAGE_KEY) === '1')
+  const [themePref, setThemePref] = useState<ThemePreference>(
+    () => (localStorage.getItem(THEME_STORAGE_KEY) as ThemePreference) || 'light',
+  )
+
+  // Owned here (not in Settings) so the saved/system theme applies on
+  // every page load, not only once the user has visited Settings.
+  useEffect(() => {
+    applyTheme(themePref)
+    localStorage.setItem(THEME_STORAGE_KEY, themePref)
+    return watchSystemTheme(themePref, () => applyTheme(themePref))
+  }, [themePref])
 
   useEffect(() => {
     document.documentElement.lang = i18n.language
@@ -142,6 +165,7 @@ const App: React.FC = () => {
   return (
     <AuthContext.Provider value={{ user, checked, refresh, clear }}>
       <RoleContext.Provider value={user?.role ?? null}>
+        <ThemeContext.Provider value={{ pref: themePref, setPref: setThemePref }}>
         <FeaturesProvider>
           {dosTheme && showDosBoot && (
             <DosBootOverlay onDone={() => setShowDosBoot(false)} />
@@ -187,6 +211,7 @@ const App: React.FC = () => {
             </button>
           )}
         </FeaturesProvider>
+        </ThemeContext.Provider>
       </RoleContext.Provider>
     </AuthContext.Provider>
   )
