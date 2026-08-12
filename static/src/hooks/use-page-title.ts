@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 const ROUTE_TITLE_KEYS: [string, string][] = [
+  ['/fleet', 'nav.fleetOverview'],
   ['/players/', 'nav.players'],
   ['/players', 'nav.players'],
   ['/groups', 'nav.groups'],

@@ -9,7 +9,17 @@
     "content": "Content",
     "history": "History",
     "settings": "Settings",
-    "audit": "Audit Log"
+    "audit": "Audit Log",
+    "fleetOverview": "Overview"
+  },
+  "fleetOverview": {
+    "title": "Fleet Overview",
+    "description": "Locations, their groups, and devices — all in one place. Click a device to open its details, or the edit icon on a location/group to manage it.",
+    "noLocation": "No location",
+    "editLocation": "Manage locations",
+    "editGroup": "Manage groups",
+    "noDevices": "No devices in this group",
+    "empty": "Nothing here yet"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -9,7 +9,17 @@
     "content": "Conteúdo",
     "history": "Histórico",
     "settings": "Definições",
-    "audit": "Registo de Auditoria"
+    "audit": "Registo de Auditoria",
+    "fleetOverview": "Visão Geral"
+  },
+  "fleetOverview": {
+    "title": "Visão Geral do Parque",
+    "description": "Localizações, os seus grupos e dispositivos — tudo num só lugar. Clique num dispositivo para abrir os seus detalhes, ou no ícone de editar de uma localização/grupo para o gerir.",
+    "noLocation": "Sem localização",
+    "editLocation": "Gerir localizações",
+    "editGroup": "Gerir grupos",
+    "noDevices": "Sem dispositivos neste grupo",
+    "empty": "Ainda sem nada aqui"
   },
   "dashboard": {
     "title": "Painel",

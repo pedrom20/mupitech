@@ -11,6 +11,7 @@ import DosBootOverlay from '@/components/dos-boot-overlay'
 import Dashboard from '@/components/dashboard/index'
 import PlayerList from '@/components/players/player-list'
 import PlayerDetail from '@/components/players/player-detail'
+import FleetOverview from '@/components/fleet-overview/fleet-overview'
 import GroupList from '@/components/groups/group-list'
 import LocationList from '@/components/locations/location-list'
 import PlaylistList from '@/components/playlists/playlist-list'
@@ -149,6 +150,7 @@ const App: React.FC = () => {
           <main className="fm-content">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/fleet" element={<FleetOverview />} />
               <Route path="/players" element={<PlayerList />} />
               <Route path="/players/:id" element={<PlayerDetail />} />
               <Route path="/groups" element={<GroupList />} />

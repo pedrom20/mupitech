@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi } from '@/services/api'
 import { RoleContext, AuthContext, isAdminRole } from '@/components/app'
 import { useTapTrigger } from '@/hooks/use-tap-trigger'
 
-const FLEET_ROUTES = ['/players', '/groups', '/locations']
+const FLEET_ROUTES = ['/fleet', '/players', '/groups', '/locations']
 
 const FleetMenu: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
   const { t } = useTranslation()
@@ -28,6 +28,7 @@ const FleetMenu: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
   }, [])
 
   const items = [
+    { to: '/fleet', icon: <FaSitemap className="nav-icon" />, label: t('nav.fleetOverview') },
     { to: '/players', icon: <FaDesktop className="nav-icon" />, label: t('nav.players') },
     { to: '/groups', icon: <FaLayerGroup className="nav-icon" />, label: t('nav.groups') },
     { to: '/locations', icon: <FaMapMarkerAlt className="nav-icon" />, label: t('nav.locations') },
