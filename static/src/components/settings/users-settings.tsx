@@ -1,16 +1,43 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa'
+import { Link } from 'react-router-dom'
+import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes, FaEye, FaMapMarkerAlt, FaLayerGroup, FaDesktop } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { users as usersApi, locations as locationsApi, groups as groupsApi, players as playersApi } from '@/services/api'
+import { users as usersApi, locations as locationsApi, groups as groupsApi, players as playersApi, audit as auditApi } from '@/services/api'
 import { RoleContext, AuthContext, isSuperAdminRole } from '@/components/app'
-import type { User, UserRole, Location, Group, Player } from '@/types'
+import type { User, UserRole, Location, Group, Player, AuditLogEntry } from '@/types'
 
 const ROLE_BADGE: Record<UserRole, string> = {
   superadmin: 'bg-dark',
   admin: 'bg-danger',
   editor: 'bg-primary',
   viewer: 'bg-secondary',
+}
+
+const ACTION_COLORS: Record<string, string> = {
+  create: 'bg-success',
+  upload: 'bg-success',
+  update: 'bg-primary',
+  update_item: 'bg-primary',
+  delete: 'bg-danger',
+  deactivate: 'bg-danger',
+  login: 'bg-info',
+  login_failed: 'bg-warning text-dark',
+  logout: 'bg-secondary',
+  reboot: 'bg-warning text-dark',
+  shutdown: 'bg-warning text-dark',
+  deploy: 'bg-info',
+  add_item: 'bg-success',
+  remove_item: 'bg-danger',
+  start: 'bg-success',
+  stop: 'bg-danger',
+  trigger_update: 'bg-info',
+  cec_standby: 'bg-secondary',
+  cec_wake: 'bg-info',
+  provision: 'bg-purple',
+  bulk_provision: 'bg-purple',
+  bulk_reboot: 'bg-warning text-dark',
+  bulk_shutdown: 'bg-warning text-dark',
 }
 
 const UsersSettings: React.FC = () => {
@@ -21,6 +48,9 @@ const UsersSettings: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
+  const [viewUser, setViewUser] = useState<User | null>(null)
+  const [viewActivity, setViewActivity] = useState<AuditLogEntry[]>([])
+  const [viewActivityLoading, setViewActivityLoading] = useState(false)
 
   // Form state
   const [username, setUsername] = useState('')
@@ -84,6 +114,21 @@ const UsersSettings: React.FC = () => {
     setScopeGroupIds(u.scope?.group_ids || [])
     setScopePlayerIds(u.scope?.player_ids || [])
     setShowModal(true)
+  }
+
+  const openView = (u: User) => {
+    setViewUser(u)
+    setViewActivity([])
+    setViewActivityLoading(true)
+    auditApi.list({ user: String(u.id), page_size: 10 })
+      .then((res) => setViewActivity(res.results))
+      .catch(() => {})
+      .finally(() => setViewActivityLoading(false))
+  }
+
+  const closeView = () => {
+    setViewUser(null)
+    setViewActivity([])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -188,6 +233,9 @@ const UsersSettings: React.FC = () => {
                       {u.last_login ? new Date(u.last_login).toLocaleString() : '—'}
                     </td>
                     <td>
+                      <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => openView(u)} title={t('users.viewDetails')}>
+                        <FaEye />
+                      </button>
                       <button className="btn btn-sm btn-outline-primary me-1" onClick={() => openEdit(u)} title={t('common.edit')}>
                         <FaEdit />
                       </button>
@@ -345,6 +393,133 @@ const UsersSettings: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Read-only detail view */}
+      {viewUser && (
+        <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header py-2">
+                <h5 className="modal-title">{t('users.userDetails')}</h5>
+                <button type="button" className="btn-close" onClick={closeView} />
+              </div>
+              <div className="modal-body">
+                <div className="d-flex justify-content-between align-items-start mb-3">
+                  <div>
+                    <h5 className="mb-1">
+                      {(viewUser.first_name || viewUser.last_name)
+                        ? `${viewUser.first_name} ${viewUser.last_name}`.trim()
+                        : viewUser.username}
+                    </h5>
+                    <div className="text-muted" style={{ fontSize: '0.85rem' }}>@{viewUser.username}</div>
+                  </div>
+                  <div className="text-end">
+                    <div className="mb-1">
+                      <span className={`badge ${ROLE_BADGE[viewUser.role] || 'bg-secondary'}`}>
+                        {t(`users.role_${viewUser.role}`)}
+                      </span>
+                    </div>
+                    <span className={`badge ${viewUser.is_active ? 'bg-success' : 'bg-dark'}`}>
+                      {viewUser.is_active ? t('users.active') : t('users.inactive')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="row g-2 mb-3">
+                  <div className="col-sm-6">
+                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.email')}</div>
+                    <div>{viewUser.email || '—'}</div>
+                  </div>
+                  <div className="col-sm-6">
+                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.lastLogin')}</div>
+                    <div>{viewUser.last_login ? new Date(viewUser.last_login).toLocaleString() : t('users.neverLoggedIn')}</div>
+                  </div>
+                  <div className="col-sm-6">
+                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.dateJoined')}</div>
+                    <div>{new Date(viewUser.date_joined).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <hr />
+                <h6 className="mb-2">{t('users.accessScope')}</h6>
+                {(() => {
+                  const locIds = viewUser.scope?.location_ids || []
+                  const grpIds = viewUser.scope?.group_ids || []
+                  const plrIds = viewUser.scope?.player_ids || []
+                  const hasScope = locIds.length > 0 || grpIds.length > 0 || plrIds.length > 0
+                  if (!hasScope) {
+                    return <span className="badge bg-light text-muted border">{t('users.fullAccess')}</span>
+                  }
+                  const locNames = locIds.map((id) => allLocations.find((l) => l.id === id)?.name || id)
+                  const grpNames = grpIds.map((id) => allGroups.find((g) => g.id === id)?.name || id)
+                  const plrNames = plrIds.map((id) => allPlayers.find((p) => p.id === id)?.name || id)
+                  return (
+                    <div className="d-flex flex-wrap gap-1">
+                      {locNames.map((n, i) => (
+                        <span key={`l-${i}`} className="badge bg-info text-dark"><FaMapMarkerAlt className="me-1" />{n}</span>
+                      ))}
+                      {grpNames.map((n, i) => (
+                        <span key={`g-${i}`} className="badge bg-primary"><FaLayerGroup className="me-1" />{n}</span>
+                      ))}
+                      {plrNames.map((n, i) => (
+                        <span key={`p-${i}`} className="badge bg-secondary"><FaDesktop className="me-1" />{n}</span>
+                      ))}
+                    </div>
+                  )
+                })()}
+
+                <hr />
+                <h6 className="mb-2">{t('users.recentActivity')}</h6>
+                {viewActivityLoading ? (
+                  <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('users.loadingActivity')}</p>
+                ) : viewActivity.length === 0 ? (
+                  <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('users.noActivity')}</p>
+                ) : (
+                  <div className="table-responsive">
+                    <table className="table table-sm fm-table mb-0">
+                      <thead>
+                        <tr>
+                          <th>{t('audit.time')}</th>
+                          <th>{t('audit.action')}</th>
+                          <th>{t('audit.target')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewActivity.map((e) => (
+                          <tr key={e.id}>
+                            <td style={{ fontSize: '0.8rem' }}>{new Date(e.timestamp).toLocaleString()}</td>
+                            <td><span className={`badge ${ACTION_COLORS[e.action] || 'bg-secondary'}`}>{e.action}</span></td>
+                            <td className="text-truncate" style={{ maxWidth: '200px', fontSize: '0.85rem' }}>
+                              {e.target_name || e.target_id || '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div className="text-end mt-2">
+                  <Link to="/audit" className="fm-btn-outline btn-sm" onClick={closeView}>
+                    {t('users.viewFullAuditLog')}
+                  </Link>
+                </div>
+              </div>
+              <div className="modal-footer py-2">
+                <button type="button" className="btn btn-sm btn-secondary" onClick={closeView}>
+                  <FaTimes /> {t('common.close')}
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn-primary btn-sm"
+                  onClick={() => { const u = viewUser; closeView(); if (u) openEdit(u) }}
+                >
+                  <FaEdit /> {t('common.edit')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

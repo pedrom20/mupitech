@@ -58,6 +58,7 @@ const DosBootOverlay: React.FC<DosBootOverlayProps> = ({ onDone }) => {
 
   return (
     <div
+      className="fm-dos-boot-overlay"
       style={{
         position: 'fixed',
         inset: 0,

@@ -9,14 +9,14 @@
 // [data-dos-theme="true"].
 // =============================================================================
 
-$dos-bg: #0c0c0c;
+$dos-bg: #000000; // truly black, not near-black — real terminal background
 $dos-fg: #d4d4d4; // default body text — light gray, not green, so it's actually readable
 $dos-green: #4ec9b0; // headings, active nav, focus rings, signature accent
-$dos-green-dim: #2d6a5f;
+$dos-green-dim: #4a9d8c; // brightened — the old #2d6a5f nearly disappeared against black
 $dos-cyan: #569cd6; // links, secondary info
 $dos-yellow: #dcdcaa; // warnings
 $dos-red: #f44747; // errors / danger
-$dos-border: #3c3c3c; // neutral structural borders (cards/tables/inputs)
+$dos-border: #565656; // brightened — neutral structural borders (cards/tables/inputs), needs to actually read against pure black
 
 // Approximates the terminal-accent tint on a black/white icon glyph —
 // react-icons render with fill="currentColor" so `color` below already
@@ -215,7 +215,7 @@ $dos-border: #3c3c3c; // neutral structural borders (cards/tables/inputs)
     }
 
     &::placeholder {
-      color: #6a6a6a !important;
+      color: #7d7d7d !important;
     }
   }
 
@@ -261,4 +261,13 @@ $dos-border: #3c3c3c; // neutral structural borders (cards/tables/inputs)
   border: 1px solid #4ec9b0;
   cursor: pointer;
   animation: dos-cursor-blink 1s steps(1) infinite !important;
+}
+
+// The boot overlay renders under [data-dos-theme='true'], whose universal
+// `* { background-color: transparent !important }` rule (same specificity
+// as a single class) was winning by source order and making the boot
+// screen see-through to the page underneath. Scope by the theme attribute
+// too so this rule is unambiguously more specific and always wins.
+[data-dos-theme='true'] .fm-dos-boot-overlay {
+  background: $dos-bg !important;
 }

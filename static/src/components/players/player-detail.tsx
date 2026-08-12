@@ -44,13 +44,15 @@ import {
   FaPowerOff,
   FaListUl,
   FaCloudUploadAlt,
+  FaMapMarkerAlt,
+  FaLayerGroup,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi } from '@/services/api'
+import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi, groups as groupsApi, locations as locationsApi } from '@/services/api'
 import { translateApiError } from '@/utils/translateError'
 import { showToast } from '@/utils/toast'
 import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
-import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus } from '@/types'
+import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus, Group, Location } from '@/types'
 import PlayerTerminal from './player-terminal'
 import { RoleContext, isAdminRole } from '@/components/app'
 
@@ -265,10 +267,19 @@ const PlayerDetail: React.FC = () => {
   // Player settings modal state — unified with the branding push modal
   // (splash logo/standby/theme) as tabs of the same dialog.
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [settingsActiveTab, setSettingsActiveTab] = useState<'general' | 'branding'>('general')
+  const [settingsActiveTab, setSettingsActiveTab] = useState<'general' | 'location' | 'branding'>('general')
   const [_deviceSettings, setDeviceSettings] = useState<Record<string, unknown> | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [settingsSaving, setSettingsSaving] = useState(false)
+  // General settings (audio/duration/schedule/etc.) live on the device
+  // itself, fetched over its API — unavailable while offline. The
+  // Location tab below doesn't need this: group/location are plain
+  // Fleet Manager fields, so they stay editable even offline.
+  const [generalSettingsError, setGeneralSettingsError] = useState(false)
+  const [allGroups, setAllGroups] = useState<Group[]>([])
+  const [allLocations, setAllLocations] = useState<Location[]>([])
+  const [locationForm, setLocationForm] = useState({ group: '', location: '' })
+  const [savingLocation, setSavingLocation] = useState(false)
   const [settingsForm, setSettingsForm] = useState({
     player_name: '',
     default_duration: '',
@@ -419,6 +430,11 @@ const PlayerDetail: React.FC = () => {
     }
     loadPlayer()
   }, [id, t])
+
+  useEffect(() => {
+    groupsApi.list().then(setAllGroups).catch(() => {})
+    locationsApi.list().then(setAllLocations).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!id || !player) return
@@ -1097,11 +1113,16 @@ const PlayerDetail: React.FC = () => {
   }
 
   // Open player settings modal
-  const handleOpenSettings = async (tab: 'general' | 'branding' = 'general') => {
+  const handleOpenSettings = async (tab: 'general' | 'location' | 'branding' = 'general') => {
     if (!id) return
     setShowSettingsModal(true)
     setSettingsActiveTab(tab)
     setSettingsLoading(true)
+    setGeneralSettingsError(false)
+    setLocationForm({
+      group: player?.group_detail?.id || '',
+      location: player?.location_detail?.id || player?.location || '',
+    })
     // Branding tab state — initialized alongside the general tab (not
     // only when it's clicked) since both now live in one modal.
     setSaveSshCredentials(false)
@@ -1163,8 +1184,11 @@ const PlayerDetail: React.FC = () => {
       // Fetch IR hardware status
       playersApi.getIrStatus(id).then(setIrStatus).catch(() => setIrStatus(null))
     } catch {
-      Swal.fire({ icon: 'error', title: t('common.error'), text: t('playerSettings.loadError') })
-      setShowSettingsModal(false)
+      // Live device settings need the device to answer over its own API —
+      // unavailable while offline. Don't close the whole modal for that:
+      // the Location tab (group/location) is a Fleet Manager-only field
+      // and stays usable regardless. Just flag the General tab as unavailable.
+      setGeneralSettingsError(true)
     } finally {
       setSettingsLoading(false)
     }
@@ -1210,6 +1234,26 @@ const PlayerDetail: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('playerSettings.saveError') })
     } finally {
       setSettingsSaving(false)
+    }
+  }
+
+  // Save group/location assignment — a plain Fleet Manager field, not a
+  // device-side setting, so it works even while the player is offline.
+  const handleSaveLocation = async () => {
+    if (!id) return
+    setSavingLocation(true)
+    try {
+      const updated = await playersApi.partialUpdate(id, {
+        group: locationForm.group || null,
+        location: locationForm.location || null,
+      } as unknown as Partial<Player>)
+      setPlayer(updated)
+      setShowSettingsModal(false)
+      showToast('success', t('playerSettings.saveSuccess'))
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: translateApiError(String(err), t) })
+    } finally {
+      setSavingLocation(false)
     }
   }
 
@@ -1636,8 +1680,7 @@ const PlayerDetail: React.FC = () => {
           <div className="d-flex gap-2">
             <button
               className="fm-btn-outline fm-btn-sm"
-              onClick={() => handleOpenSettings('general')}
-              disabled={!player.is_online}
+              onClick={() => handleOpenSettings(player.is_online ? 'general' : 'location')}
               title={t('playerSettings.title')}
             >
               <FaCog />
@@ -2728,6 +2771,16 @@ const PlayerDetail: React.FC = () => {
                     {t('playerSettings.tabGeneral')}
                   </button>
                 </li>
+                <li className="nav-item">
+                  <button
+                    type="button"
+                    className={`nav-link ${settingsActiveTab === 'location' ? 'active' : ''}`}
+                    onClick={() => setSettingsActiveTab('location')}
+                  >
+                    <FaMapMarkerAlt className="me-1" />
+                    {t('playerSettings.tabLocation')}
+                  </button>
+                </li>
                 {isAdminRole(role) && (
                   <li className="nav-item">
                     <button
@@ -2747,6 +2800,11 @@ const PlayerDetail: React.FC = () => {
                     <div className="spinner-border" />
                   </div>
                 ) : settingsActiveTab === 'general' ? (
+                  generalSettingsError ? (
+                    <div className="alert alert-warning py-2 px-2 mb-0" style={{ fontSize: '0.85rem' }}>
+                      {t('playerSettings.offlineError')}
+                    </div>
+                  ) : (
                   <div className="row g-4">
                   <div className="col-lg-6">
                     {/* Player Name */}
@@ -3096,6 +3154,49 @@ const PlayerDetail: React.FC = () => {
                     </div>
                   </div>
                   </div>
+                  )
+                ) : settingsActiveTab === 'location' ? (
+                  <div>
+                    <p className="text-muted mb-3" style={{ fontSize: '0.85rem' }}>
+                      {t('playerSettings.locationHint')}
+                    </p>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                        <FaLayerGroup className="me-1" />
+                        {t('players.group')}
+                      </label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={locationForm.group}
+                        onChange={e => setLocationForm({ ...locationForm, group: e.target.value })}
+                      >
+                        <option value="">{t('players.noGroup')}</option>
+                        {allGroups.map(g => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mb-2">
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                        <FaMapMarkerAlt className="me-1" />
+                        {t('players.location')}
+                      </label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={locationForm.location}
+                        onChange={e => setLocationForm({ ...locationForm, location: e.target.value })}
+                        disabled={!!allGroups.find(g => g.id === locationForm.group)?.location}
+                      >
+                        <option value="">{t('players.noLocation')}</option>
+                        {allLocations.map(l => (
+                          <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
+                      </select>
+                      {!!allGroups.find(g => g.id === locationForm.group)?.location && (
+                        <small className="text-muted">{t('players.locationFromGroupHint')}</small>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div>
                 <div className="border rounded p-2 mb-3">
@@ -3274,9 +3375,20 @@ const PlayerDetail: React.FC = () => {
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={handleSaveSettings}
-                    disabled={settingsSaving || settingsLoading}
+                    disabled={settingsSaving || settingsLoading || generalSettingsError}
                   >
                     {settingsSaving ? (
+                      <span className="spinner-border spinner-border-sm me-1" />
+                    ) : null}
+                    {t('playerSettings.save')}
+                  </button>
+                ) : settingsActiveTab === 'location' ? (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveLocation}
+                    disabled={savingLocation}
+                  >
+                    {savingLocation ? (
                       <span className="spinner-border spinner-border-sm me-1" />
                     ) : null}
                     {t('playerSettings.save')}

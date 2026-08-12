@@ -67,6 +67,7 @@
     "location": "Location",
     "noLocation": "No location",
     "locationFromGroupHint": "This device's group already has its own location — that one is used instead of this one.",
+    "groupLocationManagedElsewhere": "Group and location are managed from this device's own page (Settings → Location & Group).",
     "orientation": "Orientation",
     "orientationPortrait": "Portrait",
     "orientationLandscape": "Landscape",
@@ -494,7 +495,10 @@
   "playerSettings": {
     "title": "Player Settings",
     "tabGeneral": "General",
+    "tabLocation": "Location & Group",
     "tabBranding": "Branding",
+    "locationHint": "Assign this device to a group and/or location. This is a Fleet Manager setting only — it works even while the device is offline.",
+    "offlineError": "Couldn't reach the device to load its live settings. It may be offline. Its Location & Group can still be changed from the tab above.",
     "playerName": "Player Name",
     "defaultDuration": "Default Duration",
     "defaultStreamingDuration": "Default Streaming Duration",
@@ -905,7 +909,18 @@
     "access": "Access",
     "fullAccess": "Full access",
     "restrictedAccess": "Restricted ({{count}})",
-    "scopeHint": "Optionally restrict this user to specific locations, groups or devices. Leave everything empty for full access. A location grants its groups and devices; a group grants its devices."
+    "scopeHint": "Optionally restrict this user to specific locations, groups or devices. Leave everything empty for full access. A location grants its groups and devices; a group grants its devices.",
+    "viewDetails": "View details",
+    "userDetails": "User Details",
+    "status": "Status",
+    "active": "Active",
+    "dateJoined": "Member Since",
+    "neverLoggedIn": "Never logged in",
+    "accessScope": "Access Scope",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recorded activity for this user.",
+    "loadingActivity": "Loading activity...",
+    "viewFullAuditLog": "View full audit log"
   },
   "audit": {
     "title": "Audit Log",

@@ -67,6 +67,7 @@
     "location": "Localização",
     "noLocation": "Sem localização",
     "locationFromGroupHint": "O grupo deste dispositivo já tem uma localização própria — essa é usada em vez desta.",
+    "groupLocationManagedElsewhere": "O grupo e a localização são geridos na própria página do dispositivo (Definições → Localização & Grupo).",
     "orientation": "Orientação",
     "orientationPortrait": "Vertical",
     "orientationLandscape": "Horizontal",
@@ -494,7 +495,10 @@
   "playerSettings": {
     "title": "Definições do Dispositivo",
     "tabGeneral": "Geral",
+    "tabLocation": "Localização & Grupo",
     "tabBranding": "Marca",
+    "locationHint": "Atribua este dispositivo a um grupo e/ou localização. Isto é apenas uma definição do Fleet Manager — funciona mesmo com o dispositivo offline.",
+    "offlineError": "Não foi possível contactar o dispositivo para carregar as suas definições em tempo real. Pode estar offline. A Localização & Grupo continuam editáveis no separador acima.",
     "playerName": "Nome do Dispositivo",
     "defaultDuration": "Duração Padrão",
     "defaultStreamingDuration": "Duração Padrão de Transmissão",
@@ -905,7 +909,18 @@
     "access": "Acesso",
     "fullAccess": "Acesso total",
     "restrictedAccess": "Restrito ({{count}})",
-    "scopeHint": "Opcionalmente, restrinja este utilizador a localizações, grupos ou dispositivos específicos. Deixe tudo vazio para acesso total. Uma localização dá acesso aos seus grupos e dispositivos; um grupo dá acesso aos seus dispositivos."
+    "scopeHint": "Opcionalmente, restrinja este utilizador a localizações, grupos ou dispositivos específicos. Deixe tudo vazio para acesso total. Uma localização dá acesso aos seus grupos e dispositivos; um grupo dá acesso aos seus dispositivos.",
+    "viewDetails": "Ver detalhes",
+    "userDetails": "Detalhes do Utilizador",
+    "status": "Estado",
+    "active": "Ativo",
+    "dateJoined": "Membro Desde",
+    "neverLoggedIn": "Nunca entrou",
+    "accessScope": "Âmbito de Acesso",
+    "recentActivity": "Atividade Recente",
+    "noActivity": "Sem atividade registada para este utilizador.",
+    "loadingActivity": "A carregar atividade...",
+    "viewFullAuditLog": "Ver registo de auditoria completo"
   },
   "audit": {
     "title": "Registo de Auditoria",

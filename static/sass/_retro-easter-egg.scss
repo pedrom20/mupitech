@@ -278,20 +278,23 @@ html[data-retro-theme='true']::after {
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  opacity: 0.06;
-  mix-blend-mode: overlay;
+  opacity: 0.18;
+  // mix-blend-mode: overlay was averaging almost invisibly against light
+  // backgrounds (overlay's blend math nearly cancels out on backdrops
+  // brighter than 50% gray) — normal blending at a slightly higher
+  // opacity actually reads as a CRT effect instead of doing nothing.
   background-image:
     repeating-linear-gradient(
       rgba(0, 0, 0, 0) 0px,
       rgba(0, 0, 0, 0) 2px,
-      rgba(0, 0, 0, 0.5) 3px
+      rgba(0, 0, 0, 0.65) 3px
     ),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   animation: retro-static-flicker 0.2s steps(2) infinite;
 }
 
 @keyframes retro-static-flicker {
-  0% { transform: translate(0, 0); opacity: 0.05; }
-  50% { transform: translate(-1%, 1%); opacity: 0.08; }
-  100% { transform: translate(1%, -1%); opacity: 0.05; }
+  0% { transform: translate(0, 0); opacity: 0.14; }
+  50% { transform: translate(-1%, 1%); opacity: 0.22; }
+  100% { transform: translate(1%, -1%); opacity: 0.14; }
 }

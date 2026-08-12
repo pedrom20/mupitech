@@ -74,8 +74,14 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onCl
       name,
       url,
       username,
-      group: groupId || null,
-      location: locationId || null,
+    }
+    // Group/location are only set here on creation — for an existing
+    // device they're managed from its own details page (Location & Group
+    // tab of the settings modal) so there's a single place that edits
+    // them, instead of two forms silently able to disagree.
+    if (!isEditing) {
+      data.group = groupId || null
+      data.location = locationId || null
     }
 
     if (password) {
@@ -137,45 +143,53 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onCl
           />
         </div>
 
-        <div className="mb-3">
-          <label className="form-label fw-semibold">
-            {t('players.group')}
-          </label>
-          <select
-            className="form-select"
-            value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
-          >
-            <option value="">{t('players.noGroup')}</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {isEditing ? (
+          <div className="mb-3">
+            <small className="text-muted">{t('players.groupLocationManagedElsewhere')}</small>
+          </div>
+        ) : (
+          <>
+            <div className="mb-3">
+              <label className="form-label fw-semibold">
+                {t('players.group')}
+              </label>
+              <select
+                className="form-select"
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value)}
+              >
+                <option value="">{t('players.noGroup')}</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="mb-3">
-          <label className="form-label fw-semibold">
-            {t('players.location')}
-          </label>
-          <select
-            className="form-select"
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-            disabled={groupHasLocation}
-          >
-            <option value="">{t('players.noLocation')}</option>
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.name}
-              </option>
-            ))}
-          </select>
-          {groupHasLocation && (
-            <small className="text-muted">{t('players.locationFromGroupHint')}</small>
-          )}
-        </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold">
+                {t('players.location')}
+              </label>
+              <select
+                className="form-select"
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                disabled={groupHasLocation}
+              >
+                <option value="">{t('players.noLocation')}</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+              {groupHasLocation && (
+                <small className="text-muted">{t('players.locationFromGroupHint')}</small>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="mb-3">
           <label className="form-label fw-semibold">
