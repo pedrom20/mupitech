@@ -137,8 +137,26 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/project:ro
 
+  # Local mirror of the MupiTech player images (server/viewer/redis, per
+  # architecture) — lets devices on a LAN with slow/no internet pull from
+  # here instead of GHCR. Opt-in: only starts with `--profile registry`,
+  # and only useful once enabled + synced from Settings > Registry Mirror.
+  # Plain HTTP (no TLS) — devices need `insecure-registries` set for this
+  # host, which the Fleet Manager configures automatically during
+  # provisioning when the mirror is enabled.
+  registry:
+    image: registry:2
+    restart: unless-stopped
+    ports:
+      - "${REGISTRY_PORT:-5050}:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+    profiles:
+      - registry
+
 volumes:
   postgres_data:
   static_files:
   deploy_files:
   media_files:
+  registry_data:

@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, User, AuditLogResponse, BulkProvisionTask } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -658,6 +658,22 @@ export const system = {
 
   sendTestAlertEmail(toEmail?: string): Promise<{ success: boolean; error?: string }> {
     return apiRequest('POST', '/system/alerts/test/', toEmail ? { to_email: toEmail } : {})
+  },
+
+  getRegistryMirror(): Promise<RegistryMirrorSettings> {
+    return apiRequest<RegistryMirrorSettings>('GET', '/system/registry/')
+  },
+
+  updateRegistryMirror(data: { enabled?: boolean; host?: string }): Promise<RegistryMirrorSettings> {
+    return apiRequest<RegistryMirrorSettings>('PATCH', '/system/registry/', data)
+  },
+
+  syncRegistryMirror(): Promise<{ success?: boolean; error?: string }> {
+    return apiRequest('POST', '/system/registry/sync/')
+  },
+
+  getRegistryMirrorSyncStatus(): Promise<RegistryMirrorSyncStatus> {
+    return apiRequest<RegistryMirrorSyncStatus>('GET', '/system/registry/sync-status/')
   },
 
   getTelemetry(): Promise<ServerTelemetry> {

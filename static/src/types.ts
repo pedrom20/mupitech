@@ -179,6 +179,26 @@ export interface AlertSettings {
   from_email: string
 }
 
+export interface RegistryMirrorSettings {
+  enabled: boolean
+  host: string
+  last_sync: string | null
+}
+
+export interface RegistryMirrorImageStatus {
+  name: string
+  source: string
+  target: string
+  status: 'pulling' | 'pushing' | 'done' | 'failed'
+  error?: string
+}
+
+export interface RegistryMirrorSyncStatus {
+  state: 'idle' | 'running' | 'success' | 'failed'
+  message: string
+  images: RegistryMirrorImageStatus[]
+}
+
 export interface PlayerUpdateCheckResult {
   current_version: string
   current_sha: string

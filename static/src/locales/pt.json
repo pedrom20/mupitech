@@ -843,6 +843,20 @@
     "testSent": "Email de teste enviado — verifique a sua caixa de entrada.",
     "testFailed": "Não foi possível enviar o email de teste. Verifique as definições SMTP."
   },
+  "registryMirror": {
+    "title": "Registo Espelho",
+    "description": "Espelha as imagens do player MupiTech (server/viewer/redis, todas as arquiteturas) para um registo Docker local, para que dispositivos novos nesta rede façam pull daqui em vez da internet. Os dispositivos precisam do Docker configurado para confiar neste registo — feito automaticamente durante o provisionamento assim que ativado.",
+    "enable": "Ativar registo espelho local",
+    "host": "Servidor:porta do registo",
+    "hostDesc": "Endereço que os dispositivos nesta rede conseguem alcançar — normalmente o IP local deste servidor e a porta publicada do registo (por defeito 5050).",
+    "syncNow": "Sincronizar agora",
+    "syncing": "A sincronizar...",
+    "lastSync": "Última sincronização",
+    "status_pulling": "A obter...",
+    "status_pushing": "A enviar...",
+    "status_done": "Concluído",
+    "status_failed": "Falhou"
+  },
   "brandingLibrary": {
     "titleLogo": "Escolher um logótipo",
     "titleStandby": "Escolher uma imagem de repouso",

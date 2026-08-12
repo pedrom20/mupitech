@@ -194,3 +194,14 @@ def check_offline_players():
     for player in players_to_alert:
         player.last_offline_alert_at = now
     Player.objects.bulk_update(players_to_alert, ['last_offline_alert_at'])
+
+
+@shared_task(bind=True, max_retries=0, time_limit=1800, soft_time_limit=1700)
+def sync_local_registry(self):
+    """Pull/tag/push the MupiTech player images into the local registry
+    mirror (players/provision.py uses it for newly-provisioned devices
+    once enabled). Can take a while — several GB across 9 images — hence
+    the generous time limit. Triggered manually from Settings, not
+    scheduled periodically."""
+    from fleet_manager.registry_mirror import mirror_all_images
+    mirror_all_images()

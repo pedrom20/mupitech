@@ -435,6 +435,60 @@ def alert_test_email(request):
     return Response({'success': True})
 
 
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsSuperAdmin])
+def registry_settings(request):
+    """Get or update the local Docker registry mirror config (enable +
+    host:port). Superadmin only, same tier as Tailscale/Alerts — this
+    changes what devices pull their images from."""
+    from fleet_manager.registry_mirror import (
+        REGISTRY_ENABLED_KEY, REGISTRY_HOST_KEY, get_registry_settings,
+    )
+
+    if request.method == 'GET':
+        return Response(get_registry_settings())
+
+    data = request.data
+    if 'enabled' in data:
+        cache.set(REGISTRY_ENABLED_KEY, bool(data['enabled']), None)
+    if 'host' in data:
+        cache.set(REGISTRY_HOST_KEY, (data['host'] or '').strip(), None)
+
+    from history.logging import log_action
+    log_action(request, 'update', 'settings', target_name='registry_mirror', details=dict(data))
+
+    return Response(get_registry_settings())
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperAdmin])
+def registry_sync(request):
+    """Trigger the local registry mirror sync in the background."""
+    from fleet_manager.registry_mirror import get_registry_settings, get_sync_status
+    conf = get_registry_settings()
+    if not conf['enabled'] or not conf['host']:
+        return Response({'error': 'Enable the mirror and set a host first.'}, status=400)
+
+    status_now = get_sync_status()
+    if status_now['state'] == 'running':
+        return Response({'error': 'A sync is already running.'}, status=409)
+
+    from players.tasks import sync_local_registry
+    sync_local_registry.delay()
+
+    from history.logging import log_action
+    log_action(request, 'sync_registry', 'system')
+
+    return Response({'success': True})
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperAdmin])
+def registry_sync_status(request):
+    from fleet_manager.registry_mirror import get_sync_status
+    return Response(get_sync_status())
+
+
 # Fleet-wide custom branding assets, pushed to devices via SSH (players/branding.py).
 # Stored as plain files on the shared media volume — no DB model needed for
 # a couple of fleet-wide assets. Constants live in players.branding; imported

@@ -10,6 +10,7 @@ import { RoleContext, ThemeContext, isAdminRole, isSuperAdminRole } from '@/comp
 import UsersSettings from './users-settings'
 import BrandingSettings from './branding-settings'
 import AlertSettings from './alert-settings'
+import RegistrySettings from './registry-settings'
 
 const UPDATE_POLL_INTERVAL = 5000 // 5s
 const UPDATE_TIMEOUT = 120000 // 120s
@@ -250,6 +251,15 @@ const Settings: React.FC = () => {
               onClick={() => setActiveSettingsTab('alerts')}
             >
               {t('alerts.title')}
+            </button>
+          )}
+          {isSuperAdminRole(role) && (
+            <button
+              type="button"
+              className={`btn btn-sm text-start ${activeSettingsTab === 'registry' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveSettingsTab('registry')}
+            >
+              {t('registryMirror.title')}
             </button>
           )}
           {isAdminRole(role) && (
@@ -610,6 +620,10 @@ const Settings: React.FC = () => {
 
         {activeSettingsTab === 'alerts' && isSuperAdminRole(role) && (
           <AlertSettings />
+        )}
+
+        {activeSettingsTab === 'registry' && isSuperAdminRole(role) && (
+          <RegistrySettings />
         )}
 
         {activeSettingsTab === 'branding' && isAdminRole(role) && (

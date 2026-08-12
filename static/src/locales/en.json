@@ -843,6 +843,20 @@
     "testSent": "Test email sent — check your inbox.",
     "testFailed": "Could not send the test email. Check the SMTP settings."
   },
+  "registryMirror": {
+    "title": "Registry Mirror",
+    "description": "Mirror the MupiTech player images (server/viewer/redis, all architectures) to a local Docker registry, so newly-provisioned devices on this network pull from here instead of the internet. Devices need Docker configured to trust this registry — done automatically during provisioning once enabled.",
+    "enable": "Enable local registry mirror",
+    "host": "Registry host:port",
+    "hostDesc": "Address devices on this network can reach — usually this server's LAN IP and the published registry port (default 5050).",
+    "syncNow": "Sync now",
+    "syncing": "Syncing...",
+    "lastSync": "Last synced",
+    "status_pulling": "Pulling...",
+    "status_pushing": "Pushing...",
+    "status_done": "Done",
+    "status_failed": "Failed"
+  },
   "brandingLibrary": {
     "titleLogo": "Choose a logo",
     "titleStandby": "Choose a standby image",

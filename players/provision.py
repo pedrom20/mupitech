@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import socket
@@ -182,8 +183,14 @@ def _prepare_player_directories(ssh, home, ssh_user, device_type, sudo_password,
     return layout
 
 
-def _render_compose(ip_address, ssh_user, watchtower_token, mac_address='', device_type='pi4'):
-    """Render docker-compose template with variables."""
+def _render_compose(ip_address, ssh_user, watchtower_token, mac_address='', device_type='pi4', registry_override=None):
+    """Render docker-compose template with variables.
+
+    registry_override, when given, replaces the GHCR registry path with
+    the local mirror's (see fleet_manager/registry_mirror.py) — used
+    when the local registry mirror is enabled, so newly-provisioned
+    devices pull from the LAN instead of the internet.
+    """
     template_name, tag_suffix_setting, registry_setting = _COMPOSE_TEMPLATE_BY_DEVICE_TYPE.get(
         device_type, ('docker-compose-player.yml', 'ANTHIAS_IMAGE_TAG_SUFFIX_PI4', 'ANTHIAS_IMAGE_REGISTRY'),
     )
@@ -192,12 +199,13 @@ def _render_compose(ip_address, ssh_user, watchtower_token, mac_address='', devi
     )
     with open(template_path) as f:
         template = Template(f.read())
+    registry = registry_override or getattr(settings, registry_setting)
     return template.safe_substitute(
         PI_IP=ip_address,
         PI_USER=ssh_user,
         WATCHTOWER_TOKEN=watchtower_token,
         MAC_ADDRESS=mac_address,
-        ANTHIAS_REGISTRY=getattr(settings, registry_setting),
+        ANTHIAS_REGISTRY=registry,
         ANTHIAS_TAG_SUFFIX=getattr(settings, tag_suffix_setting),
     )
 
@@ -337,6 +345,9 @@ try:
             _append_log(task, f'Device type: {device_type} ({model_str})')
             _update_step(task, 1, 'ssh_connect', 'success', f'Connected ({arch}, {device_type})')
 
+            from fleet_manager.registry_mirror import get_registry_settings, local_image_ref
+            registry_conf = get_registry_settings()
+
             # Step 2: Prerequisites check
             task = ProvisionTask.objects.get(id=task_id)
             if task.status == 'failed':
@@ -447,6 +458,16 @@ try:
                         time.sleep(5)
                 _append_log(task, 'SSH reconnected.')
 
+            if registry_conf['enabled'] and registry_conf['host']:
+                _append_log(task, f"Trusting local registry mirror {registry_conf['host']} (insecure-registries)...")
+                daemon_config = json.dumps({'insecure-registries': [registry_conf['host']]})
+                _ssh_run(
+                    ssh, f'echo {_shell_quote(daemon_config)} | sudo tee /etc/docker/daemon.json > /dev/null',
+                    sudo_password=ssh_password, timeout=15, check=False,
+                )
+                _ssh_run(ssh, 'sudo systemctl restart docker', sudo_password=ssh_password, timeout=30, check=False)
+                time.sleep(3)
+
             _update_step(task, 3, 'install_docker', 'success', 'Docker installed')
 
             # Step 4: Create directories
@@ -479,7 +500,16 @@ try:
                 timeout=5, check=False,
             )
             host_mac = host_mac.strip()
-            compose_content = _render_compose(task.ip_address, task.ssh_user, watchtower_token, host_mac, device_type)
+            registry_override = None
+            if registry_conf['enabled'] and registry_conf['host']:
+                source_registry = getattr(
+                    settings,
+                    _COMPOSE_TEMPLATE_BY_DEVICE_TYPE.get(device_type, (None, None, 'ANTHIAS_IMAGE_REGISTRY'))[2],
+                )
+                registry_override = local_image_ref(registry_conf['host'], source_registry)
+            compose_content = _render_compose(
+                task.ip_address, task.ssh_user, watchtower_token, host_mac, device_type, registry_override,
+            )
             sftp = ssh.open_sftp()
             compose_dir = f'{home}/{layout["project_dir"]}'
             compose_path = f'{compose_dir}/docker-compose.yml'
