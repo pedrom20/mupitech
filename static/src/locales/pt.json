@@ -19,7 +19,11 @@
     "editLocation": "Gerir localizações",
     "editGroup": "Gerir grupos",
     "noDevices": "Sem dispositivos neste grupo",
-    "empty": "Ainda sem nada aqui"
+    "empty": "Ainda sem nada aqui",
+    "moveGroup": "Mover para outra localização",
+    "moveDevice": "Mover para outro grupo/localização",
+    "moveGroupTitle": "Mover \"{{name}}\"",
+    "moveDeviceTitle": "Mover \"{{name}}\""
   },
   "dashboard": {
     "title": "Painel",

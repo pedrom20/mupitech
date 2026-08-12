@@ -19,7 +19,11 @@
     "editLocation": "Manage locations",
     "editGroup": "Manage groups",
     "noDevices": "No devices in this group",
-    "empty": "Nothing here yet"
+    "empty": "Nothing here yet",
+    "moveGroup": "Move to another location",
+    "moveDevice": "Move to another group/location",
+    "moveGroupTitle": "Move \"{{name}}\"",
+    "moveDeviceTitle": "Move \"{{name}}\""
   },
   "dashboard": {
     "title": "Dashboard",
