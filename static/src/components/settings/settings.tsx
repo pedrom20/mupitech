@@ -26,6 +26,7 @@ const Settings: React.FC = () => {
   )
   const [serverUrl, setServerUrl] = useState(window.location.origin)
   const [copied, setCopied] = useState(false)
+  const [activeSettingsTab, setActiveSettingsTab] = useState('general')
 
   // Update section state
   const [buildDate, setBuildDate] = useState('')
@@ -216,9 +217,71 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      <div className="row g-3">
-        {/* General Settings */}
-        <div className="col-lg-6">
+      <div className="d-flex flex-column flex-md-row gap-3">
+        <div className="fm-settings-nav d-flex flex-row flex-md-column gap-1 flex-wrap">
+          <button
+            type="button"
+            className={`btn btn-sm text-start ${activeSettingsTab === 'general' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+            onClick={() => setActiveSettingsTab('general')}
+          >
+            {t('settings.general')}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm text-start ${activeSettingsTab === 'registration' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+            onClick={() => setActiveSettingsTab('registration')}
+          >
+            {t('settings.autoRegistration')}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm text-start ${activeSettingsTab === 'updates' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+            onClick={() => setActiveSettingsTab('updates')}
+          >
+            {t('updates.title')}
+          </button>
+          {isSuperAdminRole(role) && (
+            <button
+              type="button"
+              className={`btn btn-sm text-start ${activeSettingsTab === 'tailscale' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveSettingsTab('tailscale')}
+            >
+              {t('tailscale.title')}
+            </button>
+          )}
+          {isAdminRole(role) && (
+            <button
+              type="button"
+              className={`btn btn-sm text-start ${activeSettingsTab === 'branding' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveSettingsTab('branding')}
+            >
+              {t('branding.title')}
+            </button>
+          )}
+          {isAdminRole(role) && (
+            <button
+              type="button"
+              className={`btn btn-sm text-start ${activeSettingsTab === 'users' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveSettingsTab('users')}
+            >
+              {t('users.title')}
+            </button>
+          )}
+          {isAdminRole(role) && (
+            <button
+              type="button"
+              className={`btn btn-sm text-start ${activeSettingsTab === 'audit' ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveSettingsTab('audit')}
+            >
+              {t('audit.title')}
+            </button>
+          )}
+        </div>
+
+        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+        {activeSettingsTab === 'general' && (
+        <div className="row g-3">
+        <div className="col-12">
           <div className="fm-card fm-card-accent h-100">
             <div className="fm-card-header py-2">
               <h5 className="card-title mb-0">{t('settings.general')}</h5>
@@ -298,9 +361,13 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
+        )}
 
+        {activeSettingsTab === 'registration' && (
+        <div className="row g-3">
         {/* Auto-Registration */}
-        <div className="col-lg-6">
+        <div className="col-12">
           <div className="fm-card fm-card-accent h-100">
             <div className="fm-card-header py-2">
               <h5 className="card-title mb-0">{t('settings.autoRegistration')}</h5>
@@ -347,10 +414,13 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
+        )}
 
         {/* Tailscale VPN — superadmin only */}
-        {isSuperAdminRole(role) && (
-        <div className="col-lg-6">
+        {activeSettingsTab === 'tailscale' && isSuperAdminRole(role) && (
+        <div className="row g-3">
+        <div className="col-12">
           <div className="fm-card fm-card-accent h-100">
             <div className="fm-card-header py-2">
               <h5 className="card-title mb-0">
@@ -437,10 +507,13 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
         )}
 
+        {activeSettingsTab === 'updates' && (
+        <div className="row g-3">
         {/* Updates */}
-        <div className="col-lg-6">
+        <div className="col-12">
           <div className="fm-card fm-card-accent h-100">
             <div className="fm-card-header py-2">
               <h5 className="card-title mb-0">{t('updates.title')}</h5>
@@ -515,29 +588,19 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Branding — admin only */}
-      {isAdminRole(role) && (
-        <div className="row g-3 mt-1">
-          <div className="col-12">
-            <BrandingSettings />
-          </div>
         </div>
-      )}
+        )}
 
-      {/* Users Management — admin only */}
-      {isAdminRole(role) && (
-        <div className="row g-3 mt-1">
-          <div className="col-12">
-            <UsersSettings />
-          </div>
-        </div>
-      )}
+        {activeSettingsTab === 'branding' && isAdminRole(role) && (
+          <BrandingSettings />
+        )}
 
-      {/* Audit Log link — admin only */}
-      {isAdminRole(role) && (
-        <div className="row g-3 mt-1">
+        {activeSettingsTab === 'users' && isAdminRole(role) && (
+          <UsersSettings />
+        )}
+
+        {activeSettingsTab === 'audit' && isAdminRole(role) && (
+          <div className="row g-3">
           <div className="col-12">
             <div className="fm-card fm-card-accent">
               <div className="fm-card-header py-2 d-flex justify-content-between align-items-center">
@@ -551,8 +614,10 @@ const Settings: React.FC = () => {
               </div>
             </div>
           </div>
+          </div>
+        )}
         </div>
-      )}
+      </div>
 
       {/* Post-update polling overlay */}
       {(updatePolling || updateTimedOut) && (

@@ -2212,3 +2212,27 @@ body {
     color: #fff;
   }
 }
+
+// Settings page — sidebar section nav
+.fm-settings-nav {
+  flex-shrink: 0;
+
+  @media (min-width: 768px) {
+    width: 200px;
+
+    .btn {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px;
+
+    .btn {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  }
+}
