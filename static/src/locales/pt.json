@@ -799,7 +799,15 @@
     "stepPhonehome": "Registar no FM",
     "stepTailscale": "Instalar Tailscale",
     "stepSilentBoot": "Configurar Arranque Silencioso",
-    "stepPushBranding": "Aplicar Marca"
+    "stepPushBranding": "Aplicar Marca",
+    "pushImageTitle": "Enviar imagem MupiTech?",
+    "imagePushDesc": "Este dispositivo foi adicionado agora por URL, por isso não sabemos o que tem instalado. Pode verificar o que está a correr e enviar a imagem Anthias personalizada da MupiTech agora — ou saltar e deixar como está.",
+    "checkImage": "Verificar imagem atual",
+    "alreadyCustom": "Já está a correr a imagem MupiTech — nada a enviar.",
+    "canPush": "Pronto para enviar a imagem MupiTech para este dispositivo.",
+    "cannotPush": "Não é possível enviar automaticamente (tipo de dispositivo não suportado ou imagem não reconhecida). Pode tentar mais tarde na própria página do dispositivo.",
+    "skipForNow": "Saltar por agora",
+    "pushNow": "Enviar imagem"
   },
   "tailscale": {
     "title": "VPN Tailscale",

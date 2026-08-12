@@ -102,6 +102,38 @@ def _get_compose_context(ssh, container, timeout):
     return working_dir, compose_path
 
 
+def _detect_and_save_device_type(player, ssh, timeout):
+    """A device added via "Add existing" (plain URL, no SSH provisioning
+    step) never gets its device_type probed — it stays 'unknown' forever,
+    which silently hides the migrate-to-MupiTech-image option since
+    that's gated on device_type == 'x86'. Piggyback on the SSH session
+    this module already opens (for image-source/migrate/restore) to run
+    the same probe provision.py uses for freshly-provisioned Pis, so an
+    existing device's type gets filled in the first time it's checked."""
+    if player.device_type not in ('unknown', ''):
+        return
+    try:
+        out, _, _ = _ssh_run(ssh, 'uname -m', timeout=timeout, check=False)
+        arch = out.strip()
+        if arch == 'x86_64':
+            player.device_type = 'x86'
+        elif arch in ('aarch64', 'armv7l'):
+            model_out, _, _ = _ssh_run(
+                ssh, 'cat /proc/device-tree/model 2>/dev/null || echo ""', timeout=timeout, check=False,
+            )
+            model_str = model_out.strip().rstrip('\x00')
+            if 'Raspberry Pi 5' in model_str or 'Compute Module 5' in model_str:
+                player.device_type = 'pi5'
+            elif 'Raspberry Pi 4' in model_str or 'Compute Module 4' in model_str:
+                player.device_type = 'pi4'
+        if player.device_type != 'unknown':
+            player.save(update_fields=['device_type'])
+    except Exception:
+        # Best-effort — never let detection failure break the actual
+        # image-source check/migration this is piggybacking on.
+        pass
+
+
 def _backup_exists(ssh, compose_path, timeout):
     out, _, _ = _ssh_run(
         ssh, f'[ -f {_shell_quote(compose_path + ".bak")} ] && echo yes || echo no',
@@ -117,6 +149,7 @@ def discover_image_source(player, ssh_user, ssh_password, ssh_port=22, timeout=1
     (i.e. whether "Restore previous" is available)."""
     ssh, _ = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
     try:
+        _detect_and_save_device_type(player, ssh, timeout)
         container = _find_anthias_server_container(ssh, timeout)
         image, _, _ = _ssh_run(
             ssh, f"docker inspect -f '{{{{.Config.Image}}}}' {_shell_quote(container)}", timeout=timeout,

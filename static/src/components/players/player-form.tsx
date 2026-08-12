@@ -12,7 +12,7 @@ interface PlayerFormProps {
   groups: Group[]
   locations: Location[]
   onClose: () => void
-  onSaved: () => void
+  onSaved: (savedPlayer?: Player) => void
   embedded?: boolean
 }
 
@@ -89,10 +89,11 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onCl
     }
 
     try {
+      let saved: Player
       if (isEditing && player) {
-        await dispatch(updatePlayer({ id: player.id, data })).unwrap()
+        saved = await dispatch(updatePlayer({ id: player.id, data })).unwrap()
       } else {
-        await dispatch(createPlayer(data)).unwrap()
+        saved = await dispatch(createPlayer(data)).unwrap()
       }
       Swal.fire({
         icon: 'success',
@@ -100,7 +101,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onCl
         timer: 1500,
         showConfirmButton: false,
       })
-      onSaved()
+      onSaved(saved)
     } catch (error) {
       Swal.fire({
         icon: 'error',

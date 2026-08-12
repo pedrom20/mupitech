@@ -799,7 +799,15 @@
     "stepPhonehome": "Register with FM",
     "stepTailscale": "Install Tailscale",
     "stepSilentBoot": "Configure Silent Boot",
-    "stepPushBranding": "Apply Branding"
+    "stepPushBranding": "Apply Branding",
+    "pushImageTitle": "Push MupiTech image?",
+    "imagePushDesc": "This device was just added by URL, so its current software is unknown. Optionally check what it's running and push the MupiTech custom Anthias image now — or skip and leave it as-is.",
+    "checkImage": "Check current image",
+    "alreadyCustom": "Already running the MupiTech image — nothing to push.",
+    "canPush": "Ready to push the MupiTech image to this device.",
+    "cannotPush": "Can't push automatically (unsupported device type or unrecognized image). You can try again later from the device's own page.",
+    "skipForNow": "Skip for now",
+    "pushNow": "Push image"
   },
   "tailscale": {
     "title": "Tailscale VPN",

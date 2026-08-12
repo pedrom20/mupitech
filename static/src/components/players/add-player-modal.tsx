@@ -12,12 +12,13 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaExternalLinkAlt,
+  FaCloudUploadAlt,
 } from 'react-icons/fa'
-import { provision as provisionApi } from '@/services/api'
+import { provision as provisionApi, players as playersApi } from '@/services/api'
 import type { Player, Group, Location, ProvisionTask, ProvisionStep } from '@/types'
 import PlayerForm from './player-form'
 
-type ModalView = 'choice' | 'manual' | 'instructions' | 'provision-form' | 'provision-progress'
+type ModalView = 'choice' | 'manual' | 'instructions' | 'provision-form' | 'provision-progress' | 'image-push'
 
 interface AddPlayerModalProps {
   editingPlayer: Player | null
@@ -80,6 +81,18 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+
+  // Post-add "push custom image?" step — offered after manually adding an
+  // existing device (not the fresh-Pi provision flow, which already
+  // always installs the MupiTech image on its own).
+  const [newPlayer, setNewPlayer] = useState<Player | null>(null)
+  const [pushSshUser, setPushSshUser] = useState('pi')
+  const [pushSshPassword, setPushSshPassword] = useState('')
+  const [pushSshPort, setPushSshPort] = useState(22)
+  const [checkingSource, setCheckingSource] = useState(false)
+  const [sourceResult, setSourceResult] = useState<{ source: string; can_migrate: boolean } | null>(null)
+  const [sourceError, setSourceError] = useState('')
+  const [pushingImage, setPushingImage] = useState(false)
 
   // Provision progress state
   const [taskId, setTaskId] = useState<string | null>(null)
@@ -167,6 +180,51 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
       setFormError(String(error))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Handles PlayerForm's onSaved for the "manual" (add-existing-device)
+  // view only — the provision-progress view has its own success handling
+  // above (pollTask), and calls onSaved() directly once it's done.
+  const handleManualSaved = (savedPlayer?: Player) => {
+    if (editingPlayer || !savedPlayer) {
+      onSaved()
+      return
+    }
+    // New device added by URL — offer to push the MupiTech custom image,
+    // since (unlike the fresh-Pi provision flow) this one has no idea
+    // what's currently running on it.
+    setNewPlayer(savedPlayer)
+    setSourceResult(null)
+    setSourceError('')
+    setView('image-push')
+  }
+
+  const handleCheckSource = async () => {
+    if (!newPlayer || !pushSshPassword) return
+    setCheckingSource(true)
+    setSourceError('')
+    try {
+      const res = await playersApi.getImageSource(newPlayer.id, pushSshUser, pushSshPassword, pushSshPort)
+      setSourceResult(res)
+    } catch (err) {
+      setSourceError(String(err))
+    } finally {
+      setCheckingSource(false)
+    }
+  }
+
+  const handlePushImage = async () => {
+    if (!newPlayer || !pushSshPassword) return
+    setPushingImage(true)
+    setSourceError('')
+    try {
+      await playersApi.migrateImage(newPlayer.id, pushSshUser, pushSshPassword, pushSshPort)
+      onSaved()
+    } catch (err) {
+      setSourceError(String(err))
+    } finally {
+      setPushingImage(false)
     }
   }
 
@@ -471,6 +529,63 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
     </div>
   )
 
+  const renderImagePush = () => (
+    <>
+      <div className="modal-body">
+        <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('provision.imagePushDesc')}</p>
+
+        <div className="mb-2">
+          <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>{t('provision.sshLogin')}</label>
+          <input type="text" className="form-control form-control-sm" value={pushSshUser} onChange={e => { setPushSshUser(e.target.value); setSourceResult(null) }} />
+        </div>
+        <div className="mb-2">
+          <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>{t('provision.sshPassword')}</label>
+          <input type="password" className="form-control form-control-sm" value={pushSshPassword} onChange={e => { setPushSshPassword(e.target.value); setSourceResult(null) }} autoFocus />
+        </div>
+        <div className="mb-3">
+          <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>{t('provision.sshPort')}</label>
+          <input type="number" className="form-control form-control-sm" style={{ maxWidth: '120px' }} value={pushSshPort} onChange={e => { setPushSshPort(Number(e.target.value)); setSourceResult(null) }} min={1} max={65535} />
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-primary mb-2"
+          disabled={checkingSource || !pushSshPassword}
+          onClick={handleCheckSource}
+        >
+          {checkingSource ? <FaSpinner className="fa-spin me-1" /> : null}
+          {t('provision.checkImage')}
+        </button>
+
+        {sourceError && <div className="alert alert-danger py-2 small">{sourceError}</div>}
+
+        {sourceResult && (
+          <div className={`alert py-2 small ${sourceResult.can_migrate ? 'alert-success' : 'alert-info'}`}>
+            {sourceResult.source === 'mupitech'
+              ? t('provision.alreadyCustom')
+              : sourceResult.can_migrate
+                ? t('provision.canPush')
+                : t('provision.cannotPush')}
+          </div>
+        )}
+      </div>
+      <div className="modal-footer d-flex justify-content-between">
+        <button type="button" className="btn btn-secondary" onClick={onSaved}>
+          {t('provision.skipForNow')}
+        </button>
+        <button
+          type="button"
+          className="fm-btn-primary"
+          disabled={!sourceResult?.can_migrate || sourceResult.source === 'mupitech' || pushingImage}
+          onClick={handlePushImage}
+        >
+          {pushingImage ? <FaSpinner className="fa-spin me-1" /> : <FaCloudUploadAlt className="me-1" />}
+          {pushingImage ? t('common.loading') : t('provision.pushNow')}
+        </button>
+      </div>
+    </>
+  )
+
   // For manual and provision-progress views, use wider modal
   const isWide = view === 'provision-progress' || view === 'provision-form' || view === 'instructions'
 
@@ -479,6 +594,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
     if (view === 'manual') return t('players.addPlayer')
     if (view === 'instructions' || view === 'provision-form') return t('provision.installNew')
     if (view === 'provision-progress') return t('provision.installing')
+    if (view === 'image-push') return t('provision.pushImageTitle')
     return t('players.addPlayer')
   }
 
@@ -512,13 +628,14 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
               groups={groups}
               locations={locations}
               onClose={onClose}
-              onSaved={onSaved}
+              onSaved={handleManualSaved}
               embedded
             />
           )}
           {view === 'instructions' && renderInstructions()}
           {view === 'provision-form' && renderProvisionForm()}
           {view === 'provision-progress' && renderProgress()}
+          {view === 'image-push' && renderImagePush()}
 
           {/* Close button for progress on success */}
           {view === 'provision-progress' && task?.status === 'success' && (
