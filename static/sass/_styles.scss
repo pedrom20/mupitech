@@ -1696,6 +1696,9 @@ body {
       .stat-value { color: #f0f0f0; }
       .stat-label { color: #999; }
     }
+
+    --fm-stat-gauge-text: #f0f0f0;
+    --fm-stat-gauge-subtext: #888;
   }
 
   // Telemetry card

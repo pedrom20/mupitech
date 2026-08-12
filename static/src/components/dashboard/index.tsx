@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
   FaDesktop,
-  FaCheckCircle,
-  FaTimesCircle,
   FaLayerGroup,
   FaMapMarkerAlt,
   FaPlus,
@@ -16,6 +14,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import ServerTelemetryCard from './server-telemetry'
 import FleetStatusPanel from './fleet-status'
+import StatusGauge from './status-gauge'
 import AddPlayerModal from '../players/add-player-modal'
 
 const Dashboard: React.FC = () => {
@@ -42,27 +41,6 @@ const Dashboard: React.FC = () => {
   }, [players, groups, locations])
 
   const statCards = [
-    {
-      icon: <FaDesktop />,
-      iconClass: 'stat-icon-purple',
-      value: stats.total,
-      label: t('dashboard.totalPlayers'),
-      to: '/players',
-    },
-    {
-      icon: <FaCheckCircle />,
-      iconClass: 'stat-icon-green',
-      value: stats.online,
-      label: t('dashboard.online'),
-      to: '/players',
-    },
-    {
-      icon: <FaTimesCircle />,
-      iconClass: 'stat-icon-red',
-      value: stats.offline,
-      label: t('dashboard.offline'),
-      to: '/players',
-    },
     {
       icon: <FaLayerGroup />,
       iconClass: 'stat-icon-yellow',
@@ -97,27 +75,30 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="row g-3 mb-4 align-items-start">
-        <div className="col-lg-4 d-flex">
-          <div className="row g-3 flex-grow-1 align-content-stretch">
-            {statCards.map((card, idx) => (
-              <div key={idx} className="col-6 d-flex">
-                <div
-                  className="fm-stat-card flex-grow-1"
-                  role="button"
-                  onClick={() => navigate(card.to)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className={`stat-icon ${card.iconClass}`}>{card.icon}</div>
-                  <div className="stat-content">
-                    <div className="stat-value">{card.value}</div>
-                    <div className="stat-label">{card.label}</div>
+        <div className="col-lg-5 d-flex">
+          <div className="d-flex flex-column gap-3 flex-grow-1">
+            <StatusGauge online={stats.online} total={stats.total} onClick={() => navigate('/players')} />
+            <div className="row g-3 flex-grow-1 align-content-stretch">
+              {statCards.map((card, idx) => (
+                <div key={idx} className="col-6 d-flex">
+                  <div
+                    className="fm-stat-card flex-grow-1"
+                    role="button"
+                    onClick={() => navigate(card.to)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className={`stat-icon ${card.iconClass}`}>{card.icon}</div>
+                    <div className="stat-content">
+                      <div className="stat-value">{card.value}</div>
+                      <div className="stat-label">{card.label}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-        <div className="col-lg-8">
+        <div className="col-lg-7">
           <ServerTelemetryCard />
         </div>
       </div>

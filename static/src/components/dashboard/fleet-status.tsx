@@ -28,7 +28,7 @@ function statusColor(pct: number): string {
 const FleetStatusPanel: React.FC<FleetStatusPanelProps> = ({ players, groups, locations }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [view, setView] = useState<StatusView>('group')
+  const [view, setView] = useState<StatusView>('device')
 
   const groupRows = useMemo<StatusRow[]>(() => {
     return groups.map((group) => {
