@@ -7,6 +7,7 @@ import Footer from './footer'
 import { useKonamiCode } from '@/hooks/use-konami-code'
 import { useDosCode } from '@/hooks/use-dos-code'
 import { usePageTitle } from '@/hooks/use-page-title'
+import DosBootOverlay from '@/components/dos-boot-overlay'
 import Dashboard from '@/components/dashboard/index'
 import PlayerList from '@/components/players/player-list'
 import PlayerDetail from '@/components/players/player-detail'
@@ -57,6 +58,9 @@ const App: React.FC = () => {
   const [checked, setChecked] = useState(false)
   const [retroTheme, setRetroTheme] = useState(() => localStorage.getItem(RETRO_STORAGE_KEY) === '1')
   const [dosTheme, setDosTheme] = useState(() => localStorage.getItem(DOS_STORAGE_KEY) === '1')
+  // Plays the typing boot banner whenever the DOS theme is (re)activated —
+  // both on toggle and on a fresh page load while it was already on.
+  const [showDosBoot, setShowDosBoot] = useState(() => localStorage.getItem(DOS_STORAGE_KEY) === '1')
 
   useEffect(() => {
     document.documentElement.lang = i18n.language
@@ -99,7 +103,10 @@ const App: React.FC = () => {
   const toggleDosTheme = useCallback(() => {
     setDosTheme((prev) => {
       const next = !prev
-      if (next) setRetroTheme(false)
+      if (next) {
+        setRetroTheme(false)
+        setShowDosBoot(true)
+      }
       Swal.fire({
         icon: 'info',
         title: next ? t('easterEgg.dosActivated') : t('easterEgg.dosDeactivated'),
@@ -135,6 +142,9 @@ const App: React.FC = () => {
     <AuthContext.Provider value={{ user, checked, refresh, clear }}>
       <RoleContext.Provider value={user?.role ?? null}>
         <FeaturesProvider>
+          {dosTheme && showDosBoot && (
+            <DosBootOverlay onDone={() => setShowDosBoot(false)} />
+          )}
           <Navbar onLogoTapSequence={toggleDosTheme} />
           <main className="fm-content">
             <Routes>

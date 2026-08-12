@@ -127,8 +127,14 @@
     background-image: none !important;
     border-bottom: 3px solid #6e2426 !important;
 
-    .navbar-brand img {
-      filter: grayscale(1) contrast(2.2) brightness(1.15) !important;
+    // Swap to the Windows-98-style mark instead of just filtering the
+    // normal one — an original icon (table/datasheet motif), not a
+    // copy of any real OS or application asset.
+    .navbar-brand .logo-default {
+      display: none !important;
+    }
+    .navbar-brand .logo-retro {
+      display: block !important;
     }
 
     .nav-link {
@@ -260,4 +266,32 @@
   padding: 4px 10px;
   border: 2px outset #c96063;
   cursor: pointer;
+}
+
+// CRT static/interference overlay — scanlines plus a flickering noise
+// layer (a self-contained SVG feTurbulence filter as a data: URI, no
+// external image). Fixed + pointer-events:none so it never blocks
+// clicks; kept subtle (low opacity) so the page underneath stays usable.
+html[data-retro-theme='true']::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-linear-gradient(
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.5) 3px
+    ),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  animation: retro-static-flicker 0.2s steps(2) infinite;
+}
+
+@keyframes retro-static-flicker {
+  0% { transform: translate(0, 0); opacity: 0.05; }
+  50% { transform: translate(-1%, 1%); opacity: 0.08; }
+  100% { transform: translate(1%, -1%); opacity: 0.05; }
 }

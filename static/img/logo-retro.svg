@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 110" width="340" height="110" role="img" aria-label="MupiTech — Gestor de Mupis Digitais">
+  <title>MupiTech — Gestor de Mupis Digitais</title>
+  <!-- Original Windows-98-style beveled app icon (a table/datasheet
+       motif), not a copy of any real OS or application icon. Used only
+       while the retro easter-egg theme is active — see app.tsx / navbar. -->
+  <rect x="4" y="10" width="84" height="84" fill="#c0c0c0"/>
+  <polyline points="4,94 4,10 88,10" stroke="#ffffff" stroke-width="2" fill="none"/>
+  <polyline points="88,10 88,94 4,94" stroke="#000000" stroke-width="2" fill="none"/>
+  <polyline points="7,91 7,13 85,13" stroke="#dfdfdf" stroke-width="1" fill="none"/>
+  <polyline points="85,13 85,91 7,91" stroke="#808080" stroke-width="1" fill="none"/>
+  <rect x="18" y="24" width="56" height="56" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <rect x="18" y="24" width="56" height="14" fill="#a4373a"/>
+  <rect x="18" y="52" width="56" height="14" fill="#ece9d8"/>
+  <line x1="46" y1="24" x2="46" y2="80" stroke="#808080" stroke-width="1"/>
+  <line x1="18" y1="38" x2="74" y2="38" stroke="#808080" stroke-width="1"/>
+  <line x1="18" y1="66" x2="74" y2="66" stroke="#808080" stroke-width="1"/>
+  <text x="104" y="55" font-family="Tahoma, 'MS Sans Serif', Geneva, sans-serif" font-size="38" font-weight="700" letter-spacing="-0.5">
+    <tspan fill="#000000">Mupi</tspan><tspan fill="#a4373a">Tech</tspan>
+  </text>
+  <text x="105" y="80" font-family="Tahoma, 'MS Sans Serif', Geneva, sans-serif" font-size="15" font-weight="400" letter-spacing="0.2" fill="#000000">Gestor de Mupis Digitais</text>
+</svg>

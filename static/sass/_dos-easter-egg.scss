@@ -1,50 +1,47 @@
 // =============================================================================
 // Easter egg #2 — MS-DOS style theme
 // Triggered by typing "msdos" anywhere on the page (see
-// static/src/hooks/use-dos-code.ts). Black background, monospace,
-// phosphor-green everything — a command-line terminal look, not a
-// polished UI. Mutually exclusive with the "Modo Arquivo 2016" theme
-// (see app.tsx) and scoped entirely under [data-dos-theme="true"].
+// static/src/hooks/use-dos-code.ts). Dark terminal background, monospace,
+// a small syntax-highlighting-style palette (not flat green-on-everything —
+// that made tables/forms/status indicators unreadable, since color is the
+// only way a lot of this UI communicates state). Mutually exclusive with
+// the "Modo Arquivo 2016" theme (see app.tsx) and scoped entirely under
+// [data-dos-theme="true"].
 // =============================================================================
 
-$dos-green: #33ff33;
-$dos-green-dim: #1f9c1f;
-$dos-bg: #000;
+$dos-bg: #0c0c0c;
+$dos-fg: #d4d4d4; // default body text — light gray, not green, so it's actually readable
+$dos-green: #4ec9b0; // headings, active nav, focus rings, signature accent
+$dos-green-dim: #2d6a5f;
+$dos-cyan: #569cd6; // links, secondary info
+$dos-yellow: #dcdcaa; // warnings
+$dos-red: #f44747; // errors / danger
+$dos-border: #3c3c3c; // neutral structural borders (cards/tables/inputs)
 
-// Approximates the phosphor-green tint on a black/white icon glyph —
+// Approximates the terminal-accent tint on a black/white icon glyph —
 // react-icons render with fill="currentColor" so `color` below already
 // tints most icons correctly; this filter chain covers the few raster
-// assets (e.g. the navbar logo <img>) that ignore `color`.
-@mixin dos-green-filter {
-  filter: grayscale(1) brightness(1.4) sepia(1) hue-rotate(65deg) saturate(4) contrast(1.1) !important;
+// assets that ignore `color`.
+@mixin dos-accent-filter {
+  filter: grayscale(1) brightness(1.3) sepia(1) hue-rotate(130deg) saturate(2.5) contrast(1.05) !important;
 }
 
 [data-dos-theme='true'] {
   font-family: 'Courier New', Courier, monospace !important;
   background: $dos-bg !important;
-  color: $dos-green !important;
+  color: $dos-fg !important;
 
   * {
     font-family: 'Courier New', Courier, monospace !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    text-shadow: 0 0 2px rgba(51, 255, 51, 0.5) !important;
     transition: none !important;
     animation: none !important;
-    color: $dos-green !important;
     background-color: transparent !important;
-    cursor: default !important;
-    image-rendering: pixelated;
   }
 
-  // Pixel/monochrome icon treatment — blocky and phosphor-green,
-  // regardless of the normal theme's colored icon set.
   svg {
-    color: $dos-green !important;
-  }
-
-  img {
-    @include dos-green-filter;
+    color: inherit;
   }
 
   ::selection {
@@ -53,8 +50,30 @@ $dos-bg: #000;
   }
 
   a {
-    color: $dos-green !important;
+    color: $dos-cyan !important;
     text-decoration: underline !important;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .page-title, .card-title, .modal-title,
+  .fm-page-header, .page-icon {
+    color: $dos-green !important;
+  }
+
+  .text-muted, .text-secondary, small {
+    color: #9a9a9a !important;
+  }
+
+  .text-danger, .fm-badge-offline, .status-offline {
+    color: $dos-red !important;
+  }
+
+  .text-success, .fm-badge-online, .status-online {
+    color: $dos-green !important;
+  }
+
+  .text-warning {
+    color: $dos-yellow !important;
   }
 
   .fm-navbar {
@@ -62,22 +81,31 @@ $dos-bg: #000;
     background-image: none !important;
     border-bottom: 1px solid $dos-green !important;
 
-    .navbar-brand img {
-      @include dos-green-filter;
+    // Swap to the MS-DOS-style mark instead of just filtering the
+    // normal one — an original text-mode design, not a copy of any
+    // real OS asset.
+    .navbar-brand .logo-default {
+      display: none !important;
+    }
+    .navbar-brand .logo-dos {
+      display: block !important;
     }
 
     .nav-link {
       border: 1px solid transparent;
       text-transform: uppercase;
+      color: $dos-fg !important;
 
       &::before {
         content: '> ';
+        color: $dos-green-dim;
       }
 
       &:hover,
       &.active {
         border: 1px solid $dos-green !important;
-        background: rgba(51, 255, 51, 0.08) !important;
+        background: rgba(78, 201, 176, 0.08) !important;
+        color: $dos-green !important;
       }
     }
   }
@@ -86,31 +114,33 @@ $dos-bg: #000;
     background: $dos-bg !important;
   }
 
-  // Everything boxed in thin green rules — no fills, no depth, pure
-  // terminal-window framing.
+  // Structural boxes get a neutral dim border, not bright green
+  // everywhere — green stays reserved for headings/active states so it
+  // actually stands out instead of blending into the noise.
   .fm-card,
   .modal-content,
   .fm-telemetry-card,
   .fm-stat-card {
     background: $dos-bg !important;
-    border: 1px solid $dos-green !important;
+    border: 1px solid $dos-border !important;
   }
 
   .fm-card-header,
   .modal-header,
   .telemetry-header {
     background: $dos-bg !important;
-    border-bottom: 1px solid $dos-green-dim !important;
+    border-bottom: 1px solid $dos-border !important;
   }
 
   .modal-footer {
-    border-top: 1px solid $dos-green-dim !important;
+    border-top: 1px solid $dos-border !important;
   }
 
   .stat-icon {
     background: $dos-bg !important;
-    border: 1px solid $dos-green !important;
+    border: 1px solid $dos-green-dim !important;
     border-radius: 0 !important;
+    color: $dos-green !important;
   }
 
   .btn,
@@ -120,10 +150,12 @@ $dos-bg: #000;
   .fm-btn-icon,
   button {
     background: $dos-bg !important;
-    border: 1px solid $dos-green !important;
+    border: 1px solid $dos-green-dim !important;
+    color: $dos-fg !important;
 
     &:hover {
       background: $dos-green !important;
+      border-color: $dos-green !important;
       color: #000 !important;
 
       svg { color: #000 !important; }
@@ -134,40 +166,56 @@ $dos-bg: #000;
     }
   }
 
+  .fm-btn-danger {
+    border-color: $dos-red !important;
+    color: $dos-red !important;
+
+    &:hover {
+      background: $dos-red !important;
+      color: #000 !important;
+
+      svg { color: #000 !important; }
+    }
+  }
+
   .fm-table,
   table {
     border-collapse: collapse !important;
+    color: $dos-fg !important;
 
     th,
     td {
-      border: 1px solid $dos-green-dim !important;
+      border: 1px solid $dos-border !important;
     }
 
     thead th {
       background: $dos-bg !important;
+      color: $dos-green !important;
       text-transform: uppercase;
     }
 
     tbody tr:nth-child(even) {
-      background: rgba(51, 255, 51, 0.05) !important;
+      background: rgba(255, 255, 255, 0.03) !important;
     }
   }
 
   .form-control,
   .form-select {
     background: $dos-bg !important;
-    border: 1px solid $dos-green !important;
+    border: 1px solid $dos-border !important;
     border-radius: 0 !important;
+    color: $dos-fg !important;
     caret-color: $dos-green !important;
 
     &:focus {
       outline: 1px solid $dos-green !important;
       outline-offset: 2px;
+      border-color: $dos-green !important;
       box-shadow: none !important;
     }
 
     &::placeholder {
-      color: $dos-green-dim !important;
+      color: #6a6a6a !important;
     }
   }
 
@@ -177,16 +225,17 @@ $dos-bg: #000;
   }
   ::-webkit-scrollbar-track {
     background: $dos-bg !important;
-    border-left: 1px solid $dos-green-dim;
+    border-left: 1px solid $dos-border;
   }
   ::-webkit-scrollbar-thumb {
-    background: $dos-green-dim !important;
-    border: 1px solid $dos-green !important;
+    background: $dos-border !important;
+    border: 1px solid $dos-green-dim !important;
   }
 
   .badge {
     background: $dos-bg !important;
-    border: 1px solid $dos-green !important;
+    border: 1px solid $dos-green-dim !important;
+    color: $dos-fg !important;
     border-radius: 0 !important;
   }
 }
@@ -205,11 +254,11 @@ $dos-bg: #000;
   right: 12px;
   z-index: 2000;
   background: #000;
-  color: #33ff33;
+  color: #4ec9b0;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.8rem;
   padding: 4px 10px;
-  border: 1px solid #33ff33;
+  border: 1px solid #4ec9b0;
   cursor: pointer;
   animation: dos-cursor-blink 1s steps(1) infinite !important;
 }

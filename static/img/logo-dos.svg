@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 110" width="340" height="110" role="img" aria-label="MupiTech — Gestor de Mupis Digitais">
+  <title>MupiTech — Gestor de Mupis Digitais</title>
+  <!-- Original MS-DOS-style text-mode mark (block cursor + ASCII box
+       border), not a copy of any real OS asset. Used only while the
+       MS-DOS easter-egg theme is active — see app.tsx / navbar. -->
+  <rect x="0" y="0" width="340" height="110" fill="#000000"/>
+  <rect x="4" y="4" width="332" height="102" fill="none" stroke="#00ff00" stroke-width="2"/>
+  <rect x="14" y="24" width="16" height="42" fill="#00ff00"/>
+  <text x="40" y="58" font-family="'Courier New', Courier, monospace" font-size="34" font-weight="700" letter-spacing="1">
+    <tspan fill="#00ff00">Mupi</tspan><tspan fill="#33ff66">Tech</tspan>
+  </text>
+  <text x="40" y="82" font-family="'Courier New', Courier, monospace" font-size="13" letter-spacing="0.5" fill="#00cc55">&gt; GESTOR DE MUPIS DIGITAIS_</text>
+</svg>

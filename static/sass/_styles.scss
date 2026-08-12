@@ -61,6 +61,15 @@ body {
       height: 60px;
       width: auto;
     }
+
+    // .logo-retro / .logo-dos are alternate marks shown only while the
+    // matching easter-egg theme is active (see _retro-easter-egg.scss /
+    // _dos-easter-egg.scss) — hidden by default so the normal logo
+    // always renders.
+    .logo-retro,
+    .logo-dos {
+      display: none;
+    }
   }
 
   .nav-link {
