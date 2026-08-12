@@ -235,17 +235,21 @@ const FleetOverview: React.FC = () => {
   }
 
   const renderDeviceCard = (player: Player) => (
-    <div key={player.id} className="col-sm-6 col-lg-4 col-xl-3 position-relative">
-      <PlayerCard player={player} />
-      <button
-        type="button"
-        className="btn btn-sm btn-light border shadow-sm"
-        style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', zIndex: 2, padding: '0.2rem 0.4rem' }}
-        onClick={(e) => { e.stopPropagation(); handleOpenMoveDevice(player) }}
-        title={t('fleetOverview.moveDevice')}
-      >
-        <FaArrowsAlt style={{ fontSize: '0.75rem' }} />
-      </button>
+    <div key={player.id} className="col-6 col-md-4 col-lg-3 col-xl-2">
+      <div className="d-flex align-items-stretch gap-1">
+        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+          <PlayerCard player={player} compact />
+        </div>
+        <button
+          type="button"
+          className="btn btn-sm btn-light border flex-shrink-0"
+          style={{ padding: '0.2rem 0.35rem' }}
+          onClick={(e) => { e.stopPropagation(); handleOpenMoveDevice(player) }}
+          title={t('fleetOverview.moveDevice')}
+        >
+          <FaArrowsAlt style={{ fontSize: '0.7rem' }} />
+        </button>
+      </div>
     </div>
   )
 

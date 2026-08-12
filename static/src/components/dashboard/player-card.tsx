@@ -10,9 +10,13 @@ interface PlayerCardProps {
   player: Player
   onEdit?: (player: Player) => void
   onDelete?: (player: Player) => void
+  /** Compact layout — just name + status, no url/group/location/orientation
+   * rows. Used where that context is already implied (e.g. the Fleet
+   * Overview page already groups devices under their location/group). */
+  compact?: boolean
 }
 
-const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => {
+const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, compact }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -61,6 +65,22 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => 
         })
       }
     }
+  }
+
+  if (compact) {
+    return (
+      <div className="fm-player-card fm-player-card-compact" onClick={handleCardClick} title={player.name}>
+        <span className={`status-dot ${player.is_online ? 'status-online' : 'status-offline'}`} />
+        <span className="player-name-compact text-truncate">{player.name}</span>
+        {isPortrait && (
+          <span
+            aria-hidden="true"
+            className="flex-shrink-0"
+            style={{ width: '7px', height: '11px', border: '1.5px solid currentColor', borderRadius: '1px', opacity: 0.5 }}
+          />
+        )}
+      </div>
+    )
   }
 
   return (
