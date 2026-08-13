@@ -299,6 +299,13 @@
     "scheduleResultWithFailures": "Deployed to {{total}} device(s), {{failed}} failed",
     "confirmDelete": "Are you sure you want to delete this content?",
     "deleted": "Content deleted",
+    "recycleBin": "Recycle bin",
+    "recycleBinHint": "Deleted content is kept here and can be restored. Only a superadmin can permanently purge it.",
+    "restore": "Restore",
+    "restored": "Content restored",
+    "confirmPurge": "Permanently delete this content? This cannot be undone.",
+    "purgePermanently": "Delete permanently",
+    "purged": "Content permanently deleted",
     "openUrl": "Open URL",
     "noPreview": "Preview not available for this file type",
     "download": "Download",
@@ -896,6 +903,7 @@
     "chooseButton": "Choose from library",
     "uploadNew": "Upload new",
     "empty": "No images saved yet — upload one to add it to the library.",
+    "emptyDeleted": "The recycle bin is empty.",
     "confirmDelete": "Remove \"{{name}}\" from the library? Devices already using it keep working."
   },
   "branding": {

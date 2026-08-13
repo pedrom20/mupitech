@@ -1,6 +1,9 @@
-from rest_framework import viewsets
+from django.utils import timezone
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin
+from fleet_manager.permissions import IsAdmin, IsSuperAdmin
 from history.logging import log_action
 
 from .models import BrandingImage
@@ -19,6 +22,10 @@ class BrandingImageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if self.request.query_params.get('deleted') == '1':
+            qs = qs.filter(is_deleted=True)
+        else:
+            qs = qs.filter(is_deleted=False)
         kind = self.request.query_params.get('kind')
         if kind:
             qs = qs.filter(kind=kind)
@@ -29,5 +36,30 @@ class BrandingImageViewSet(viewsets.ModelViewSet):
         log_action(self.request, 'create', 'branding_image', target_id=image.id, target_name=image.name)
 
     def perform_destroy(self, instance):
+        """Soft-delete — recoverable from the recycle bin."""
         log_action(self.request, 'delete', 'branding_image', target_id=instance.id, target_name=instance.name)
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=['is_deleted', 'deleted_at'])
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        """Recover a soft-deleted branding image from the recycle bin."""
+        instance = BrandingImage.objects.filter(pk=pk).first()
+        if not instance:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        instance.is_deleted = False
+        instance.deleted_at = None
+        instance.save(update_fields=['is_deleted', 'deleted_at'])
+        log_action(request, 'restore', 'branding_image', target_id=instance.id, target_name=instance.name)
+        return Response(self.get_serializer(instance).data)
+
+    @action(detail=True, methods=['delete'], permission_classes=[IsSuperAdmin])
+    def purge(self, request, pk=None):
+        """Permanently delete a branding image — only a superadmin can do this."""
+        instance = BrandingImage.objects.filter(pk=pk).first()
+        if not instance:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        log_action(request, 'purge', 'branding_image', target_id=instance.id, target_name=instance.name)
         instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

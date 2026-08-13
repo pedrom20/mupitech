@@ -91,6 +91,8 @@ export interface MediaFile {
   // portrait/landscape mismatches before deploying to a device.
   width?: number | null
   height?: number | null
+  is_deleted?: boolean
+  deleted_at?: string | null
   created_at: string
 }
 

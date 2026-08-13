@@ -273,6 +273,12 @@ class BrandingImage(models.Model):
     kind = models.CharField(max_length=10, choices=KIND_CHOICES)
     file = models.FileField(upload_to='branding/library/')
     created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text='Soft-deleted — hidden from normal use, recoverable from the '
+                   'recycle bin. Only a superadmin can purge it for real.',
+    )
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']

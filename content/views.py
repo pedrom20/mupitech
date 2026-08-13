@@ -2,11 +2,12 @@ import logging
 from urllib.parse import urlparse
 
 from django.db.models import Count
+from django.utils import timezone
 from rest_framework import parsers, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsEditorOrReadOnly
+from fleet_manager.permissions import IsEditorOrReadOnly, IsSuperAdmin
 from history.logging import log_action
 
 from .models import MediaFile, MediaFolder, detect_file_type
@@ -42,7 +43,11 @@ class MediaFileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsEditorOrReadOnly]
 
     def get_queryset(self):
-        qs = MediaFile.objects.select_related('folder').prefetch_related('cctv_config__cameras').all()
+        qs = MediaFile.objects.select_related('folder').prefetch_related('cctv_config__cameras')
+        if self.request.query_params.get('deleted') == '1':
+            qs = qs.filter(is_deleted=True)
+        else:
+            qs = qs.filter(is_deleted=False)
         folder = self.request.query_params.get('folder')
         if folder == 'none':
             qs = qs.filter(folder__isnull=True)
@@ -54,7 +59,9 @@ class MediaFileViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_destroy(self, instance):
-        """Delete MediaFile; if CCTV, stop stream and delete config first."""
+        """Soft-delete a MediaFile — hides it from normal use but keeps it
+        recoverable from the recycle bin. If CCTV, stop the live stream
+        (an inactive/deleted item shouldn't keep streaming)."""
         log_action(self.request, 'delete', 'media', target_id=instance.id, target_name=instance.name)
         if instance.file_type == 'cctv':
             try:
@@ -62,10 +69,38 @@ class MediaFileViewSet(viewsets.ModelViewSet):
                 if cctv_config.is_active:
                     from cctv.services import stop_stream
                     stop_stream(str(cctv_config.id))
-                cctv_config.delete()
             except Exception:
                 pass  # cctv_config may not exist
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=['is_deleted', 'deleted_at'])
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        """Recover a soft-deleted MediaFile from the recycle bin."""
+        instance = MediaFile.objects.filter(pk=pk).first()
+        if not instance:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        instance.is_deleted = False
+        instance.deleted_at = None
+        instance.save(update_fields=['is_deleted', 'deleted_at'])
+        log_action(request, 'restore', 'media', target_id=instance.id, target_name=instance.name)
+        return Response(self.get_serializer(instance).data)
+
+    @action(detail=True, methods=['delete'], permission_classes=[IsSuperAdmin])
+    def purge(self, request, pk=None):
+        """Permanently delete a MediaFile — only a superadmin can do this."""
+        instance = MediaFile.objects.filter(pk=pk).first()
+        if not instance:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if instance.file_type == 'cctv':
+            try:
+                instance.cctv_config.delete()
+            except Exception:
+                pass
+        log_action(request, 'purge', 'media', target_id=instance.id, target_name=instance.name)
         instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer):
         uploaded_file = self.request.FILES.get('file')

@@ -484,6 +484,19 @@ export const media = {
     return apiRequest<void>('DELETE', `/media/${id}/`)
   },
 
+  async listDeleted(): Promise<MediaFile[]> {
+    const data = await apiRequest<{ results: MediaFile[] } | MediaFile[]>('GET', '/media/?deleted=1&page_size=10000')
+    return Array.isArray(data) ? data : data.results
+  },
+
+  restore(id: string): Promise<MediaFile> {
+    return apiRequest<MediaFile>('POST', `/media/${id}/restore/`)
+  },
+
+  purge(id: string): Promise<void> {
+    return apiRequest<void>('DELETE', `/media/${id}/purge/`)
+  },
+
   moveToFolder(id: string, folderId: string | null): Promise<MediaFile> {
     return apiRequest<MediaFile>('PATCH', `/media/${id}/`, { folder: folderId })
   },
@@ -741,6 +754,8 @@ export interface BrandingImage {
   name: string
   kind: 'logo' | 'standby'
   file: string
+  is_deleted?: boolean
+  deleted_at?: string | null
   created_at: string
 }
 
@@ -759,6 +774,18 @@ export const brandingLibrary = {
 
   delete(id: string): Promise<void> {
     return apiRequest('DELETE', `/players/branding-library/${id}/`)
+  },
+
+  listDeleted(): Promise<BrandingImage[]> {
+    return apiRequest('GET', '/players/branding-library/?deleted=1')
+  },
+
+  restore(id: string): Promise<BrandingImage> {
+    return apiRequest('POST', `/players/branding-library/${id}/restore/`)
+  },
+
+  purge(id: string): Promise<void> {
+    return apiRequest('DELETE', `/players/branding-library/${id}/purge/`)
   },
 }
 

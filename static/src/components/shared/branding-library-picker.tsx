@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaTrash, FaUpload, FaCheck } from 'react-icons/fa'
+import { FaTrash, FaUpload, FaCheck, FaTrashRestore, FaBan } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { brandingLibrary, type BrandingImage } from '@/services/api'
+import { RoleContext, isSuperAdminRole } from '@/components/app'
 
 interface BrandingLibraryPickerProps {
   kind: 'logo' | 'standby'
@@ -20,17 +21,27 @@ interface BrandingLibraryPickerProps {
  * be set, so images don't have to be re-uploaded from scratch every time. */
 const BrandingLibraryPicker: React.FC<BrandingLibraryPickerProps> = ({ kind, show, onClose, onPick }) => {
   const { t } = useTranslation()
+  const role = useContext(RoleContext)
   const [images, setImages] = useState<BrandingImage[]>([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [pickingId, setPickingId] = useState<string | null>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const loadImages = () => {
+    setLoading(true)
+    const request = showDeleted
+      ? brandingLibrary.listDeleted().then((all) => all.filter((i) => i.kind === kind))
+      : brandingLibrary.list(kind)
+    request.then(setImages).catch(() => setImages([])).finally(() => setLoading(false))
+  }
 
   useEffect(() => {
     if (!show) return
-    setLoading(true)
-    brandingLibrary.list(kind).then(setImages).catch(() => setImages([])).finally(() => setLoading(false))
-  }, [show, kind])
+    loadImages()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, kind, showDeleted])
 
   if (!show) return null
 
@@ -82,6 +93,36 @@ const BrandingLibraryPicker: React.FC<BrandingLibraryPickerProps> = ({ kind, sho
     }
   }
 
+  const handleRestore = async (image: BrandingImage, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await brandingLibrary.restore(image.id)
+      setImages((prev) => prev.filter((i) => i.id !== image.id))
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
+  const handlePurge = async (image: BrandingImage, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const result = await Swal.fire({
+      title: t('common.confirm'),
+      text: t('content.confirmPurge'),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: t('content.purgePermanently'),
+      cancelButtonText: t('common.cancel'),
+      confirmButtonColor: '#dc3545',
+    })
+    if (!result.isConfirmed) return
+    try {
+      await brandingLibrary.purge(image.id)
+      setImages((prev) => prev.filter((i) => i.id !== image.id))
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
   return (
     <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
@@ -100,28 +141,41 @@ const BrandingLibraryPicker: React.FC<BrandingLibraryPickerProps> = ({ kind, sho
               className="d-none"
               onChange={handleUploadNew}
             />
-            <button
-              type="button"
-              className="fm-btn-primary btn-sm mb-3"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              <FaUpload className="me-1" />
-              {uploading ? t('common.loading') : t('brandingLibrary.uploadNew')}
-            </button>
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <button
+                type="button"
+                className="fm-btn-primary btn-sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || showDeleted}
+              >
+                <FaUpload className="me-1" />
+                {uploading ? t('common.loading') : t('brandingLibrary.uploadNew')}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${showDeleted ? 'btn-primary' : 'btn-outline-secondary'} ms-auto`}
+                onClick={() => setShowDeleted((v) => !v)}
+              >
+                <FaTrashRestore className="me-1" style={{ fontSize: '0.7rem' }} />
+                {t('content.recycleBin')}
+              </button>
+            </div>
 
             {loading ? (
               <p className="text-muted">{t('common.loading')}</p>
             ) : images.length === 0 ? (
-              <p className="text-muted">{t('brandingLibrary.empty')}</p>
+              <p className="text-muted">{showDeleted ? t('brandingLibrary.emptyDeleted') : t('brandingLibrary.empty')}</p>
             ) : (
               <div className="row g-2">
                 {images.map((image) => (
                   <div key={image.id} className="col-6 col-md-4 col-lg-3">
                     <div
                       className="card h-100"
-                      style={{ cursor: pickingId ? 'wait' : 'pointer', opacity: pickingId && pickingId !== image.id ? 0.6 : 1 }}
-                      onClick={() => !pickingId && handlePick(image)}
+                      style={{
+                        cursor: showDeleted ? 'default' : pickingId ? 'wait' : 'pointer',
+                        opacity: pickingId && pickingId !== image.id ? 0.6 : 1,
+                      }}
+                      onClick={() => !showDeleted && !pickingId && handlePick(image)}
                     >
                       <div
                         className="d-flex align-items-center justify-content-center"
@@ -132,18 +186,43 @@ const BrandingLibraryPicker: React.FC<BrandingLibraryPickerProps> = ({ kind, sho
                       <div className="card-body p-2 d-flex align-items-center justify-content-between gap-1">
                         <small className="text-truncate" title={image.name}>{image.name}</small>
                         <div className="d-flex align-items-center gap-1 flex-shrink-0">
-                          {pickingId === image.id ? (
-                            <span className="spinner-border spinner-border-sm" />
+                          {showDeleted ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-link p-0 text-success"
+                                title={t('content.restore')}
+                                onClick={(e) => handleRestore(image, e)}
+                              >
+                                <FaTrashRestore style={{ fontSize: '0.75rem' }} />
+                              </button>
+                              {isSuperAdminRole(role) && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link p-0 text-danger"
+                                  title={t('content.purgePermanently')}
+                                  onClick={(e) => handlePurge(image, e)}
+                                >
+                                  <FaBan style={{ fontSize: '0.75rem' }} />
+                                </button>
+                              )}
+                            </>
                           ) : (
-                            <FaCheck className="text-success" style={{ fontSize: '0.75rem' }} />
+                            <>
+                              {pickingId === image.id ? (
+                                <span className="spinner-border spinner-border-sm" />
+                              ) : (
+                                <FaCheck className="text-success" style={{ fontSize: '0.75rem' }} />
+                              )}
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-link p-0 text-danger"
+                                onClick={(e) => handleDelete(image, e)}
+                              >
+                                <FaTrash style={{ fontSize: '0.75rem' }} />
+                              </button>
+                            </>
                           )}
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-link p-0 text-danger"
-                            onClick={(e) => handleDelete(image, e)}
-                          >
-                            <FaTrash style={{ fontSize: '0.75rem' }} />
-                          </button>
                         </div>
                       </div>
                     </div>

@@ -299,6 +299,13 @@
     "scheduleResultWithFailures": "Publicado em {{total}} dispositivo(s), {{failed}} falhou/falharam",
     "confirmDelete": "Tem a certeza que quer eliminar este conteúdo?",
     "deleted": "Conteúdo eliminado",
+    "recycleBin": "Reciclagem",
+    "recycleBinHint": "O conteúdo eliminado fica aqui guardado e pode ser recuperado. Só um superadmin pode apagá-lo definitivamente.",
+    "restore": "Recuperar",
+    "restored": "Conteúdo recuperado",
+    "confirmPurge": "Apagar este conteúdo definitivamente? Esta ação não pode ser revertida.",
+    "purgePermanently": "Apagar definitivamente",
+    "purged": "Conteúdo apagado definitivamente",
     "openUrl": "Abrir URL",
     "noPreview": "Pré-visualização não disponível para este tipo de ficheiro",
     "download": "Transferir",
@@ -896,6 +903,7 @@
     "chooseButton": "Escolher da biblioteca",
     "uploadNew": "Carregar novo",
     "empty": "Ainda sem imagens guardadas — carregue uma para a adicionar à biblioteca.",
+    "emptyDeleted": "A reciclagem está vazia.",
     "confirmDelete": "Remover \"{{name}}\" da biblioteca? Os dispositivos que já a usam continuam a funcionar."
   },
   "branding": {

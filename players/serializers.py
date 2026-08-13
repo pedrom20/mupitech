@@ -12,8 +12,8 @@ from .models import BrandingImage, Player, PlayerSnapshot
 class BrandingImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = BrandingImage
-        fields = ['id', 'name', 'kind', 'file', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'name', 'kind', 'file', 'is_deleted', 'deleted_at', 'created_at']
+        read_only_fields = ['id', 'is_deleted', 'deleted_at', 'created_at']
 
 # Tailscale uses CGNAT range 100.64.0.0/10
 TAILSCALE_NETWORK = ipaddress.ip_network('100.64.0.0/10')

@@ -49,6 +49,12 @@ class MediaFile(models.Model):
                    'assets, SVGs and anything Pillow/ffprobe could not read.',
     )
     height = models.PositiveIntegerField(null=True, blank=True)
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text='Soft-deleted — hidden from normal use, recoverable from the '
+                   'recycle bin. Only a superadmin can purge it for real.',
+    )
+    deleted_at = models.DateTimeField(null=True, blank=True)
     processing_status = models.CharField(
         max_length=20,
         choices=[('ready', 'Ready'), ('processing', 'Processing'), ('failed', 'Failed')],

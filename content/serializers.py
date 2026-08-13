@@ -36,8 +36,8 @@ class MediaFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MediaFile
-        fields = ['id', 'name', 'file', 'source_url', 'thumbnail_url', 'thumbnail_file_url', 'file_type', 'file_size', 'processing_status', 'url', 'folder', 'folder_name', 'cctv_config', 'width', 'height', 'created_at']
-        read_only_fields = ['id', 'file_type', 'file_size', 'processing_status', 'thumbnail_url', 'width', 'height', 'created_at']
+        fields = ['id', 'name', 'file', 'source_url', 'thumbnail_url', 'thumbnail_file_url', 'file_type', 'file_size', 'processing_status', 'url', 'folder', 'folder_name', 'cctv_config', 'width', 'height', 'is_deleted', 'deleted_at', 'created_at']
+        read_only_fields = ['id', 'file_type', 'file_size', 'processing_status', 'thumbnail_url', 'width', 'height', 'is_deleted', 'deleted_at', 'created_at']
 
     def get_thumbnail_file_url(self, obj):
         if obj.thumbnail:

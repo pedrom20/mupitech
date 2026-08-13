@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FaTrash,
@@ -26,6 +26,8 @@ import {
   FaDesktop,
   FaLayerGroup,
   FaMapMarkerAlt,
+  FaTrashRestore,
+  FaBan,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { media as mediaApi, folders as foldersApi, playbackLog, cctv as cctvApi } from '@/services/api'
@@ -38,6 +40,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { FileTypeIcon, FilePreview, getDomain, isImageUrl } from '@/components/shared/media-preview'
 import { showToast } from '@/utils/toast'
+import { RoleContext, isSuperAdminRole } from '@/components/app'
 import type { MediaFile, MediaFolder, CctvConfig } from '@/types'
 
 function formatFileSize(bytes: number): string {
@@ -398,9 +401,11 @@ const ContentPage: React.FC = () => {
   const { players } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
   const { locations } = useAppSelector((state) => state.locations)
+  const role = useContext(RoleContext)
 
   const [files, setFiles] = useState<MediaFile[]>([])
   const [loadingFiles, setLoadingFiles] = useState(true)
+  const [showRecycleBin, setShowRecycleBin] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [uploadStats, setUploadStats] = useState<{ current: number; total: number } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -451,15 +456,16 @@ const ContentPage: React.FC = () => {
   const [playbackStats, setPlaybackStats] = useState<Record<string, number>>({})
 
   const loadFiles = useCallback(async () => {
+    setLoadingFiles(true)
     try {
-      const data = await mediaApi.list()
+      const data = showRecycleBin ? await mediaApi.listDeleted() : await mediaApi.list()
       setFiles(data)
     } catch {
       // silently fail
     } finally {
       setLoadingFiles(false)
     }
-  }, [])
+  }, [showRecycleBin])
 
   const loadFolders = useCallback(async () => {
     try {
@@ -620,6 +626,40 @@ const ContentPage: React.FC = () => {
           timer: 1200,
           showConfirmButton: false,
         })
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+      }
+    }
+  }
+
+  const handleRestore = async (e: React.MouseEvent, file: MediaFile) => {
+    e.stopPropagation()
+    try {
+      await mediaApi.restore(file.id)
+      loadFiles()
+      loadFolders()
+      showToast('success', t('content.restored'))
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
+  const handlePurge = async (e: React.MouseEvent, file: MediaFile) => {
+    e.stopPropagation()
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: t('common.confirm'),
+      text: t('content.confirmPurge'),
+      showCancelButton: true,
+      confirmButtonText: t('content.purgePermanently'),
+      cancelButtonText: t('common.cancel'),
+      confirmButtonColor: '#dc3545',
+    })
+    if (result.isConfirmed) {
+      try {
+        await mediaApi.purge(file.id)
+        loadFiles()
+        showToast('success', t('content.purged'))
       } catch (err) {
         Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
       }
@@ -842,8 +882,18 @@ const ContentPage: React.FC = () => {
                 {t('content.deleteFolder')}
               </button>
             )}
+            <button
+              className={`btn btn-sm ${showRecycleBin ? 'btn-primary' : 'btn-outline-secondary'} ms-auto`}
+              style={{ borderRadius: '20px', fontSize: '0.78rem', padding: '3px 12px' }}
+              onClick={() => setShowRecycleBin((v) => !v)}
+              title={t('content.recycleBin')}
+            >
+              <FaTrashRestore className="me-1" style={{ fontSize: '0.7rem' }} />
+              {t('content.recycleBin')}
+            </button>
+
             {/* View mode toggle */}
-            <div className="btn-group ms-auto" role="group">
+            <div className="btn-group" role="group">
               <button
                 className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-secondary'}`}
                 onClick={() => handleViewMode('grid')}
@@ -862,6 +912,13 @@ const ContentPage: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {showRecycleBin && (
+            <div className="alert alert-warning py-2 px-3 d-flex align-items-center gap-2 mb-3" style={{ fontSize: '0.82rem' }}>
+              <FaTrashRestore />
+              {t('content.recycleBinHint')}
+            </div>
+          )}
 
           {/* Folders grid — Windows-style icons */}
           <div className="mb-3">
@@ -1183,52 +1240,75 @@ const ContentPage: React.FC = () => {
                       {/* Actions */}
                       <td style={{ padding: '4px 6px', verticalAlign: 'middle' }}>
                         <div className="d-flex align-items-center justify-content-end gap-1">
-                          {file.source_url ? (
-                            <a
-                              href={file.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-sm btn-outline-primary py-0 px-1"
-                              title={t('content.openUrl')}
-                            >
-                              <FaExternalLinkAlt style={{ fontSize: '0.65rem' }} />
-                            </a>
+                          {showRecycleBin ? (
+                            <>
+                              <button
+                                className="btn btn-sm btn-outline-success py-0 px-1"
+                                title={t('content.restore')}
+                                onClick={(e) => handleRestore(e, file)}
+                              >
+                                <FaTrashRestore style={{ fontSize: '0.65rem' }} />
+                              </button>
+                              {isSuperAdminRole(role) && (
+                                <button
+                                  className="btn btn-sm btn-outline-danger py-0 px-1"
+                                  title={t('content.purgePermanently')}
+                                  onClick={(e) => handlePurge(e, file)}
+                                >
+                                  <FaBan style={{ fontSize: '0.65rem' }} />
+                                </button>
+                              )}
+                            </>
                           ) : (
-                            <span style={{ width: '26px' }} />
+                            <>
+                              {file.source_url ? (
+                                <a
+                                  href={file.source_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-sm btn-outline-primary py-0 px-1"
+                                  title={t('content.openUrl')}
+                                >
+                                  <FaExternalLinkAlt style={{ fontSize: '0.65rem' }} />
+                                </a>
+                              ) : (
+                                <span style={{ width: '26px' }} />
+                              )}
+                              {file.file_type === 'cctv' ? (
+                                <button
+                                  className="btn btn-sm btn-outline-secondary py-0 px-1"
+                                  title={t('common.edit')}
+                                  onClick={(e) => { e.stopPropagation(); handleCctvEdit(file) }}
+                                >
+                                  <FaPen style={{ fontSize: '0.65rem' }} />
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-sm btn-outline-secondary py-0 px-1"
+                                  title={t('content.rename')}
+                                  onClick={(e) => handleRenameStart(e, file)}
+                                >
+                                  <FaPen style={{ fontSize: '0.65rem' }} />
+                                </button>
+                              )}
+                              {file.file_type !== 'cctv' && (
+                                <button
+                                  className="btn btn-sm btn-outline-secondary py-0 px-1"
+                                  title={t('content.schedule')}
+                                  onClick={(e) => handleOpenSchedule(e, file)}
+                                >
+                                  <FaClock style={{ fontSize: '0.65rem' }} />
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-sm btn-outline-danger py-0 px-1"
+                                title={t('common.delete')}
+                                onClick={(e) => handleDelete(e, file)}
+                              >
+                                <FaTrash style={{ fontSize: '0.65rem' }} />
+                              </button>
+                            </>
                           )}
-                          {file.file_type === 'cctv' ? (
-                            <button
-                              className="btn btn-sm btn-outline-secondary py-0 px-1"
-                              title={t('common.edit')}
-                              onClick={(e) => { e.stopPropagation(); handleCctvEdit(file) }}
-                            >
-                              <FaPen style={{ fontSize: '0.65rem' }} />
-                            </button>
-                          ) : (
-                            <button
-                              className="btn btn-sm btn-outline-secondary py-0 px-1"
-                              title={t('content.rename')}
-                              onClick={(e) => handleRenameStart(e, file)}
-                            >
-                              <FaPen style={{ fontSize: '0.65rem' }} />
-                            </button>
-                          )}
-                          {file.file_type !== 'cctv' && (
-                            <button
-                              className="btn btn-sm btn-outline-secondary py-0 px-1"
-                              title={t('content.schedule')}
-                              onClick={(e) => handleOpenSchedule(e, file)}
-                            >
-                              <FaClock style={{ fontSize: '0.65rem' }} />
-                            </button>
-                          )}
-                          <button
-                            className="btn btn-sm btn-outline-danger py-0 px-1"
-                            title={t('common.delete')}
-                            onClick={(e) => handleDelete(e, file)}
-                          >
-                            <FaTrash style={{ fontSize: '0.65rem' }} />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1554,50 +1634,73 @@ const ContentPage: React.FC = () => {
                         </div>
                       )}
                       <div className="d-flex align-items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
-                        {file.source_url && file.file_type !== 'cctv' && (
-                          <a
-                            href={file.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-sm btn-outline-primary py-0 px-1"
-                            title={t('content.openUrl')}
-                          >
-                            <FaExternalLinkAlt style={{ fontSize: '0.65rem' }} />
-                          </a>
-                        )}
-                        {file.file_type === 'cctv' ? (
-                          <button
-                            className="btn btn-sm btn-outline-secondary py-0 px-1"
-                            title={t('common.edit')}
-                            onClick={(e) => { e.stopPropagation(); handleCctvEdit(file) }}
-                          >
-                            <FaPen style={{ fontSize: '0.65rem' }} />
-                          </button>
+                        {showRecycleBin ? (
+                          <>
+                            <button
+                              className="btn btn-sm btn-outline-success py-0 px-1"
+                              title={t('content.restore')}
+                              onClick={(e) => handleRestore(e, file)}
+                            >
+                              <FaTrashRestore style={{ fontSize: '0.65rem' }} />
+                            </button>
+                            {isSuperAdminRole(role) && (
+                              <button
+                                className="btn btn-sm btn-outline-danger py-0 px-1"
+                                title={t('content.purgePermanently')}
+                                onClick={(e) => handlePurge(e, file)}
+                              >
+                                <FaBan style={{ fontSize: '0.65rem' }} />
+                              </button>
+                            )}
+                          </>
                         ) : (
-                          <button
-                            className="btn btn-sm btn-outline-secondary py-0 px-1"
-                            title={t('content.rename')}
-                            onClick={(e) => handleRenameStart(e, file)}
-                          >
-                            <FaPen style={{ fontSize: '0.65rem' }} />
-                          </button>
+                          <>
+                            {file.source_url && file.file_type !== 'cctv' && (
+                              <a
+                                href={file.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-sm btn-outline-primary py-0 px-1"
+                                title={t('content.openUrl')}
+                              >
+                                <FaExternalLinkAlt style={{ fontSize: '0.65rem' }} />
+                              </a>
+                            )}
+                            {file.file_type === 'cctv' ? (
+                              <button
+                                className="btn btn-sm btn-outline-secondary py-0 px-1"
+                                title={t('common.edit')}
+                                onClick={(e) => { e.stopPropagation(); handleCctvEdit(file) }}
+                              >
+                                <FaPen style={{ fontSize: '0.65rem' }} />
+                              </button>
+                            ) : (
+                              <button
+                                className="btn btn-sm btn-outline-secondary py-0 px-1"
+                                title={t('content.rename')}
+                                onClick={(e) => handleRenameStart(e, file)}
+                              >
+                                <FaPen style={{ fontSize: '0.65rem' }} />
+                              </button>
+                            )}
+                            {file.file_type !== 'cctv' && (
+                              <button
+                                className="btn btn-sm btn-outline-secondary py-0 px-1"
+                                title={t('content.schedule')}
+                                onClick={(e) => handleOpenSchedule(e, file)}
+                              >
+                                <FaClock style={{ fontSize: '0.65rem' }} />
+                              </button>
+                            )}
+                            <button
+                              className="btn btn-sm btn-outline-danger py-0 px-1"
+                              title={t('common.delete')}
+                              onClick={(e) => handleDelete(e, file)}
+                            >
+                              <FaTrash style={{ fontSize: '0.65rem' }} />
+                            </button>
+                          </>
                         )}
-                        {file.file_type !== 'cctv' && (
-                          <button
-                            className="btn btn-sm btn-outline-secondary py-0 px-1"
-                            title={t('content.schedule')}
-                            onClick={(e) => handleOpenSchedule(e, file)}
-                          >
-                            <FaClock style={{ fontSize: '0.65rem' }} />
-                          </button>
-                        )}
-                        <button
-                          className="btn btn-sm btn-outline-danger py-0 px-1"
-                          title={t('common.delete')}
-                          onClick={(e) => handleDelete(e, file)}
-                        >
-                          <FaTrash style={{ fontSize: '0.65rem' }} />
-                        </button>
                         {playbackStats[baseName(file.name)] > 0 && (
                           <span className="ms-auto d-flex align-items-center gap-1 text-info" style={{ fontSize: '0.8rem' }} title={t('content.totalPlayTime')}>
                             <FaClock />
