@@ -211,6 +211,7 @@ const PlayerDetail: React.FC = () => {
   const [migratingImage, setMigratingImage] = useState(false)
   const [migrateProgressText, setMigrateProgressText] = useState('')
   const [preserveContent, setPreserveContent] = useState(true)
+  const [migrateTarget, setMigrateTarget] = useState<'mupitech' | 'official'>('mupitech')
 
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
@@ -786,7 +787,7 @@ const PlayerDetail: React.FC = () => {
     if (!id || (!pushLogoSshPassword && !canUseSavedPassword)) return
     const result = await Swal.fire({
       icon: 'warning',
-      title: t('migrateImage.confirmTitle'),
+      title: t('migrateImage.confirmTitle', { target: t(migrateTarget === 'mupitech' ? 'migrateImage.targetMupitech' : 'migrateImage.targetOfficial') }),
       text: t('migrateImage.confirmText'),
       showCancelButton: true,
       confirmButtonText: t('migrateImage.confirmButton'),
@@ -810,7 +811,7 @@ const PlayerDetail: React.FC = () => {
     ]
     try {
       const migrateResult = await playersApi.migrateImage(
-        id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials, preserveContent,
+        id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials, preserveContent, migrateTarget,
       )
       const baseMsg = migrateResult.action === 'migrated' ? t('migrateImage.migrated') : t('migrateImage.updated')
       const brandingFailedCount = migrateResult.branding_failed?.length || 0
@@ -3659,6 +3660,29 @@ const PlayerDetail: React.FC = () => {
                       />
                     </div>
 
+                    <div className="mb-3">
+                      <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('migrateImage.targetLabel')}</label>
+                      <div className="btn-group w-100" role="group">
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${migrateTarget === 'mupitech' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          onClick={() => setMigrateTarget('mupitech')}
+                        >
+                          {t('migrateImage.targetMupitech')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${migrateTarget === 'official' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          onClick={() => setMigrateTarget('official')}
+                        >
+                          {t('migrateImage.targetOfficial')}
+                        </button>
+                      </div>
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                        {t(migrateTarget === 'mupitech' ? 'migrateImage.targetMupitechHint' : 'migrateImage.targetOfficialHint')}
+                      </div>
+                    </div>
+
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-primary mb-3"
@@ -3673,7 +3697,7 @@ const PlayerDetail: React.FC = () => {
                       <div className="alert alert-danger py-2 px-2" style={{ fontSize: '0.8rem' }}>{imageSourceError}</div>
                     )}
                     {imageSourceResult && (
-                      <div className={`alert py-2 px-2 ${imageSourceResult.source === 'mupitech' ? 'alert-success' : 'alert-info'}`} style={{ fontSize: '0.8rem' }}>
+                      <div className={`alert py-2 px-2 ${imageSourceResult.source === migrateTarget ? 'alert-success' : 'alert-info'}`} style={{ fontSize: '0.8rem' }}>
                         <div><strong>{t('migrateImage.currentSource')}:</strong> {t(`migrateImage.source.${imageSourceResult.source}`)}</div>
                         <div className="text-muted" style={{ wordBreak: 'break-all' }}>{imageSourceResult.image}</div>
                       </div>
@@ -3693,7 +3717,7 @@ const PlayerDetail: React.FC = () => {
                       </div>
                     )}
 
-                    {imageSourceResult?.can_migrate && imageSourceResult.source !== 'mupitech' && (
+                    {imageSourceResult?.can_migrate && imageSourceResult.source !== migrateTarget && (
                       <div className="form-check mb-2">
                         <input
                           type="checkbox"

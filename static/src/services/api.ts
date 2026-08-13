@@ -255,7 +255,7 @@ export const players = {
     })
   },
 
-  migrateImage(id: string, sshUser: string, sshPassword: string, sshPort: number, saveCredentials = false, preserveContent = false): Promise<{
+  migrateImage(id: string, sshUser: string, sshPassword: string, sshPort: number, saveCredentials = false, preserveContent = false, target: 'mupitech' | 'official' = 'mupitech'): Promise<{
     success: boolean; action: 'updated' | 'migrated'; previous_source: string
     previous_image: string; backup_path: string | null
     content_restored?: number | null; content_restore_failed?: string[] | null; content_restore_error?: string | null
@@ -263,7 +263,7 @@ export const players = {
   }> {
     return apiRequest('POST', `/players/${id}/migrate-image/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
-      save_credentials: saveCredentials, preserve_content: preserveContent,
+      save_credentials: saveCredentials, preserve_content: preserveContent, target,
     })
   },
 

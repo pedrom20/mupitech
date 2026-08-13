@@ -978,7 +978,12 @@
   },
   "migrateImage": {
     "title": "Migrate to MupiTech image",
-    "desc": "Moves this device onto our own Anthias image (ghcr.io/pedrom20/mupitech-player), replacing whatever it's running today. The previous docker-compose.yml is backed up as .bak before anything is written. x86 only for now.",
+    "desc": "Moves this device onto a chosen image, replacing whatever it's running today. The previous docker-compose.yml is backed up as .bak before anything is written. x86 only for now.",
+    "targetLabel": "Target image",
+    "targetMupitech": "MupiTech",
+    "targetOfficial": "Official Anthias",
+    "targetMupitechHint": "Our own build (ghcr.io/pedrom20/mupitech-player) — CEC/IR, screenshot, MupiTech branding.",
+    "targetOfficialHint": "Genuinely unmodified upstream Anthias (ghcr.io/screenly/anthias) — no MupiTech branding or extra features. Useful to rule out a fork-specific issue, or to hand a device back to a vanilla state.",
     "checkButton": "Check current image",
     "currentSource": "Current image",
     "source": {
@@ -988,7 +993,7 @@
       "unknown": "Unrecognized — cannot migrate automatically"
     },
     "migrateButton": "Migrate",
-    "confirmTitle": "Migrate this device?",
+    "confirmTitle": "Install {{target}} on this device?",
     "confirmText": "This replaces the device's docker-compose.yml and restarts its containers. The previous file is kept as a .bak.",
     "confirmButton": "Migrate",
     "migrated": "Device migrated to the MupiTech image",
@@ -1020,7 +1025,8 @@
       "no_backup": "No backup found at {{backup_path}} — there's nothing to restore. A backup is only created the first time a device is migrated to the MupiTech image.",
       "unsupported_device_type": "Migration to the MupiTech image is only supported for x86 devices right now (this device is \"{{device_type}}\"). Pi4/Pi5 images exist but haven't been validated on real hardware yet.",
       "unrecognized_image": "Unrecognized image on this device (\"{{image}}\") — refusing to migrate automatically. This device needs manual inspection first.",
-      "unexpected": "Unexpected error: {{detail}}"
+      "unexpected": "Unexpected error: {{detail}}",
+      "unknown_target": "Unknown target image \"{{target}}\"."
     }
   },
   "users": {

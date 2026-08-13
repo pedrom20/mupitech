@@ -391,8 +391,23 @@ def restore_assets(player, snapshot):
     return restored, failed
 
 
-def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22, timeout=30, preserve_content=False):
-    """SSH into `player`'s host and move it onto the MupiTech Anthias image.
+# Well-known upstream registry — used when target=IMAGE_SOURCE_OFFICIAL to
+# install genuinely unmodified Anthias instead of our own fork. Same
+# per-board tag suffixes as our own images (ANTHIAS_IMAGE_TAG_SUFFIX_*):
+# this fork tracks current upstream, so the board-tag convention hasn't
+# diverged, only the namespace has.
+OFFICIAL_ANTHIAS_REGISTRY = 'ghcr.io/screenly/anthias'
+
+_TARGETABLE_IMAGES = (IMAGE_SOURCE_MUPITECH, IMAGE_SOURCE_OFFICIAL)
+
+
+def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, timeout=30,
+                                    target=IMAGE_SOURCE_MUPITECH, preserve_content=False):
+    """SSH into `player`'s host and move it onto `target`'s image — our own
+    MupiTech build (default, branded) or genuinely unmodified official
+    Anthias (a real reinstall over SSH, not just reverting to a .bak —
+    useful when a device is in a broken state and the last-known-good
+    compose file isn't trustworthy either).
 
     When preserve_content=True, snapshots the device's current asset list
     (+ downloads locally-hosted files) via its REST API before migrating,
@@ -400,12 +415,21 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
     snapshot_assets/restore_assets. Best-effort: a failure here doesn't
     fail the migration itself, it's reported back in the result dict
     (content_restored / content_restore_failed / content_restore_error).
+    MupiTech branding is only re-applied for target=mupitech — pushing our
+    logo/theme onto a deliberately-vanilla official-Anthias install would
+    defeat the point of choosing it.
 
     Returns a dict describing what happened: {'action': 'updated'|'migrated',
     'previous_source': str, 'previous_image': str, 'backup_path': str|None}.
     Raises MigrationError (never touching the device) if the device type
-    isn't supported yet, or the current image can't be classified safely.
+    isn't supported yet, target isn't recognized, or the current image
+    can't be classified safely.
     """
+    if target not in _TARGETABLE_IMAGES:
+        raise MigrationError(
+            f'Unknown target image "{target}".', code='unknown_target', params={'target': target},
+        )
+
     ssh, host = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
     try:
         # A device added via "Add existing" (plain URL, no SSH
@@ -418,7 +442,7 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
 
         if player.device_type not in _MIGRATABLE_DEVICE_TYPES:
             raise MigrationError(
-                f'Migration to the MupiTech image is only supported for x86 devices right now '
+                f'Migration to a chosen image is only supported for x86 devices right now '
                 f'(this device is "{player.device_type}"). Pi4/Pi5 images exist but haven\'t been '
                 f'validated on real hardware yet.',
                 code='unsupported_device_type', params={'device_type': player.device_type},
@@ -440,8 +464,8 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
 
         working_dir, compose_path = _get_compose_context(ssh, container, timeout)
 
-        if source == IMAGE_SOURCE_MUPITECH:
-            # Already on our image — this is just an update, not a migration.
+        if source == target:
+            # Already on the requested image — just update/pull, not a migration.
             out, _, _ = _ssh_run(
                 ssh,
                 f'cd {_shell_quote(working_dir)} && docker compose pull && '
@@ -459,20 +483,24 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
             # as after a migration. Always re-push here too, since a
             # no-op push (nothing changed) costs a few SSH round-trips
             # and nothing else.
-            time.sleep(5)
-            result.update(_push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout))
+            if target == IMAGE_SOURCE_MUPITECH:
+                time.sleep(5)
+                result.update(_push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout))
             return result
 
-        # source is 'fork' or 'official' — treat this as re-provisioning
-        # onto our own template, keeping the device's existing bind-mount
-        # directories/host user (created by whatever provisioned it before).
+        # Different source than the requested target — re-provision onto
+        # our compose template, keeping the device's existing bind-mount
+        # directories/host user (created by whatever provisioned it
+        # before). registry_override picks which images that template
+        # actually pulls: our own (None -> settings default) or upstream's.
         content_snapshot = snapshot_assets(player) if preserve_content else None
 
         layout = _home_layout(player.device_type)
         watchtower_token = 'anthias-player-update'
+        registry_override = None if target == IMAGE_SOURCE_MUPITECH else OFFICIAL_ANTHIAS_REGISTRY
         compose_content = _render_compose(
             host, ssh_user, watchtower_token, player.mac_address or '',
-            device_type=player.device_type,
+            device_type=player.device_type, registry_override=registry_override,
         )
 
         backup_path = f'{compose_path}.bak'
@@ -512,10 +540,11 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
             'backup_path': backup_path, 'output': out[-2000:],
         }
 
-        # Give the freshly (re)created container a moment before pushing
-        # branding over SSH+docker exec — see _push_branding_best_effort.
-        time.sleep(5)
-        result.update(_push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout))
+        if target == IMAGE_SOURCE_MUPITECH:
+            # Give the freshly (re)created container a moment before pushing
+            # branding over SSH+docker exec — see _push_branding_best_effort.
+            time.sleep(5)
+            result.update(_push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout))
 
         if preserve_content:
             # Isolated from the migration's own error handling below — the

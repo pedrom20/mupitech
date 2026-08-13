@@ -466,11 +466,13 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='migrate-image')
     def migrate_image(self, request, pk=None):
-        """Move an already-provisioned device onto the MupiTech Anthias
-        image: the old third-party fork or unmodified official Anthias
-        get re-provisioned onto our compose template (previous compose
-        file backed up as .bak first); a device already on our image just
-        gets pulled/updated. x86 only for now — see players/migrate_image.py."""
+        """Move an already-provisioned device onto a chosen image — our own
+        MupiTech build (default) or genuinely unmodified official Anthias:
+        the old third-party fork or whatever's currently running gets
+        re-provisioned onto our compose template (previous compose file
+        backed up as .bak first), pointed at the requested target's
+        registry; a device already on the requested image just gets
+        pulled/updated. x86 only for now — see players/migrate_image.py."""
         player = self.get_object()
         ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
         if not ssh_password:
@@ -479,11 +481,12 @@ class PlayerViewSet(viewsets.ModelViewSet):
         ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
         save_credentials = request.data.get('save_credentials', False)
         preserve_content = bool(request.data.get('preserve_content', False))
+        target = request.data.get('target') or 'mupitech'
 
-        from .migrate_image import MigrationError, migrate_player_to_mupitech_image
+        from .migrate_image import MigrationError, migrate_player_to_target_image
         try:
-            result = migrate_player_to_mupitech_image(
-                player, ssh_user, ssh_password, ssh_port, preserve_content=preserve_content,
+            result = migrate_player_to_target_image(
+                player, ssh_user, ssh_password, ssh_port, target=target, preserve_content=preserve_content,
             )
         except MigrationError as exc:
             return Response(

@@ -978,7 +978,12 @@
   },
   "migrateImage": {
     "title": "Migrar para imagem MupiTech",
-    "desc": "Move este dispositivo para a nossa própria imagem Anthias (ghcr.io/pedrom20/mupitech-player), substituindo o que corre atualmente. O docker-compose.yml anterior é guardado como .bak antes de qualquer alteração. Por agora, só x86.",
+    "desc": "Move este dispositivo para a imagem escolhida, substituindo o que corre atualmente. O docker-compose.yml anterior é guardado como .bak antes de qualquer alteração. Por agora, só x86.",
+    "targetLabel": "Imagem alvo",
+    "targetMupitech": "MupiTech",
+    "targetOfficial": "Anthias oficial",
+    "targetMupitechHint": "A nossa própria imagem (ghcr.io/pedrom20/mupitech-player) — CEC/IR, screenshot, personalização MupiTech.",
+    "targetOfficialHint": "Anthias oficial genuinamente sem modificações (ghcr.io/screenly/anthias) — sem personalização MupiTech nem funcionalidades extra. Útil para descartar um problema específico do nosso fork, ou para devolver um device a um estado limpo.",
     "checkButton": "Verificar imagem atual",
     "currentSource": "Imagem atual",
     "source": {
@@ -988,7 +993,7 @@
       "unknown": "Não reconhecida — não é possível migrar automaticamente"
     },
     "migrateButton": "Migrar",
-    "confirmTitle": "Migrar este dispositivo?",
+    "confirmTitle": "Instalar {{target}} neste dispositivo?",
     "confirmText": "Isto substitui o docker-compose.yml do dispositivo e reinicia os seus contentores. O ficheiro anterior fica guardado como .bak.",
     "confirmButton": "Migrar",
     "migrated": "Dispositivo migrado para a imagem MupiTech",
@@ -1020,7 +1025,8 @@
       "no_backup": "Não foi encontrado nenhum backup em {{backup_path}} — não há nada para restaurar. Só é criado um backup da primeira vez que um dispositivo é migrado para a imagem MupiTech.",
       "unsupported_device_type": "A migração para a imagem MupiTech só é suportada em devices x86 por agora (este dispositivo é \"{{device_type}}\"). As imagens Pi4/Pi5 já existem mas ainda não foram validadas em hardware real.",
       "unrecognized_image": "Imagem não reconhecida neste dispositivo (\"{{image}}\") — a recusar migrar automaticamente. Este dispositivo precisa de inspeção manual primeiro.",
-      "unexpected": "Erro inesperado: {{detail}}"
+      "unexpected": "Erro inesperado: {{detail}}",
+      "unknown_target": "Imagem alvo desconhecida \"{{target}}\"."
     }
   },
   "users": {
