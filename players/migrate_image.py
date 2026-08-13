@@ -22,6 +22,7 @@ the mupitech-player fork).
 """
 
 import logging
+import re
 import time
 from urllib.parse import urlparse
 
@@ -165,6 +166,36 @@ def _detect_and_save_device_type(player, ssh, timeout):
         # Best-effort — never let detection failure break the actual
         # image-source check/migration this is piggybacking on.
         pass
+
+
+_LEGACY_MEDIA_PLAYER_MOUNT_RE = re.compile(
+    r'^\s*-\s*\S*/media_player\.py:/usr/src/app/src/anthias_viewer/media_player\.py:ro\s*$'
+)
+
+
+def _strip_legacy_media_player_bind_mount(ssh, compose_path, timeout):
+    """Remove a stale media_player.py bind-mount line left over from before
+    needs_media_player_override existed (see provision.py) — devices
+    provisioned or migrated before that fix still carry this line in their
+    on-disk compose file even though current templates no longer write it.
+    It silently shadows the real ~950-line file baked into the image with
+    an empty host placeholder, breaking the viewer outright (ImportError:
+    cannot import name 'MediaPlayerProxy'). Idempotent: no-op if the line
+    isn't present. Returns True if the compose file was changed.
+    """
+    sftp = ssh.open_sftp()
+    try:
+        with sftp.file(compose_path, 'r') as f:
+            content = f.read().decode('utf-8')
+        lines = content.splitlines(keepends=True)
+        kept = [line for line in lines if not _LEGACY_MEDIA_PLAYER_MOUNT_RE.match(line)]
+        if len(kept) == len(lines):
+            return False
+        with sftp.file(compose_path, 'w') as f:
+            f.write(''.join(kept))
+        return True
+    finally:
+        sftp.close()
 
 
 def _backup_exists(ssh, compose_path, timeout):
@@ -466,6 +497,12 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
 
         if source == target:
             # Already on the requested image — just update/pull, not a migration.
+            # Clean up a legacy media_player.py bind-mount (see
+            # _strip_legacy_media_player_bind_mount) before pulling/recreating,
+            # so devices provisioned/migrated before that fix existed get
+            # fixed the next time they're touched here, not just newly
+            # provisioned ones.
+            bind_mount_removed = _strip_legacy_media_player_bind_mount(ssh, compose_path, timeout)
             out, _, _ = _ssh_run(
                 ssh,
                 f'cd {_shell_quote(working_dir)} && docker compose pull && '
@@ -475,6 +512,7 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
             result = {
                 'action': 'updated', 'previous_source': source, 'previous_image': image,
                 'backup_path': None, 'output': out[-2000:],
+                'legacy_bind_mount_removed': bind_mount_removed,
             }
             # `up -d` only recreates the container when the pulled image
             # actually changed — but when it does, the branding sed
