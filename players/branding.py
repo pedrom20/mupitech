@@ -60,7 +60,10 @@ SPLASH_TRANSLATION_REPLACEMENTS = [
     ('Open this on your phone or laptop', 'Abra isto no seu telemóvel ou computador'),
     (
         'Point a browser at one of the addresses below, or scan the QR code.',
-        'Aceda a um dos endereços abaixo no navegador, ou leia o código QR.',
+        # Non-breaking space between "código" and "QR." — without it, this
+        # sentence's last word wraps alone onto its own line at the card's
+        # width, an orphaned "QR." underneath the rest of the sentence.
+        'Aceda a um dos endereços abaixo no navegador, ou leia o código&nbsp;QR.',
     ),
     ('Scan to manage', 'Ler para gerir'),
 ]
@@ -401,6 +404,169 @@ def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, time
         container_path=CONTAINER_CSS_PATH,
         replacements=THEME_COLOR_REPLACEMENTS + SPLASH_LOGO_SIZE_REPLACEMENTS,
     )
+
+
+_DEVICE_LABEL_START = '<!-- mupitech-device-label:start -->'
+_DEVICE_LABEL_END = '<!-- mupitech-device-label:end -->'
+_DEVICE_LABEL_ANCHOR = '<div id="splash-prompt" hidden>'
+
+# Minimal Feather-style outline icons (MIT-licensed design, redrawn as
+# inline SVG so the label needs no extra font/asset — 14px, stroke
+# inherits the surrounding text color via currentColor).
+_ICON_LOCATION = (
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+)
+_ICON_GROUP = (
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>'
+    '<path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+)
+_ICON_DEVICE = (
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>'
+)
+
+# Visually matches .splash-status (see _styles.scss "Splash page" section)
+# via the same CSS custom properties, so it reads as part of the same
+# design system without needing to touch the compiled anthias.css.
+_DEVICE_LABEL_STYLE = (
+    'display:inline-flex;align-items:center;gap:var(--space-2);'
+    'margin:0 0 var(--space-4) 0;padding:var(--space-1) var(--space-3);'
+    'font-size:0.8125rem;font-weight:600;letter-spacing:0.02em;'
+    'color:var(--color-text-on-dark-muted);background:rgba(255,255,255,0.06);'
+    'border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-pill);'
+)
+_DEVICE_LABEL_ITEM_STYLE = 'display:inline-flex;align-items:center;gap:4px;'
+_DEVICE_LABEL_SEP_STYLE = 'opacity:0.4;'
+
+
+def _device_label_html(player):
+    """Build the "Location / Group / Device name" identification chip for
+    `player`, skipping any level that isn't set. Returns '' if there's
+    nothing to show (shouldn't normally happen — the device's own name
+    is always present)."""
+    import html as _html
+
+    parts = []
+    location = player.effective_location
+    if location and location.name:
+        parts.append((_ICON_LOCATION, location.name))
+    if player.group_id and player.group.name:
+        parts.append((_ICON_GROUP, player.group.name))
+    if player.name:
+        parts.append((_ICON_DEVICE, player.name))
+    if not parts:
+        return ''
+
+    items = [
+        f'<span style="{_DEVICE_LABEL_ITEM_STYLE}">{icon}<span>{_html.escape(text)}</span></span>'
+        for icon, text in parts
+    ]
+    separator = f'<span style="{_DEVICE_LABEL_SEP_STYLE}" aria-hidden="true">/</span>'
+    inner = separator.join(items)
+    return (
+        f'{_DEVICE_LABEL_START}\n'
+        f'      <div class="splash-device-label" style="{_DEVICE_LABEL_STYLE}">{inner}</div>\n'
+        f'      {_DEVICE_LABEL_END}'
+    )
+
+
+def _inject_device_label(content, player):
+    """Replace any previously-injected device-label block in `content`
+    (server-rendered splash-page.html) with a freshly-rendered one for
+    `player`, inserted right before the addresses/QR prompt. Idempotent
+    and safe to call on every push — a device's name/group/location can
+    change over time, so the old block is always stripped first rather
+    than left stale."""
+    import re as _re
+
+    content = _re.sub(
+        _re.escape(_DEVICE_LABEL_START) + r'.*?' + _re.escape(_DEVICE_LABEL_END),
+        '', content, flags=_re.DOTALL,
+    )
+    label_html = _device_label_html(player)
+    if not label_html or _DEVICE_LABEL_ANCHOR not in content:
+        return content
+    return content.replace(_DEVICE_LABEL_ANCHOR, f'{label_html}\n      {_DEVICE_LABEL_ANCHOR}', 1)
+
+
+def _read_container_file(ssh, container, container_path, timeout):
+    """Read a file from inside a running container via `docker cp` to a
+    host tmp path, then SFTP — the inverse of _push_file_to_player, needed
+    here because the device-label patch has to read-modify-write rather
+    than a plain textual sed substitution (it inserts a multi-line HTML
+    block, not a fixed find/replace)."""
+    remote_tmp = f'/tmp/mupitech-read-{os.urandom(8).hex()}'
+    _ssh_run(ssh, f'docker cp {_shell_quote(container)}:{container_path} {remote_tmp}', timeout=timeout)
+    sftp = ssh.open_sftp()
+    try:
+        with sftp.file(remote_tmp, 'r') as f:
+            content = f.read().decode('utf-8')
+    finally:
+        sftp.close()
+    _ssh_run(ssh, f'rm -f {remote_tmp}', timeout=timeout, check=False)
+    return content
+
+
+def _write_container_file(ssh, container, container_path, content, timeout):
+    remote_tmp = f'/tmp/mupitech-write-{os.urandom(8).hex()}'
+    sftp = ssh.open_sftp()
+    try:
+        with sftp.file(remote_tmp, 'w') as f:
+            f.write(content.encode('utf-8'))
+    finally:
+        sftp.close()
+    _ssh_run(ssh, f'docker cp {remote_tmp} {_shell_quote(container)}:{container_path}', timeout=timeout)
+    _ssh_run(ssh, f'rm -f {remote_tmp}', timeout=timeout, check=False)
+
+
+def push_splash_device_label_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and stamp its splash-page with a small
+    "Location / Group / Device name" chip, so a device is identifiable at
+    a glance when several are laid out side by side (e.g. "Biblioteca /
+    Receção / Balcão 1") — read/modify/write rather than the sed-based
+    patches above, since this inserts new markup instead of substituting
+    fixed text.
+    """
+    import paramiko
+
+    host = urlparse(player.url).hostname
+    if not host:
+        raise BrandingPushError(f"Could not determine host from player URL: {player.url}")
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        ssh.connect(host, port=ssh_port, username=ssh_user, password=ssh_password, timeout=timeout)
+    except Exception as exc:
+        raise BrandingPushError(f'SSH connection failed: {exc}') from exc
+
+    try:
+        out, _, _ = _ssh_run(
+            ssh,
+            "docker ps --format '{{.Names}}' --filter name=anthias-server",
+            timeout=timeout,
+        )
+        container = next((line for line in out.strip().splitlines() if line.strip()), '')
+        if not container:
+            raise BrandingPushError(
+                'Could not find a running anthias-server container on this device.'
+            )
+
+        content = _read_container_file(ssh, container, CONTAINER_SPLASH_TEMPLATE_PATH, timeout)
+        content = _inject_device_label(content, player)
+        _write_container_file(ssh, container, CONTAINER_SPLASH_TEMPLATE_PATH, content, timeout)
+        _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
+    except BrandingPushError:
+        raise
+    except Exception as exc:
+        raise BrandingPushError(str(exc)) from exc
+    finally:
+        ssh.close()
 
 
 def push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):

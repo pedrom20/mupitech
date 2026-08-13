@@ -30,6 +30,7 @@ from django.conf import settings
 
 from .branding import (
     BrandingPushError,
+    push_splash_device_label_to_player,
     push_splash_logo_to_player,
     push_splash_translation_to_player,
     push_standby_image_to_player,
@@ -295,6 +296,7 @@ def _push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout
         ('logo', push_splash_logo_to_player),
         ('theme', push_theme_color_to_player),
         ('translation', push_splash_translation_to_player),
+        ('device_label', push_splash_device_label_to_player),
         ('standby', push_standby_image_to_player),
     ):
         try:

@@ -409,8 +409,8 @@ class PlayerViewSet(viewsets.ModelViewSet):
         save_credentials = request.data.get('save_credentials', False)
 
         from .branding import (
-            BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
-            push_theme_color_to_player, push_splash_translation_to_player,
+            BrandingPushError, push_splash_device_label_to_player, push_splash_logo_to_player,
+            push_standby_image_to_player, push_theme_color_to_player, push_splash_translation_to_player,
         )
         try:
             if push_logo:
@@ -420,6 +420,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             if push_theme:
                 push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port)
                 push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port)
+                push_splash_device_label_to_player(player, ssh_user, ssh_password, ssh_port)
         except BrandingPushError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
