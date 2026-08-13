@@ -974,7 +974,17 @@
     "preserveContentHintOn": "Lê a lista de reprodução atual pela própria API do dispositivo antes de migrar, e volta a criá-la depois. Melhor esforço — ficheiros carregados localmente que não seja possível voltar a descarregar são ignorados.",
     "preserveContentHintOff": "O dispositivo vai ficar sem conteúdo depois de migrar — volte a implementar conteúdo a partir do Fleet Manager depois.",
     "contentRestoredSummary": "{{restored}} item(ns) restaurado(s)",
-    "contentRestoredSummaryWithFailures": "{{restored}} item(ns) restaurado(s), {{failed}} falhado(s)"
+    "contentRestoredSummaryWithFailures": "{{restored}} item(ns) restaurado(s), {{failed}} falhado(s)",
+    "errors": {
+      "no_host": "Não foi possível determinar o servidor do dispositivo a partir do seu URL ({{url}}).",
+      "ssh_connect_failed": "Não foi possível ligar por SSH: {{detail}}",
+      "no_container": "Não foi encontrado nenhum contentor do servidor Anthias em execução neste dispositivo.",
+      "no_compose_context": "Não foi possível determinar a pasta do projeto docker-compose deste dispositivo (pode não ser gerido pelo docker compose).",
+      "no_backup": "Não foi encontrado nenhum backup em {{backup_path}} — não há nada para restaurar. Só é criado um backup da primeira vez que um dispositivo é migrado para a imagem MupiTech.",
+      "unsupported_device_type": "A migração para a imagem MupiTech só é suportada em devices x86 por agora (este dispositivo é \"{{device_type}}\"). As imagens Pi4/Pi5 já existem mas ainda não foram validadas em hardware real.",
+      "unrecognized_image": "Imagem não reconhecida neste dispositivo (\"{{image}}\") — a recusar migrar automaticamente. Este dispositivo precisa de inspeção manual primeiro.",
+      "unexpected": "Erro inesperado: {{detail}}"
+    }
   },
   "users": {
     "title": "Utilizadores",

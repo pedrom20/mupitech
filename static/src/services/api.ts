@@ -7,6 +7,26 @@ function getCsrfToken(): string {
   return match ? match[1] : ''
 }
 
+/** Thrown by apiRequest on a non-OK response. Backends that have been
+ * wired up for translated errors (see e.g. players/migrate_image.py's
+ * MigrationError) also send error_code/error_params, which `code`/
+ * `params` carry through so a call site can look up a translated
+ * string (translateApiError below) instead of showing the raw
+ * (always-English) `message` straight from the server. Older/other
+ * endpoints that only send `error` still work exactly as before —
+ * `code` is simply undefined and callers fall back to `message`. */
+export class ApiError extends Error {
+  code?: string
+  params?: Record<string, unknown>
+
+  constructor(message: string, code?: string, params?: Record<string, unknown>) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
+    this.params = params
+  }
+}
+
 async function apiRequest<T = unknown>(
   method: string,
   url: string,
@@ -41,13 +61,17 @@ async function apiRequest<T = unknown>(
       throw new Error('Authentication required')
     }
     let errorMessage = `HTTP ${response.status}`
+    let errorCode: string | undefined
+    let errorParams: Record<string, unknown> | undefined
     try {
       const errorData = await response.json()
       errorMessage = errorData.error || errorData.detail || errorData.message || JSON.stringify(errorData)
+      errorCode = errorData.error_code
+      errorParams = errorData.error_params
     } catch {
       errorMessage = response.statusText || errorMessage
     }
-    throw new Error(errorMessage)
+    throw new ApiError(errorMessage, errorCode, errorParams)
   }
 
   if (response.status === 204) {

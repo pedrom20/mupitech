@@ -49,7 +49,7 @@ import {
   FaExchangeAlt,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi, groups as groupsApi, locations as locationsApi } from '@/services/api'
+import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi, groups as groupsApi, locations as locationsApi, ApiError } from '@/services/api'
 import { translateApiError } from '@/utils/translateError'
 import { showToast } from '@/utils/toast'
 import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
@@ -763,6 +763,19 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  // players/migrate_image.py's MigrationError carries a stable code+params
+  // (see ApiError in @/services/api) — prefer that precise translation,
+  // and only fall back to the generic message-pattern-matching
+  // translateApiError util when the error has no code (e.g. a network
+  // failure that never reached the backend).
+  const resolveMigrateImageError = (err: unknown): string => {
+    if (err instanceof ApiError && err.code) {
+      const translated = t(`migrateImage.errors.${err.code}`, { ...err.params, defaultValue: '' })
+      if (translated) return translated
+    }
+    return translateApiError(err instanceof Error ? err.message : String(err), t)
+  }
+
   const handleCheckImageSource = async () => {
     const canUseSavedPassword = !!player?.has_ssh_credentials && !pushLogoSshPassword
     if (!id || (!pushLogoSshPassword && !canUseSavedPassword)) return
@@ -772,7 +785,7 @@ const PlayerDetail: React.FC = () => {
       const result = await playersApi.getImageSource(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
       setImageSourceResult(result)
     } catch (err) {
-      setImageSourceError(String(err))
+      setImageSourceError(resolveMigrateImageError(err))
     } finally {
       setCheckingImageSource(false)
     }
@@ -816,7 +829,7 @@ const PlayerDetail: React.FC = () => {
       }
       setPushLogoSshPassword('')
     } catch (err) {
-      Swal.fire({ icon: 'error', title: t('migrateImage.failed'), text: String(err) })
+      Swal.fire({ icon: 'error', title: t('migrateImage.failed'), text: resolveMigrateImageError(err) })
     } finally {
       setMigratingImage(false)
     }
@@ -840,7 +853,7 @@ const PlayerDetail: React.FC = () => {
       showToast('success', t('migrateImage.restored'))
       setShowMigrateImageModal(false)
     } catch (err) {
-      Swal.fire({ icon: 'error', title: t('migrateImage.restoreFailed'), text: String(err) })
+      Swal.fire({ icon: 'error', title: t('migrateImage.restoreFailed'), text: resolveMigrateImageError(err) })
     } finally {
       setRestoringImage(false)
     }

@@ -455,7 +455,10 @@ class PlayerViewSet(viewsets.ModelViewSet):
         try:
             source, image, has_backup = discover_image_source(player, ssh_user, ssh_password, ssh_port)
         except MigrationError as exc:
-            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+            return Response(
+                {'error': str(exc), 'error_code': exc.code, 'error_params': exc.params},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response({
             'source': source, 'image': image, 'has_backup': has_backup,
             'can_migrate': player.device_type == 'x86' and source != 'unknown',
@@ -483,7 +486,10 @@ class PlayerViewSet(viewsets.ModelViewSet):
                 player, ssh_user, ssh_password, ssh_port, preserve_content=preserve_content,
             )
         except MigrationError as exc:
-            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+            return Response(
+                {'error': str(exc), 'error_code': exc.code, 'error_params': exc.params},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         if save_credentials:
             player.ssh_username = ssh_user
@@ -525,7 +531,10 @@ class PlayerViewSet(viewsets.ModelViewSet):
         try:
             result = restore_previous_compose(player, ssh_user, ssh_password, ssh_port)
         except MigrationError as exc:
-            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+            return Response(
+                {'error': str(exc), 'error_code': exc.code, 'error_params': exc.params},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         from history.logging import log_action
         log_action(

@@ -974,7 +974,17 @@
     "preserveContentHintOn": "Reads the current playlist via the device's own API before migrating, and re-creates it afterwards. Best-effort — locally-uploaded files it can't re-download are skipped.",
     "preserveContentHintOff": "The device will start with no content after migrating — deploy content to it again from Fleet Manager afterwards.",
     "contentRestoredSummary": "{{restored}} item(s) restored",
-    "contentRestoredSummaryWithFailures": "{{restored}} item(s) restored, {{failed}} failed"
+    "contentRestoredSummaryWithFailures": "{{restored}} item(s) restored, {{failed}} failed",
+    "errors": {
+      "no_host": "Could not determine the device's host from its URL ({{url}}).",
+      "ssh_connect_failed": "Could not connect over SSH: {{detail}}",
+      "no_container": "No running Anthias server container was found on this device.",
+      "no_compose_context": "Could not determine the docker-compose project directory for this device (it may not be managed by docker compose).",
+      "no_backup": "No backup found at {{backup_path}} — there's nothing to restore. A backup is only created the first time a device is migrated to the MupiTech image.",
+      "unsupported_device_type": "Migration to the MupiTech image is only supported for x86 devices right now (this device is \"{{device_type}}\"). Pi4/Pi5 images exist but haven't been validated on real hardware yet.",
+      "unrecognized_image": "Unrecognized image on this device (\"{{image}}\") — refusing to migrate automatically. This device needs manual inspection first.",
+      "unexpected": "Unexpected error: {{detail}}"
+    }
   },
   "users": {
     "title": "Users",

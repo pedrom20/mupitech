@@ -39,7 +39,21 @@ _MIGRATABLE_DEVICE_TYPES = ('x86',)
 
 
 class MigrationError(Exception):
-    """Raised when migrating a device to the MupiTech image fails."""
+    """Raised when migrating a device to the MupiTech image fails.
+
+    ``code`` is a stable identifier the frontend translates via i18n
+    (see migrateImage.errors.* in static/src/locales/*.json); ``params``
+    carries the dynamic bits (a hostname, an image string, a lower-level
+    exception's own text) to interpolate into that translation. The
+    ``message`` text itself stays English — it's the fallback shown if a
+    caller hasn't been wired up to translate a given code yet, and what
+    ends up in the server logs either way.
+    """
+
+    def __init__(self, message, code='unexpected', params=None):
+        super().__init__(message)
+        self.code = code
+        self.params = params or {}
 
 
 def _connect(player, ssh_user, ssh_password, ssh_port, timeout):
@@ -47,14 +61,19 @@ def _connect(player, ssh_user, ssh_password, ssh_port, timeout):
 
     host = urlparse(player.url).hostname
     if not host:
-        raise MigrationError(f"Could not determine host from player URL: {player.url}")
+        raise MigrationError(
+            f"Could not determine host from player URL: {player.url}",
+            code='no_host', params={'url': player.url},
+        )
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         ssh.connect(host, port=ssh_port, username=ssh_user, password=ssh_password, timeout=timeout)
     except Exception as exc:
-        raise MigrationError(f'SSH connection failed: {exc}') from exc
+        raise MigrationError(
+            f'SSH connection failed: {exc}', code='ssh_connect_failed', params={'detail': str(exc)},
+        ) from exc
     return ssh, host
 
 
@@ -64,7 +83,9 @@ def _find_anthias_server_container(ssh, timeout):
     )
     container = next((line for line in out.strip().splitlines() if line.strip()), '')
     if not container:
-        raise MigrationError('Could not find a running anthias-server container on this device.')
+        raise MigrationError(
+            'Could not find a running anthias-server container on this device.', code='no_container',
+        )
     return container
 
 
@@ -99,7 +120,8 @@ def _get_compose_context(ssh, container, timeout):
     if not working_dir or not config_files:
         raise MigrationError(
             'Could not determine the docker-compose project directory for this device '
-            '(container is not managed by docker compose, or its labels are missing).'
+            '(container is not managed by docker compose, or its labels are missing).',
+            code='no_compose_context',
         )
     compose_path = config_files.split(',')[0].strip()
     return working_dir, compose_path
@@ -167,7 +189,7 @@ def discover_image_source(player, ssh_user, ssh_password, ssh_port=22, timeout=1
     except MigrationError:
         raise
     except Exception as exc:
-        raise MigrationError(str(exc)) from exc
+        raise MigrationError(str(exc), code='unexpected', params={'detail': str(exc)}) from exc
     finally:
         ssh.close()
 
@@ -186,7 +208,8 @@ def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeou
         if not _backup_exists(ssh, compose_path, timeout):
             raise MigrationError(
                 f'No backup found at {backup_path} — nothing to restore. A backup is '
-                'only created the first time a device is migrated to the MupiTech image.'
+                'only created the first time a device is migrated to the MupiTech image.',
+                code='no_backup', params={'backup_path': backup_path},
             )
 
         # Keep a copy of what we're restoring FROM (not overwriting .bak
@@ -207,7 +230,7 @@ def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeou
     except MigrationError:
         raise
     except Exception as exc:
-        raise MigrationError(str(exc)) from exc
+        raise MigrationError(str(exc), code='unexpected', params={'detail': str(exc)}) from exc
     finally:
         ssh.close()
 
@@ -341,15 +364,24 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
     Raises MigrationError (never touching the device) if the device type
     isn't supported yet, or the current image can't be classified safely.
     """
-    if player.device_type not in _MIGRATABLE_DEVICE_TYPES:
-        raise MigrationError(
-            f'Migration to the MupiTech image is only supported for x86 devices right now '
-            f'(this device is "{player.device_type}"). Pi4/Pi5 images exist but haven\'t been '
-            f'validated on real hardware yet.'
-        )
-
     ssh, host = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
     try:
+        # A device added via "Add existing" (plain URL, no SSH
+        # provisioning step) never gets device_type probed, so it's
+        # still 'unknown' if the operator jumps straight to "Migrate"
+        # without running "Verificar imagem atual" first (that's the
+        # only other place this gets detected). Detect it here too so
+        # migrate doesn't depend on that separate step having run.
+        _detect_and_save_device_type(player, ssh, timeout)
+
+        if player.device_type not in _MIGRATABLE_DEVICE_TYPES:
+            raise MigrationError(
+                f'Migration to the MupiTech image is only supported for x86 devices right now '
+                f'(this device is "{player.device_type}"). Pi4/Pi5 images exist but haven\'t been '
+                f'validated on real hardware yet.',
+                code='unsupported_device_type', params={'device_type': player.device_type},
+            )
+
         container = _find_anthias_server_container(ssh, timeout)
         image, _, _ = _ssh_run(
             ssh, f"docker inspect -f '{{{{.Config.Image}}}}' {_shell_quote(container)}", timeout=timeout,
@@ -360,7 +392,8 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
         if source == IMAGE_SOURCE_UNKNOWN:
             raise MigrationError(
                 f'Unrecognized image on this device ("{image}") — refusing to migrate '
-                'automatically. This device needs manual inspection first.'
+                'automatically. This device needs manual inspection first.',
+                code='unrecognized_image', params={'image': image},
             )
 
         working_dir, compose_path = _get_compose_context(ssh, container, timeout)
@@ -453,6 +486,6 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
     except MigrationError:
         raise
     except Exception as exc:
-        raise MigrationError(str(exc)) from exc
+        raise MigrationError(str(exc), code='unexpected', params={'detail': str(exc)}) from exc
     finally:
         ssh.close()
