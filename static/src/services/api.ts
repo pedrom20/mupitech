@@ -170,9 +170,29 @@ export const players = {
   },
 
   async getScreenshot(id: string): Promise<string> {
-    const res = await fetch(`${BASE_URL}/players/${id}/screenshot/`, {
-      credentials: 'same-origin',
-    })
+    // A hung viewer-side reply (see the Redis reply-collector in
+    // mupitech-player's ScreenshotViewV2, 10s server-side timeout) or a
+    // proxy silently sitting on the connection would otherwise leave
+    // this fetch() pending forever — plain fetch has no default
+    // timeout — which reads as the screenshot button being stuck
+    // rather than failed. Abort after a generous margin past the
+    // server's own timeout so the UI always resolves to a clean error.
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 40_000)
+    let res: Response
+    try {
+      res = await fetch(`${BASE_URL}/players/${id}/screenshot/`, {
+        credentials: 'same-origin',
+        signal: controller.signal,
+      })
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('Screenshot request timed out')
+      }
+      throw err
+    } finally {
+      clearTimeout(timeoutId)
+    }
     if (!res.ok) {
       let message = 'Screenshot failed'
       let notSupported = false

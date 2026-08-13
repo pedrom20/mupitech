@@ -541,7 +541,7 @@
     "tabGeneral": "Geral",
     "tabLocation": "Localização & Grupo",
     "tabBranding": "Marca",
-    "tabImage": "Imagem",
+    "tabImage": "Sistema",
     "locationHint": "Atribua este dispositivo a um grupo e/ou localização. Isto é apenas uma definição do Fleet Manager — funciona mesmo com o dispositivo offline.",
     "offlineError": "Não foi possível contactar o dispositivo para carregar as suas definições em tempo real. Pode estar offline. A Localização & Grupo continuam editáveis no separador acima.",
     "playerName": "Nome do Dispositivo",

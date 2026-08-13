@@ -541,7 +541,7 @@
     "tabGeneral": "General",
     "tabLocation": "Location & Group",
     "tabBranding": "Branding",
-    "tabImage": "Image",
+    "tabImage": "System",
     "locationHint": "Assign this device to a group and/or location. This is a Fleet Manager setting only — it works even while the device is offline.",
     "offlineError": "Couldn't reach the device to load its live settings. It may be offline. Its Location & Group can still be changed from the tab above.",
     "playerName": "Player Name",
