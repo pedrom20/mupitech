@@ -1090,6 +1090,8 @@
     "exitHint": "Click to exit",
     "dosActivated": "MS-DOS mode activated",
     "dosDeactivated": "MS-DOS mode deactivated",
-    "dosBadge": "EXIT"
+    "dosBadge": "EXIT",
+    "hackedReveal": "Just kidding — MupiTech is secure.",
+    "hackedRevealHint": "(Easter egg — type \"hacked\" anywhere to replay)"
   }
 }

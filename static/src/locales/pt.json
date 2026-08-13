@@ -1091,6 +1091,8 @@
     "exitHint": "Clique para sair",
     "dosActivated": "Modo MS-DOS ativado",
     "dosDeactivated": "Modo MS-DOS desativado",
-    "dosBadge": "SAIR"
+    "dosBadge": "SAIR",
+    "hackedReveal": "Era só uma brincadeira — o MupiTech está seguro.",
+    "hackedRevealHint": "(Easter egg — escreva \"hacked\" em qualquer sítio para repetir)"
   }
 }

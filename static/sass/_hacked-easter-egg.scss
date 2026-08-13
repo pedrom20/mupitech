@@ -1,0 +1,76 @@
+// "Hacked" prank overlay — typed by "hacked" anywhere on the page.
+// One-shot: types a fake breach sequence with a glitch/shake effect,
+// then reveals it was a joke and dismisses itself. No persistent
+// theme/state, unlike the retro and MS-DOS easter eggs.
+
+@keyframes hacked-shake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-2px, 1px); }
+  20% { transform: translate(2px, -1px); }
+  30% { transform: translate(-1px, 2px); }
+  40% { transform: translate(1px, -2px); }
+  50% { transform: translate(-2px, -1px); }
+  60% { transform: translate(2px, 1px); }
+  70% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+  90% { transform: translate(-1px, 1px); }
+}
+
+@keyframes hacked-flicker {
+  0%, 92%, 100% { opacity: 1; }
+  93% { opacity: 0.7; }
+  94% { opacity: 1; }
+  96% { opacity: 0.8; }
+  97% { opacity: 1; }
+}
+
+@keyframes hacked-cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.15; }
+}
+
+.fm-hacked-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #0a0000;
+  color: #ff3b3b;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.15rem;
+  padding: 2rem;
+  white-space: pre-wrap;
+  text-shadow: 1px 0 #00e0ff, -1px 0 #ff3b3b;
+}
+
+.fm-hacked-overlay-glitch {
+  animation: hacked-shake 0.25s infinite, hacked-flicker 2.5s infinite;
+}
+
+.fm-hacked-cursor {
+  animation: hacked-cursor-blink 1s steps(1) infinite;
+}
+
+.fm-hacked-overlay-reveal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #0c0c0c;
+  color: #4ec9b0;
+  text-shadow: none;
+  transition: background 0.3s, color 0.3s;
+}
+
+.fm-hacked-reveal-text {
+  small {
+    display: block;
+    margin-top: 0.5rem;
+    opacity: 0.7;
+    font-size: 0.85rem;
+  }
+}
+
+.fm-hacked-reveal-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}

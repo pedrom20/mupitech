@@ -6,8 +6,10 @@ import Navbar from './navbar'
 import Footer from './footer'
 import { useKonamiCode } from '@/hooks/use-konami-code'
 import { useDosCode } from '@/hooks/use-dos-code'
+import { useHackedCode } from '@/hooks/use-hacked-code'
 import { usePageTitle } from '@/hooks/use-page-title'
 import DosBootOverlay from '@/components/dos-boot-overlay'
+import HackedOverlay from '@/components/hacked-overlay'
 import Dashboard from '@/components/dashboard/index'
 import PlayerList from '@/components/players/player-list'
 import PlayerDetail from '@/components/players/player-detail'
@@ -74,6 +76,7 @@ const App: React.FC = () => {
   // Plays the typing boot banner whenever the DOS theme is (re)activated —
   // both on toggle and on a fresh page load while it was already on.
   const [showDosBoot, setShowDosBoot] = useState(() => localStorage.getItem(DOS_STORAGE_KEY) === '1')
+  const [showHacked, setShowHacked] = useState(false)
   const [themePref, setThemePref] = useState<ThemePreference>(
     () => (localStorage.getItem(THEME_STORAGE_KEY) as ThemePreference) || 'light',
   )
@@ -141,8 +144,13 @@ const App: React.FC = () => {
     })
   }, [t])
 
+  const triggerHacked = useCallback(() => {
+    setShowHacked(true)
+  }, [])
+
   useKonamiCode(toggleRetroTheme)
   useDosCode(toggleDosTheme)
+  useHackedCode(triggerHacked)
   usePageTitle()
 
   const refresh = () => {
@@ -169,6 +177,9 @@ const App: React.FC = () => {
         <FeaturesProvider>
           {dosTheme && showDosBoot && (
             <DosBootOverlay onDone={() => setShowDosBoot(false)} />
+          )}
+          {showHacked && (
+            <HackedOverlay onDone={() => setShowHacked(false)} />
           )}
           <Navbar onLogoTapSequence={toggleDosTheme} />
           <main className="fm-content">
