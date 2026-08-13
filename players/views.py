@@ -513,6 +513,8 @@ class PlayerViewSet(viewsets.ModelViewSet):
             'content_restored': result.get('content_restored'),
             'content_restore_failed': result.get('content_restore_failed'),
             'content_restore_error': result.get('content_restore_error'),
+            'branding_pushed': result.get('branding_pushed'),
+            'branding_failed': result.get('branding_failed'),
         })
 
     @action(detail=True, methods=['post'], url_path='restore-image')

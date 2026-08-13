@@ -975,6 +975,7 @@
     "preserveContentHintOff": "O dispositivo vai ficar sem conteúdo depois de migrar — volte a implementar conteúdo a partir do Fleet Manager depois.",
     "contentRestoredSummary": "{{restored}} item(ns) restaurado(s)",
     "contentRestoredSummaryWithFailures": "{{restored}} item(ns) restaurado(s), {{failed}} falhado(s)",
+    "brandingPushedWithFailures": "Personalização: {{pushed}} aplicada(s), {{failed}} falhada(s) — verifique em Definições > Marca.",
     "errors": {
       "no_host": "Não foi possível determinar o servidor do dispositivo a partir do seu URL ({{url}}).",
       "ssh_connect_failed": "Não foi possível ligar por SSH: {{detail}}",

@@ -22,10 +22,18 @@ the mupitech-player fork).
 """
 
 import logging
+import time
 from urllib.parse import urlparse
 
 from django.conf import settings
 
+from .branding import (
+    BrandingPushError,
+    push_splash_logo_to_player,
+    push_splash_translation_to_player,
+    push_standby_image_to_player,
+    push_theme_color_to_player,
+)
 from .provision import _home_layout, _render_compose, _shell_quote, _ssh_run
 
 logger = logging.getLogger(__name__)
@@ -235,6 +243,40 @@ def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeou
         ssh.close()
 
 
+def _push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout):
+    """Re-apply MupiTech branding (splash logo, theme colors, splash-page
+    translation, standby image) after a compose swap or image pull.
+
+    The theme-color and translation patches are an in-place `sed` on
+    files inside the *running container's* writable layer, not baked
+    into the image itself (see players/branding.py) — so every time a
+    container is recreated from a freshly pulled image (a migration, an
+    "already on our image" update, or a routine Watchtower auto-update),
+    it reverts to Anthias's own defaults (English copy, purple theme,
+    "Anthias" branding) until this runs again. Called from both
+    migration branches below so the operator doesn't have to remember a
+    separate manual "push branding" step. Best-effort/non-fatal: one
+    push failing (most commonly the standby image — there's no bundled
+    default for it) doesn't block the others or fail the caller.
+    """
+    pushed, failed = [], []
+    for name, push_fn in (
+        ('logo', push_splash_logo_to_player),
+        ('theme', push_theme_color_to_player),
+        ('translation', push_splash_translation_to_player),
+        ('standby', push_standby_image_to_player),
+    ):
+        try:
+            push_fn(player, ssh_user, ssh_password, ssh_port, timeout)
+            pushed.append(name)
+        except BrandingPushError as exc:
+            failed.append({'name': name, 'error': str(exc)})
+        except Exception as exc:
+            logger.exception('Unexpected error pushing %s branding to %s.', name, player.name)
+            failed.append({'name': name, 'error': str(exc)})
+    return {'branding_pushed': pushed, 'branding_failed': failed}
+
+
 def snapshot_assets(player):
     """Read the device's current asset list (+ raw file bytes for
     locally-uploaded ones) via its stable v2 REST API, before migrating.
@@ -406,10 +448,20 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
                 f'docker compose up -d 2>&1',
                 timeout=300,
             )
-            return {
+            result = {
                 'action': 'updated', 'previous_source': source, 'previous_image': image,
                 'backup_path': None, 'output': out[-2000:],
             }
+            # `up -d` only recreates the container when the pulled image
+            # actually changed — but when it does, the branding sed
+            # patches (see _push_branding_best_effort) are wiped along
+            # with the rest of the old container's writable layer, same
+            # as after a migration. Always re-push here too, since a
+            # no-op push (nothing changed) costs a few SSH round-trips
+            # and nothing else.
+            time.sleep(5)
+            result.update(_push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout))
+            return result
 
         # source is 'fork' or 'official' — treat this as re-provisioning
         # onto our own template, keeping the device's existing bind-mount
@@ -459,6 +511,11 @@ def migrate_player_to_mupitech_image(player, ssh_user, ssh_password, ssh_port=22
             'action': 'migrated', 'previous_source': source, 'previous_image': image,
             'backup_path': backup_path, 'output': out[-2000:],
         }
+
+        # Give the freshly (re)created container a moment before pushing
+        # branding over SSH+docker exec — see _push_branding_best_effort.
+        time.sleep(5)
+        result.update(_push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout))
 
         if preserve_content:
             # Isolated from the migration's own error handling below — the

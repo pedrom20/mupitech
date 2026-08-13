@@ -975,6 +975,7 @@
     "preserveContentHintOff": "The device will start with no content after migrating — deploy content to it again from Fleet Manager afterwards.",
     "contentRestoredSummary": "{{restored}} item(s) restored",
     "contentRestoredSummaryWithFailures": "{{restored}} item(s) restored, {{failed}} failed",
+    "brandingPushedWithFailures": "Branding: {{pushed}} applied, {{failed}} failed — check Settings > Branding.",
     "errors": {
       "no_host": "Could not determine the device's host from its URL ({{url}}).",
       "ssh_connect_failed": "Could not connect over SSH: {{detail}}",

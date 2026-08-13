@@ -239,6 +239,7 @@ export const players = {
     success: boolean; action: 'updated' | 'migrated'; previous_source: string
     previous_image: string; backup_path: string | null
     content_restored?: number | null; content_restore_failed?: string[] | null; content_restore_error?: string | null
+    branding_pushed?: string[] | null; branding_failed?: { name: string; error: string }[] | null
   }> {
     return apiRequest('POST', `/players/${id}/migrate-image/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,

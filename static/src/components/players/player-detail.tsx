@@ -809,17 +809,26 @@ const PlayerDetail: React.FC = () => {
         id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials, preserveContent,
       )
       const baseMsg = migrateResult.action === 'migrated' ? t('migrateImage.migrated') : t('migrateImage.updated')
+      const brandingFailedCount = migrateResult.branding_failed?.length || 0
+      const brandingNote = brandingFailedCount > 0
+        ? t('migrateImage.brandingPushedWithFailures', { pushed: migrateResult.branding_pushed?.length || 0, failed: brandingFailedCount })
+        : ''
       if (preserveContent && migrateResult.content_restored != null) {
         const failedCount = migrateResult.content_restore_failed?.length || 0
         showToast(
-          failedCount > 0 ? 'warning' : 'success',
+          failedCount > 0 || brandingFailedCount > 0 ? 'warning' : 'success',
           baseMsg,
-          failedCount > 0
-            ? t('migrateImage.contentRestoredSummaryWithFailures', { restored: migrateResult.content_restored, failed: failedCount })
-            : t('migrateImage.contentRestoredSummary', { restored: migrateResult.content_restored }),
+          [
+            failedCount > 0
+              ? t('migrateImage.contentRestoredSummaryWithFailures', { restored: migrateResult.content_restored, failed: failedCount })
+              : t('migrateImage.contentRestoredSummary', { restored: migrateResult.content_restored }),
+            brandingNote,
+          ].filter(Boolean).join(' '),
         )
       } else if (preserveContent && migrateResult.content_restore_error) {
-        showToast('warning', baseMsg, migrateResult.content_restore_error)
+        showToast('warning', baseMsg, [migrateResult.content_restore_error, brandingNote].filter(Boolean).join(' '))
+      } else if (brandingNote) {
+        showToast('warning', baseMsg, brandingNote)
       } else {
         showToast('success', baseMsg)
       }
