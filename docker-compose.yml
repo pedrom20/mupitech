@@ -131,8 +131,12 @@ services:
     image: docker:27-cli
     restart: unless-stopped
     entrypoint: ["sh", "-c", "trap 'exit 0' TERM INT; while sleep 86400 & wait; do :; done"]
-    environment:
-      COMPOSE_PROJECT_NAME: mupitech-fleet-manager
+    # No COMPOSE_PROJECT_NAME here on purpose: it can't be trusted to
+    # match the project this stack actually deployed under (a hardcoded
+    # "mupitech-fleet-manager" doesn't match a Portainer stack literally
+    # named "mupitech", for one) — fleet_manager/system_views.py reads
+    # the *real* one off this container's own com.docker.compose.project
+    # label at update time instead.
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/project:ro

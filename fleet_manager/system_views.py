@@ -20,7 +20,6 @@ GITHUB_REPO = os.environ.get('UPDATE_CHECK_GITHUB_REPO', 'pedrom20/mupiteck')
 UPDATE_CHECK_CACHE_KEY = 'system:latest_version'
 UPDATE_CHECK_CACHE_TTL = 300  # 5 minutes
 AUTO_UPDATE_CACHE_KEY = 'system:auto_update'
-UPDATER_CONTAINER = 'mupitech-fleet-manager-updater-1'
 
 # Tailscale settings keys
 TS_ENABLED_KEY = 'system:tailscale_enabled'
@@ -144,14 +143,46 @@ def _get_docker_client():
     return docker.from_env()
 
 
+def _get_updater_container(client):
+    """Find the updater sidecar by the label docker compose sets on every
+    container it creates, rather than a hardcoded container name.
+
+    The name docker compose actually assigns is <project>-updater-1,
+    where <project> is whatever COMPOSE_PROJECT_NAME (or the -p flag, or
+    Portainer's own stack name) resolved to at deploy time — it does
+    *not* have to match this file's own `name: mupitech-fleet-manager`
+    (Portainer's stack name wins if the stack was deployed under a
+    different one, e.g. plain "mupitech"). A hardcoded
+    'mupitech-fleet-manager-updater-1' silently 503'd "Cannot reach
+    updater service" on any deployment where the two disagree — this
+    works under any project name.
+    """
+    matches = client.containers.list(
+        filters={'label': 'com.docker.compose.service=updater'},
+    )
+    return matches[0] if matches else None
+
+
 def _trigger_compose_update():
     """Pull new images and recreate services via docker compose in updater sidecar."""
     try:
         client = _get_docker_client()
-        updater = client.containers.get(UPDATER_CONTAINER)
+        updater = _get_updater_container(client)
+        if updater is None:
+            logger.error('Compose update failed: updater sidecar not found')
+            return
+        # Resolve the *real* compose project name from the updater
+        # container's own label instead of assuming one — see
+        # _get_updater_container's docstring. `docker compose -p` pins
+        # every command in this chain to that project, so `pull`/`up`
+        # target the actual running stack even if it was deployed under
+        # a project name this repo's docker-compose.yml doesn't itself
+        # declare.
+        project = updater.labels.get('com.docker.compose.project', '')
+        project_flag = f'-p {project} ' if project else ''
         cmd = (
-            'docker compose pull web celery-worker celery-transcode celery-beat && '
-            'docker compose up -d --no-deps --no-build web celery-worker celery-transcode celery-beat'
+            f'docker compose {project_flag}pull web celery-worker celery-transcode celery-beat && '
+            f'docker compose {project_flag}up -d --no-deps --no-build web celery-worker celery-transcode celery-beat'
         )
         updater.exec_run(['sh', '-c', cmd], workdir='/project', detach=True)
     except Exception as e:
@@ -168,7 +199,12 @@ def system_update(request):
     """
     try:
         client = _get_docker_client()
-        updater = client.containers.get(UPDATER_CONTAINER)
+        updater = _get_updater_container(client)
+        if updater is None:
+            return Response(
+                {'success': False, 'message': 'Cannot reach updater service'},
+                status=503,
+            )
         if updater.status != 'running':
             return Response(
                 {'success': False, 'message': 'Updater service is not running'},

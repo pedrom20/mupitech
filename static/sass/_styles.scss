@@ -550,11 +550,20 @@ body {
 // Buttons
 // -----------------------------------------------------------------------------
 
-// Primary button - Yellow (Anthias signature)
-.fm-btn-primary {
-  background: $anthias-yellow-gradient;
-  color: $anthias-purple-1;
-  border: none;
+// Primary button — MupiTech blue. Used to be the inherited-from-upstream
+// Anthias yellow, applied inconsistently against plain Bootstrap
+// .btn-primary elsewhere (also yellow, via $primary in
+// _bootstrap-variables.scss) and .fm-btn-outline (blue border, transparent
+// fill) — the same "primary action" concept rendering in two different
+// colors depending on which class a given button happened to use. Both
+// custom and plain-Bootstrap primary buttons are unified here to the
+// same solid blue as .fm-btn-accent below; .fm-btn-outline stays a
+// legitimate secondary tier (blue outline, not a second primary color).
+.fm-btn-primary,
+.btn-primary {
+  background: $anthias-purple-5;
+  border-color: $anthias-purple-5;
+  color: $white;
   font-weight: $font-weight-semibold;
   padding: 0.5rem 1.25rem;
   border-radius: $border-radius;
@@ -564,10 +573,12 @@ body {
   align-items: center;
   gap: 0.4rem;
 
-  &:hover {
-    background: linear-gradient(133.73deg, $anthias-yellow-2, darken($anthias-yellow-2, 5%));
-    color: $anthias-purple-1;
-    box-shadow: 0 4px 12px rgba($anthias-yellow-2, 0.4);
+  &:hover,
+  &:focus {
+    background-color: darken($anthias-purple-5, 8%);
+    border-color: darken($anthias-purple-5, 8%);
+    color: $white;
+    box-shadow: 0 4px 12px rgba($anthias-purple-5, 0.3);
     transform: translateY(-1px);
   }
 
@@ -576,13 +587,24 @@ body {
     box-shadow: none;
   }
 
-  &:disabled {
+  &:disabled,
+  &.disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
   }
 }
+
+// Bootstrap's .btn-sm/.btn-lg size modifiers set their own padding via a
+// same-specificity single-class selector compiled earlier in the
+// stylesheet — without this, the plain .btn-primary rule above would win
+// by source order and every "btn-primary btn-sm" pairing (used all over
+// this app) would render at full size instead of compact. Bootstrap 5's
+// own sm/lg defaults, since only the base $btn-padding-* is overridden
+// in _bootstrap-variables.scss.
+.btn-primary.btn-sm { padding: 0.25rem 0.5rem; }
+.btn-primary.btn-lg { padding: 0.5rem 1rem; }
 
 // Accent button - Purple
 .fm-btn-accent {
