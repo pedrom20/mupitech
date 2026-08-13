@@ -506,21 +506,21 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
         backup_path = f'{compose_path}.bak'
         _ssh_run(ssh, f'cp {_shell_quote(compose_path)} {_shell_quote(backup_path)}', timeout=timeout)
 
+        # Deliberately not touching a media_player.py placeholder here —
+        # unlike the old third-party fork, the current compose templates
+        # (docker-compose-player-{x86,pi4,pi5}.yml) no longer bind-mount
+        # anything over anthias_viewer/media_player.py, so there's no
+        # host-side file to prepare (see needs_media_player_override in
+        # provision.py — this touch used to silently replace ~950 lines
+        # of the real file with an empty one, breaking the viewer
+        # entirely: ImportError: cannot import name 'MediaPlayerProxy').
         home = f'/home/{ssh_user}'
-        media_player_path = f'{home}/{layout["media_player_rel"]}'
         dirs = {
             f'{home}/{layout["project_dir"]}',
             f'{home}/{layout["config_dir"]}',
             f'{home}/{layout["assets_dir"]}',
         }
         _ssh_run(ssh, f'mkdir -p {" ".join(sorted(dirs))}', timeout=timeout)
-        _ssh_run(
-            ssh,
-            f'[ -f {_shell_quote(media_player_path)} ] || '
-            f'([ -d {_shell_quote(media_player_path)} ] && rm -rf {_shell_quote(media_player_path)}; '
-            f'touch {_shell_quote(media_player_path)})',
-            timeout=timeout,
-        )
 
         sftp = ssh.open_sftp()
         try:

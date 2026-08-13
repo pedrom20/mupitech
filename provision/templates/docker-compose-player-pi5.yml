@@ -60,10 +60,9 @@ services:
       - /home/$PI_USER/anthias_assets:/data/anthias_assets
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      # Our own audio/HDMI overrides — mounted over the image's copy at
-      # its current path (src/anthias_viewer/, not the old fork's
-      # top-level viewer/ — the package moved upstream).
-      - /home/$PI_USER/anthias/media_player.py:/usr/src/app/src/anthias_viewer/media_player.py:ro
+      # No media_player.py bind mount here on purpose — see the same
+      # note in docker-compose-player-x86.yml (players/provision.py's
+      # needs_media_player_override).
     depends_on:
       - anthias-server
       - redis

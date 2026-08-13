@@ -54,10 +54,16 @@ services:
       - /home/$PI_USER/anthias_assets:/data/anthias_assets
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      # Our own audio/HDMI overrides for x86 — mounted over the
-      # image's copy at its current path (src/anthias_viewer/, not
-      # the old fork's top-level viewer/ — the package moved upstream).
-      - /home/$PI_USER/anthias/media_player.py:/usr/src/app/src/anthias_viewer/media_player.py:ro
+      # No media_player.py bind mount here on purpose (there used to be
+      # one, meant as a per-device audio/HDMI override point) — audio
+      # output is already configurable per device via the Settings UI
+      # (audio_output, read by _select_pulse_sink in the real
+      # anthias_viewer/media_player.py), and the file that was actually
+      # being mounted here was either empty or a stale ~145-line
+      # VLC-based copy from the old third-party fork, silently replacing
+      # the real ~950-line current file and breaking the viewer outright
+      # (ImportError: cannot import name 'MediaPlayerProxy'). See
+      # players/provision.py's needs_media_player_override.
     depends_on:
       - anthias-server
       - redis

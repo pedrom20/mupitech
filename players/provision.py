@@ -135,15 +135,28 @@ _DEFAULT_HOME_LAYOUT = {
     'config_dir': '.screenly',
     'assets_dir': 'screenly_assets',
     'media_player_rel': 'screenly/viewer/media_player.py',
+    'needs_media_player_override': True,
     'extract_viewer_init': True,
     'viewer_init_rel': 'screenly/viewer/__init__.py',
     'extra_dirs': ['screenly/staticfiles'],
 }
+# needs_media_player_override=False here on purpose: the current
+# mupitech-player docker-compose-player-{x86,pi4,pi5}.yml templates no
+# longer bind-mount media_player.py over the image's own copy (see the
+# fix that removed it — a placeholder/stale-template file bind-mounted
+# there was silently replacing ~950 lines of the real, current
+# anthias_viewer/media_player.py with an empty or out-of-date one,
+# breaking the viewer's screen capture, video playback and PulseAudio
+# routing entirely: ImportError: cannot import name 'MediaPlayerProxy'.
+# That bind mount made sense for the old third-party fork, where this
+# file was a small genuinely-overridable shim — it was never revisited
+# when this repo moved to the current, much larger upstream-based file.
 _NEW_SHAPE_HOME_LAYOUT = {
     'project_dir': 'anthias',
     'config_dir': '.anthias',
     'assets_dir': 'anthias_assets',
     'media_player_rel': 'anthias/media_player.py',
+    'needs_media_player_override': False,
     'extract_viewer_init': False,
     'viewer_init_rel': None,
     'extra_dirs': [],
@@ -166,20 +179,23 @@ def _prepare_player_directories(ssh, home, ssh_user, device_type, sudo_password,
     migrating an existing device onto a new image/template)."""
     layout = _home_layout(device_type)
     media_player_path = f'{home}/{layout["media_player_rel"]}'
-    dirs = {os.path.dirname(media_player_path), f'{home}/{layout["config_dir"]}', f'{home}/{layout["assets_dir"]}'}
+    dirs = {f'{home}/{layout["config_dir"]}', f'{home}/{layout["assets_dir"]}'}
+    if layout['needs_media_player_override']:
+        dirs.add(os.path.dirname(media_player_path))
     dirs.update(f'{home}/{d}' for d in layout['extra_dirs'])
     dirs_str = ' '.join(sorted(dirs))
     _ssh_run(ssh, f'sudo mkdir -p {dirs_str}', sudo_password=sudo_password, timeout=timeout)
     _ssh_run(ssh, f'sudo chown -R {ssh_user}:{ssh_user} {dirs_str}', sudo_password=sudo_password, timeout=timeout)
 
-    placeholder_paths = [media_player_path]
+    placeholder_paths = [media_player_path] if layout['needs_media_player_override'] else []
     if layout['extract_viewer_init']:
         placeholder_paths.append(f'{home}/{layout["viewer_init_rel"]}')
-    placeholder_cmd = '; '.join(
-        f'[ -d {_shell_quote(p)} ] && rm -rf {_shell_quote(p)}; touch {_shell_quote(p)}'
-        for p in placeholder_paths
-    )
-    _ssh_run(ssh, placeholder_cmd, timeout=timeout)
+    if placeholder_paths:
+        placeholder_cmd = '; '.join(
+            f'[ -d {_shell_quote(p)} ] && rm -rf {_shell_quote(p)}; touch {_shell_quote(p)}'
+            for p in placeholder_paths
+        )
+        _ssh_run(ssh, placeholder_cmd, timeout=timeout)
     return layout
 
 
@@ -561,18 +577,28 @@ try:
                     f.write(screenly_conf)
                 _append_log(task, 'Uploaded screenly.conf')
 
-            # media_player.py (bind-mounted into viewer container)
-            media_player_src = os.path.join(
-                settings.BASE_DIR, 'provision', 'templates', 'media_player.py'
-            )
-            if os.path.exists(media_player_src):
-                with open(media_player_src, 'r') as src:
-                    mp_content = src.read()
-                with sftp.file(f'{home}/{layout["media_player_rel"]}', 'w') as f:
-                    f.write(mp_content)
-                _append_log(task, f'Uploaded {layout["media_player_rel"]}')
-            else:
-                _append_log(task, 'WARNING: media_player.py template not found, skipping')
+            # media_player.py (bind-mounted into viewer container) — only
+            # the old third-party fork's compose template still mounts
+            # this; the current mupitech-player templates don't (see
+            # needs_media_player_override in this module). This template
+            # is the OLD fork's VLC-based file (~145 lines) — uploading
+            # it for a device on the current image would bind-mount it
+            # straight over the real ~950-line anthias_viewer/media_player.py,
+            # breaking the viewer exactly like the empty-placeholder bug
+            # this guard also prevents (ImportError: cannot import name
+            # 'MediaPlayerProxy').
+            if layout['needs_media_player_override']:
+                media_player_src = os.path.join(
+                    settings.BASE_DIR, 'provision', 'templates', 'media_player.py'
+                )
+                if os.path.exists(media_player_src):
+                    with open(media_player_src, 'r') as src:
+                        mp_content = src.read()
+                    with sftp.file(f'{home}/{layout["media_player_rel"]}', 'w') as f:
+                        f.write(mp_content)
+                    _append_log(task, f'Uploaded {layout["media_player_rel"]}')
+                else:
+                    _append_log(task, 'WARNING: media_player.py template not found, skipping')
 
             _update_step(task, 6, 'upload_configs', 'success', 'Configs uploaded')
 
