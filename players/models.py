@@ -117,6 +117,19 @@ class Player(models.Model):
     class Meta:
         ordering = ['name']
 
+    def save(self, *args, **kwargs):
+        # Normalize away a trailing slash before it ever reaches the
+        # unique=True constraint. Without this, "http://x" and
+        # "http://x/" are distinct values as far as the DB/get_or_create
+        # in register_player are concerned, even though they're the same
+        # device — a device manually added (or edited) with a trailing
+        # slash would silently stop matching its own phone-home
+        # check-ins (which always send the URL without one), spawning a
+        # duplicate row on every check-in that didn't happen to match.
+        if self.url:
+            self.url = self.url.rstrip('/')
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
 
