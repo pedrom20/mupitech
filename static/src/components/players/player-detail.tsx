@@ -202,13 +202,14 @@ const PlayerDetail: React.FC = () => {
   const [showDeviceLogoPicker, setShowDeviceLogoPicker] = useState(false)
   const [showDeviceStandbyPicker, setShowDeviceStandbyPicker] = useState(false)
 
-  // Migrate to MupiTech Anthias image (x86 only for now)
-  const [showMigrateImageModal, setShowMigrateImageModal] = useState(false)
+  // Migrate to MupiTech Anthias image (x86 only for now) — lives in the
+  // Settings modal's "image" tab (settingsActiveTab), see handleOpenSettings.
   const [checkingImageSource, setCheckingImageSource] = useState(false)
   const [imageSourceResult, setImageSourceResult] = useState<{ source: string; image: string; can_migrate: boolean; has_backup: boolean } | null>(null)
   const [restoringImage, setRestoringImage] = useState(false)
   const [imageSourceError, setImageSourceError] = useState('')
   const [migratingImage, setMigratingImage] = useState(false)
+  const [migrateProgressText, setMigrateProgressText] = useState('')
   const [preserveContent, setPreserveContent] = useState(true)
 
   // CCTV live view state
@@ -283,7 +284,7 @@ const PlayerDetail: React.FC = () => {
   // Player settings modal state — unified with the branding push modal
   // (splash logo/standby/theme) as tabs of the same dialog.
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [settingsActiveTab, setSettingsActiveTab] = useState<'general' | 'location' | 'branding'>('general')
+  const [settingsActiveTab, setSettingsActiveTab] = useState<'general' | 'location' | 'branding' | 'image'>('general')
   const [_deviceSettings, setDeviceSettings] = useState<Record<string, unknown> | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [settingsSaving, setSettingsSaving] = useState(false)
@@ -752,17 +753,6 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
-  const handleOpenMigrateImage = () => {
-    setShowMigrateImageModal(true)
-    setImageSourceResult(null)
-    setImageSourceError('')
-    setSaveSshCredentials(false)
-    if (player?.has_ssh_credentials) {
-      setPushLogoSshUser(player.ssh_username || 'pi')
-      setPushLogoSshPort(player.ssh_port || 22)
-    }
-  }
-
   // players/migrate_image.py's MigrationError carries a stable code+params
   // (see ApiError in @/services/api) — prefer that precise translation,
   // and only fall back to the generic message-pattern-matching
@@ -804,6 +794,20 @@ const PlayerDetail: React.FC = () => {
     })
     if (!result.isConfirmed) return
     setMigratingImage(true)
+    // The migrate/update call is one long synchronous request (SSH connect,
+    // docker pull + up, then re-applying the MupiTech branding) — the server
+    // has no way to stream progress back mid-request, so this is a timed
+    // narration of what's *likely* happening, not a real progress bar. Still
+    // much better than a bare spinner sitting for a minute+ with zero
+    // feedback, which reads as "stuck" (see the exact complaint this was
+    // added for). Cleared in the finally block below regardless of outcome.
+    setMigrateProgressText(t('migrateImage.progressConnecting'))
+    const progressTimers = [
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressPulling')), 4_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressRestarting')), 30_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressBranding')), 45_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressSlow')), 90_000),
+    ]
     try {
       const migrateResult = await playersApi.migrateImage(
         id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials, preserveContent,
@@ -832,7 +836,6 @@ const PlayerDetail: React.FC = () => {
       } else {
         showToast('success', baseMsg)
       }
-      setShowMigrateImageModal(false)
       if (saveSshCredentials && player && pushLogoSshPassword) {
         setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
       }
@@ -840,6 +843,8 @@ const PlayerDetail: React.FC = () => {
     } catch (err) {
       Swal.fire({ icon: 'error', title: t('migrateImage.failed'), text: resolveMigrateImageError(err) })
     } finally {
+      progressTimers.forEach(clearTimeout)
+      setMigrateProgressText('')
       setMigratingImage(false)
     }
   }
@@ -860,7 +865,7 @@ const PlayerDetail: React.FC = () => {
     try {
       await playersApi.restoreImage(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort)
       showToast('success', t('migrateImage.restored'))
-      setShowMigrateImageModal(false)
+      setImageSourceResult(null)
     } catch (err) {
       Swal.fire({ icon: 'error', title: t('migrateImage.restoreFailed'), text: resolveMigrateImageError(err) })
     } finally {
@@ -1167,7 +1172,7 @@ const PlayerDetail: React.FC = () => {
   }
 
   // Open player settings modal
-  const handleOpenSettings = async (tab: 'general' | 'location' | 'branding' = 'general') => {
+  const handleOpenSettings = async (tab: 'general' | 'location' | 'branding' | 'image' = 'general') => {
     if (!id) return
     setShowSettingsModal(true)
     setSettingsActiveTab(tab)
@@ -1177,9 +1182,11 @@ const PlayerDetail: React.FC = () => {
       group: player?.group_detail?.id || '',
       location: player?.location_detail?.id || player?.location || '',
     })
-    // Branding tab state — initialized alongside the general tab (not
-    // only when it's clicked) since both now live in one modal.
+    // Branding/Image tab state — initialized alongside the general tab
+    // (not only when clicked) since they all now live in one modal.
     setSaveSshCredentials(false)
+    setImageSourceResult(null)
+    setImageSourceError('')
     if (player?.has_ssh_credentials) {
       setPushLogoSshUser(player.ssh_username || 'pi')
       setPushLogoSshPort(player.ssh_port || 22)
@@ -1855,7 +1862,7 @@ const PlayerDetail: React.FC = () => {
             {isAdminRole(role) && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
               <button
                 className="fm-btn-outline fm-btn-sm"
-                onClick={handleOpenMigrateImage}
+                onClick={() => handleOpenSettings('image')}
                 title={t('migrateImage.title')}
               >
                 <FaCloudUploadAlt />
@@ -3023,6 +3030,18 @@ const PlayerDetail: React.FC = () => {
                     </button>
                   </li>
                 )}
+                {isAdminRole(role) && (
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link ${settingsActiveTab === 'image' ? 'active' : ''}`}
+                      onClick={() => setSettingsActiveTab('image')}
+                    >
+                      <FaCloudUploadAlt className="me-1" />
+                      {t('playerSettings.tabImage')}
+                    </button>
+                  </li>
+                )}
               </ul>
               <div className="modal-body py-2" style={{ maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
                 {settingsLoading ? (
@@ -3427,7 +3446,7 @@ const PlayerDetail: React.FC = () => {
                       )}
                     </div>
                   </div>
-                ) : (
+                ) : settingsActiveTab === 'branding' ? (
                   <div>
                 <div className="border rounded p-2 mb-3">
                   <p className="fw-semibold mb-2" style={{ fontSize: '0.85rem' }}>
@@ -3592,6 +3611,128 @@ const PlayerDetail: React.FC = () => {
                   </div>
                 )}
                   </div>
+                ) : (
+                  <div>
+                    <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('migrateImage.desc')}</p>
+
+                    {player?.has_ssh_credentials && (
+                      <div className="alert alert-secondary py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.78rem' }}>
+                        <span>{t('branding.sshCredentialsSaved', { user: player.ssh_username })}</span>
+                        <button type="button" className="btn btn-link btn-sm p-0 text-danger" onClick={handleForgetSshCredentials}>
+                          {t('branding.sshForget')}
+                        </button>
+                      </div>
+                    )}
+                    <div className="mb-2">
+                      <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={pushLogoSshUser}
+                        onChange={e => { setPushLogoSshUser(e.target.value); setImageSourceResult(null) }}
+                      />
+                    </div>
+                    <div className="mb-2">
+                      <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>
+                        {t('branding.sshPassword')}
+                        {player?.has_ssh_credentials && (
+                          <span className="text-muted fw-normal"> ({t('branding.sshUseSaved')})</span>
+                        )}
+                      </label>
+                      <input
+                        type="password"
+                        className="form-control form-control-sm"
+                        value={pushLogoSshPassword}
+                        onChange={e => { setPushLogoSshPassword(e.target.value); setImageSourceResult(null) }}
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPort')}</label>
+                      <input
+                        type="number"
+                        className="form-control form-control-sm"
+                        value={pushLogoSshPort}
+                        onChange={e => { setPushLogoSshPort(Number(e.target.value)); setImageSourceResult(null) }}
+                        min={1}
+                        max={65535}
+                        style={{ maxWidth: '120px' }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-primary mb-3"
+                      disabled={checkingImageSource || (!pushLogoSshPassword && !player?.has_ssh_credentials)}
+                      onClick={handleCheckImageSource}
+                    >
+                      {checkingImageSource ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                      {t('migrateImage.checkButton')}
+                    </button>
+
+                    {imageSourceError && (
+                      <div className="alert alert-danger py-2 px-2" style={{ fontSize: '0.8rem' }}>{imageSourceError}</div>
+                    )}
+                    {imageSourceResult && (
+                      <div className={`alert py-2 px-2 ${imageSourceResult.source === 'mupitech' ? 'alert-success' : 'alert-info'}`} style={{ fontSize: '0.8rem' }}>
+                        <div><strong>{t('migrateImage.currentSource')}:</strong> {t(`migrateImage.source.${imageSourceResult.source}`)}</div>
+                        <div className="text-muted" style={{ wordBreak: 'break-all' }}>{imageSourceResult.image}</div>
+                      </div>
+                    )}
+                    {imageSourceResult?.has_backup && (
+                      <div className="alert alert-warning py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.8rem' }}>
+                        <span>{t('migrateImage.backupAvailable')}</span>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-dark"
+                          onClick={handleRestoreImage}
+                          disabled={restoringImage}
+                        >
+                          {restoringImage ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                          {t('migrateImage.restoreButton')}
+                        </button>
+                      </div>
+                    )}
+
+                    {imageSourceResult?.can_migrate && imageSourceResult.source !== 'mupitech' && (
+                      <div className="form-check mb-2">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="migrate-preserve-content"
+                          checked={preserveContent}
+                          onChange={e => setPreserveContent(e.target.checked)}
+                        />
+                        <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="migrate-preserve-content">
+                          {t('migrateImage.preserveContent')}
+                        </label>
+                        <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                          {t(preserveContent ? 'migrateImage.preserveContentHintOn' : 'migrateImage.preserveContentHintOff')}
+                        </div>
+                      </div>
+                    )}
+
+                    {pushLogoSshPassword && (
+                      <div className="form-check mb-2">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="migrate-save-ssh-credentials"
+                          checked={saveSshCredentials}
+                          onChange={e => setSaveSshCredentials(e.target.checked)}
+                        />
+                        <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="migrate-save-ssh-credentials">
+                          {t('branding.sshSaveHint')}
+                        </label>
+                      </div>
+                    )}
+
+                    {migratingImage && (
+                      <div className="alert alert-info py-2 px-2 d-flex align-items-center gap-2 mb-0" style={{ fontSize: '0.8rem' }}>
+                        <span className="spinner-border spinner-border-sm" />
+                        <span>{migrateProgressText || t('migrateImage.progressConnecting')}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="modal-footer py-2">
@@ -3623,7 +3764,7 @@ const PlayerDetail: React.FC = () => {
                     ) : null}
                     {t('playerSettings.save')}
                   </button>
-                ) : (
+                ) : settingsActiveTab === 'branding' ? (
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={handlePushBranding}
@@ -3634,6 +3775,19 @@ const PlayerDetail: React.FC = () => {
                     ) : null}
                     {t('branding.push')}
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="fm-btn-primary"
+                    onClick={handleMigrateImage}
+                    disabled={
+                      migratingImage
+                      || (!pushLogoSshPassword && !player?.has_ssh_credentials)
+                      || (imageSourceResult ? !imageSourceResult.can_migrate : false)
+                    }
+                  >
+                    {migratingImage ? t('common.loading') : t('migrateImage.migrateButton')}
+                  </button>
                 )}
               </div>
             </div>
@@ -3641,161 +3795,6 @@ const PlayerDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Migrate to MupiTech Anthias image modal */}
-      {showMigrateImageModal && (
-        <div
-          className="modal d-block"
-          tabIndex={-1}
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setShowMigrateImageModal(false)}
-        >
-          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title fw-bold">{t('migrateImage.title')}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowMigrateImageModal(false)}
-                  aria-label={t('common.close')}
-                />
-              </div>
-              <div className="modal-body">
-                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('migrateImage.desc')}</p>
-
-                {player?.has_ssh_credentials && (
-                  <div className="alert alert-secondary py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.78rem' }}>
-                    <span>{t('branding.sshCredentialsSaved', { user: player.ssh_username })}</span>
-                    <button type="button" className="btn btn-link btn-sm p-0 text-danger" onClick={handleForgetSshCredentials}>
-                      {t('branding.sshForget')}
-                    </button>
-                  </div>
-                )}
-                <div className="mb-2">
-                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={pushLogoSshUser}
-                    onChange={e => { setPushLogoSshUser(e.target.value); setImageSourceResult(null) }}
-                  />
-                </div>
-                <div className="mb-2">
-                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>
-                    {t('branding.sshPassword')}
-                    {player?.has_ssh_credentials && (
-                      <span className="text-muted fw-normal"> ({t('branding.sshUseSaved')})</span>
-                    )}
-                  </label>
-                  <input
-                    type="password"
-                    className="form-control form-control-sm"
-                    value={pushLogoSshPassword}
-                    onChange={e => { setPushLogoSshPassword(e.target.value); setImageSourceResult(null) }}
-                    autoFocus
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshPort')}</label>
-                  <input
-                    type="number"
-                    className="form-control form-control-sm"
-                    value={pushLogoSshPort}
-                    onChange={e => { setPushLogoSshPort(Number(e.target.value)); setImageSourceResult(null) }}
-                    min={1}
-                    max={65535}
-                    style={{ maxWidth: '120px' }}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary mb-3"
-                  disabled={checkingImageSource || (!pushLogoSshPassword && !player?.has_ssh_credentials)}
-                  onClick={handleCheckImageSource}
-                >
-                  {checkingImageSource ? <span className="spinner-border spinner-border-sm me-1" /> : null}
-                  {t('migrateImage.checkButton')}
-                </button>
-
-                {imageSourceError && (
-                  <div className="alert alert-danger py-2 px-2" style={{ fontSize: '0.8rem' }}>{imageSourceError}</div>
-                )}
-                {imageSourceResult && (
-                  <div className={`alert py-2 px-2 ${imageSourceResult.source === 'mupitech' ? 'alert-success' : 'alert-info'}`} style={{ fontSize: '0.8rem' }}>
-                    <div><strong>{t('migrateImage.currentSource')}:</strong> {t(`migrateImage.source.${imageSourceResult.source}`)}</div>
-                    <div className="text-muted" style={{ wordBreak: 'break-all' }}>{imageSourceResult.image}</div>
-                  </div>
-                )}
-                {imageSourceResult?.has_backup && (
-                  <div className="alert alert-warning py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.8rem' }}>
-                    <span>{t('migrateImage.backupAvailable')}</span>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-dark"
-                      onClick={handleRestoreImage}
-                      disabled={restoringImage}
-                    >
-                      {restoringImage ? <span className="spinner-border spinner-border-sm me-1" /> : null}
-                      {t('migrateImage.restoreButton')}
-                    </button>
-                  </div>
-                )}
-
-                {imageSourceResult?.can_migrate && imageSourceResult.source !== 'mupitech' && (
-                  <div className="form-check mb-2">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id="migrate-preserve-content"
-                      checked={preserveContent}
-                      onChange={e => setPreserveContent(e.target.checked)}
-                    />
-                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="migrate-preserve-content">
-                      {t('migrateImage.preserveContent')}
-                    </label>
-                    <div className="form-text" style={{ fontSize: '0.75rem' }}>
-                      {t(preserveContent ? 'migrateImage.preserveContentHintOn' : 'migrateImage.preserveContentHintOff')}
-                    </div>
-                  </div>
-                )}
-
-                {pushLogoSshPassword && (
-                  <div className="form-check mb-2">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id="migrate-save-ssh-credentials"
-                      checked={saveSshCredentials}
-                      onChange={e => setSaveSshCredentials(e.target.checked)}
-                    />
-                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="migrate-save-ssh-credentials">
-                      {t('branding.sshSaveHint')}
-                    </label>
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowMigrateImageModal(false)}>
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  className="fm-btn-primary"
-                  onClick={handleMigrateImage}
-                  disabled={
-                    migratingImage
-                    || (!pushLogoSshPassword && !player?.has_ssh_credentials)
-                    || (imageSourceResult ? !imageSourceResult.can_migrate : false)
-                  }
-                >
-                  {migratingImage ? t('common.loading') : t('migrateImage.migrateButton')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Asset hover tooltip */}
       {hoveredAsset && hoverRect && (() => {
