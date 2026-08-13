@@ -11,8 +11,8 @@ from rest_framework.response import Response
 from fleet_manager.permissions import IsEditorOrReadOnly, IsSuperAdmin, user_can_delete_content
 from history.logging import log_action
 
-from .models import MediaFile, MediaFolder, detect_file_type
-from .serializers import MediaFileSerializer, MediaFolderSerializer
+from .models import MediaFile, MediaFolder, ScheduledDeployment, detect_file_type
+from .serializers import MediaFileSerializer, MediaFolderSerializer, ScheduledDeploymentSerializer
 from .tasks import _is_safe_url, fetch_og_image_task, generate_image_thumbnail, transcode_video
 
 logger = logging.getLogger(__name__)
@@ -189,3 +189,90 @@ class MediaFileViewSet(viewsets.ModelViewSet):
             details={'targets': len(results), 'start_date': start_date, 'end_date': end_date},
         )
         return Response({'success': True, 'results': results})
+
+
+class ScheduledDeploymentViewSet(viewsets.ModelViewSet):
+    """Centralized view of everything scheduled from the Scheduling page —
+    a media_file schedule (ad-hoc targets, deployed synchronously here,
+    same as MediaFileViewSet.schedule above) or a playlist schedule
+    (reuses the playlist's own configured targets, deployed via the
+    existing async deploy_playlist task with the date window attached).
+    """
+    queryset = ScheduledDeployment.objects.select_related('media_file', 'playlist').prefetch_related(
+        'target_players', 'target_groups', 'target_locations',
+    )
+    serializer_class = ScheduledDeploymentSerializer
+    permission_classes = [IsEditorOrReadOnly]
+
+    def perform_create(self, serializer):
+        schedule = serializer.save()
+        start_date = schedule.start_date.strftime('%Y-%m-%dT%H:%M:%S.000Z') if schedule.start_date else None
+        end_date = schedule.end_date.strftime('%Y-%m-%dT%H:%M:%S.000Z') if schedule.end_date else None
+
+        if schedule.playlist_id:
+            from playlists.tasks import deploy_playlist
+            deploy_playlist.delay(str(schedule.playlist_id), start_date, end_date)
+            log_action(
+                self.request, 'schedule', 'playlist', target_id=schedule.playlist_id,
+                target_name=schedule.playlist.name,
+                details={'start_date': start_date, 'end_date': end_date},
+            )
+            return
+
+        from players.services import PlayerConnectionError, deploy_media_file_to_player, resolve_players_from_targets
+        players = resolve_players_from_targets(
+            [str(p.id) for p in schedule.target_players.all()],
+            [str(g.id) for g in schedule.target_groups.all()],
+            [str(loc.id) for loc in schedule.target_locations.all()],
+        )
+        base_url = f'{self.request.scheme}://{self.request.get_host()}'
+        results = {}
+        deployed_assets = {}
+        for player in players:
+            try:
+                asset = deploy_media_file_to_player(
+                    player, schedule.media_file, duration=schedule.duration or 10,
+                    start_date=start_date, end_date=end_date, base_url=base_url,
+                )
+                results[str(player.id)] = {'name': player.name, 'success': True}
+                if asset and asset.get('asset_id'):
+                    deployed_assets[str(player.id)] = [asset['asset_id']]
+            except PlayerConnectionError as exc:
+                results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}
+            except Exception as exc:
+                logger.exception('Error deploying scheduled %s to %s', schedule.media_file.name, player.name)
+                results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}
+
+        schedule.last_deploy_status = results
+        schedule.deployed_assets = deployed_assets
+        schedule.save(update_fields=['last_deploy_status', 'deployed_assets'])
+        log_action(
+            self.request, 'schedule', 'media', target_id=schedule.media_file_id,
+            target_name=schedule.media_file.name,
+            details={'targets': len(results), 'start_date': start_date, 'end_date': end_date},
+        )
+
+    def perform_destroy(self, instance):
+        """Cancel a schedule — best-effort removal of whatever it
+        deployed (media_file schedules only; a playlist schedule's
+        assets belong to the playlist itself and are managed by its own
+        deploy/re-deploy lifecycle, not this record)."""
+        if instance.deployed_assets:
+            from players.models import Player
+            from players.services import AnthiasAPIClient
+            for player_id, asset_ids in instance.deployed_assets.items():
+                try:
+                    player = Player.objects.get(pk=player_id)
+                except Player.DoesNotExist:
+                    continue
+                client = AnthiasAPIClient(player)
+                for asset_id in asset_ids:
+                    try:
+                        client.delete_asset(asset_id)
+                    except Exception:
+                        pass
+        log_action(
+            self.request, 'cancel_schedule', 'schedule', target_id=instance.id,
+            target_name=str(instance.media_file or instance.playlist),
+        )
+        instance.delete()

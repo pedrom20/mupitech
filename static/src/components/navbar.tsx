@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi } from '@/services/api'
 import { RoleContext, AuthContext, isAdminRole } from '@/components/app'
@@ -167,6 +167,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
   ]
   const navItemsAfter = [
     { to: '/playlists', icon: <FaListUl className="nav-icon" />, label: t('nav.playlists'), end: false },
+    { to: '/scheduling', icon: <FaCalendarAlt className="nav-icon" />, label: t('nav.scheduling'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },
     ...(isAdminRole(role) ? [{ to: '/audit', icon: <FaClipboardList className="nav-icon" />, label: t('nav.audit'), end: false }] : []),

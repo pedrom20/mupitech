@@ -7,11 +7,19 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=0)
-def deploy_playlist(self, playlist_id):
+def deploy_playlist(self, playlist_id, start_date=None, end_date=None):
     """Push every item of a playlist, in order, to every resolved player.
 
     Resolved players = playlist.target_players ∪ players in target_groups
     ∪ players in target_locations (direct or via a located group).
+
+    start_date/end_date (ISO strings) bound when each item is actually
+    shown on the device, same meaning as a single-asset schedule (see
+    players.services.deploy_media_file_to_player) — used by the
+    Scheduling page (content.models.ScheduledDeployment) to schedule a
+    whole playlist instead of one piece of content. A plain "Deploy"
+    from the Playlists page calls this with neither, matching the
+    previous always-immediate/always-on behaviour.
     """
     from players.services import AnthiasAPIClient, PlayerConnectionError, deploy_media_file_to_player
 
@@ -48,6 +56,7 @@ def deploy_playlist(self, playlist_id):
                 asset = deploy_media_file_to_player(
                     player, item.media_file,
                     duration=item.duration or 10,
+                    start_date=start_date, end_date=end_date,
                 )
                 if asset and asset.get('asset_id'):
                     new_asset_ids.append(asset['asset_id'])

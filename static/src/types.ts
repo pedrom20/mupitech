@@ -369,3 +369,22 @@ export interface Playlist {
   last_deployed_at: string | null
   created_at: string
 }
+
+export interface ScheduledDeployment {
+  id: string
+  media_file: string | null
+  media_file_detail?: MediaFile | null
+  playlist: string | null
+  playlist_detail?: { id: string; name: string } | null
+  target_players: string[]
+  target_players_detail?: Player[]
+  target_groups: string[]
+  target_groups_detail?: Group[]
+  target_locations: string[]
+  target_locations_detail?: Location[]
+  duration: number | null
+  start_date: string | null
+  end_date: string | null
+  last_deploy_status: Record<string, { name: string; success: boolean; error?: string }>
+  created_at: string
+}

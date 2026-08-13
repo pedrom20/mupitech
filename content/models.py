@@ -75,3 +75,53 @@ class MediaFile(models.Model):
         if self.file:
             self.file.delete(save=False)
         super().delete(*args, **kwargs)
+
+
+class ScheduledDeployment(models.Model):
+    """A centralized record of "deploy this content/playlist, within this
+    date window" — the counterpart to picking a device and deploying
+    content from its own page, but visible in one place (the Scheduling
+    page) instead of scattered across every device's history.
+
+    Exactly one of media_file/playlist is set. A media_file schedule
+    carries its own ad-hoc targets (target_players/groups/locations) —
+    standalone content has no notion of a "default" destination. A
+    playlist schedule has none of its own: it reuses the playlist's
+    already-configured targets (Playlist.target_players/groups/
+    locations), since re-asking for targets here would just duplicate
+    (and could silently diverge from) that existing configuration.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    media_file = models.ForeignKey(
+        MediaFile, null=True, blank=True, on_delete=models.CASCADE, related_name='schedules',
+    )
+    playlist = models.ForeignKey(
+        'playlists.Playlist', null=True, blank=True, on_delete=models.CASCADE, related_name='schedules',
+    )
+    target_players = models.ManyToManyField('players.Player', blank=True, related_name='content_schedules')
+    target_groups = models.ManyToManyField('groups.Group', blank=True, related_name='content_schedules')
+    target_locations = models.ManyToManyField('locations.Location', blank=True, related_name='content_schedules')
+    duration = models.PositiveIntegerField(
+        null=True, blank=True, help_text='Seconds. Only used for a media_file schedule.',
+    )
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    last_deploy_status = models.JSONField(
+        default=dict, blank=True,
+        help_text='Per-player result of the deploy that created this schedule, '
+                   'e.g. {player_id: {name, success, error}}.',
+    )
+    deployed_assets = models.JSONField(
+        default=dict, blank=True,
+        help_text='Per-player asset IDs this schedule created (media_file schedules only — '
+                   'a playlist schedule\'s assets are tracked on the Playlist itself), so '
+                   'cancelling can remove them from each device instead of only forgetting '
+                   'the bookkeeping row.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Schedule for {self.media_file or self.playlist}'

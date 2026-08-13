@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -551,6 +551,25 @@ export const media = {
     duration?: number; start_date?: string | null; end_date?: string | null
   }): Promise<{ success: boolean; results: Record<string, { name: string; success: boolean; error?: string }> }> {
     return apiRequest('POST', `/media/${id}/schedule/`, data)
+  },
+}
+
+export const schedules = {
+  async list(): Promise<ScheduledDeployment[]> {
+    const data = await apiRequest<{ results: ScheduledDeployment[] } | ScheduledDeployment[]>('GET', '/schedules/?page_size=10000')
+    return Array.isArray(data) ? data : data.results
+  },
+
+  create(data: {
+    media_file?: string; playlist?: string
+    target_players?: string[]; target_groups?: string[]; target_locations?: string[]
+    duration?: number | null; start_date?: string | null; end_date?: string | null
+  }): Promise<ScheduledDeployment> {
+    return apiRequest('POST', '/schedules/', data)
+  },
+
+  cancel(id: string): Promise<void> {
+    return apiRequest('DELETE', `/schedules/${id}/`)
   },
 }
 
