@@ -350,6 +350,29 @@ ASSET_MIMETYPE_MAP = {
 }
 
 
+def resolve_players_from_targets(player_ids=None, group_ids=None, location_ids=None):
+    """All players resolved from a mix of direct player/group/location ids:
+    direct players, plus every player in a target group, plus every player
+    in a target location (directly-located ungrouped players and players
+    via a located group). Same resolution rule as Playlist.resolve_target_players
+    (playlists/models.py) — kept here as a standalone function since the
+    content-scheduling action (content/views.py) needs it against an
+    ad-hoc list of ids, not a persisted playlist's M2M fields."""
+    from groups.models import Group
+    from locations.models import Location
+
+    from .models import Player
+
+    ids = set(player_ids or [])
+    for group in Group.objects.filter(id__in=group_ids or []):
+        ids.update(str(pid) for pid in group.players.values_list('id', flat=True))
+    for location in Location.objects.filter(id__in=location_ids or []):
+        ids.update(str(pid) for pid in location.players.values_list('id', flat=True))
+        for group in location.groups.all():
+            ids.update(str(pid) for pid in group.players.values_list('id', flat=True))
+    return Player.objects.filter(id__in=ids)
+
+
 def deploy_media_file_to_player(player, media_file, name=None, duration=10,
                                  start_date=None, end_date=None, base_url=''):
     """Create an asset on `player` from a content.MediaFile.

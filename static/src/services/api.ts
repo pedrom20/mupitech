@@ -487,6 +487,13 @@ export const media = {
   moveToFolder(id: string, folderId: string | null): Promise<MediaFile> {
     return apiRequest<MediaFile>('PATCH', `/media/${id}/`, { folder: folderId })
   },
+
+  schedule(id: string, data: {
+    target_player_ids: string[]; target_group_ids: string[]; target_location_ids: string[]
+    duration?: number; start_date?: string | null; end_date?: string | null
+  }): Promise<{ success: boolean; results: Record<string, { name: string; success: boolean; error?: string }> }> {
+    return apiRequest('POST', `/media/${id}/schedule/`, data)
+  },
 }
 
 export const folders = {

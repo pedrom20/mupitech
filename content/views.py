@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 from django.db.models import Count
 from rest_framework import parsers, serializers, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from fleet_manager.permissions import IsEditorOrReadOnly
@@ -100,3 +101,53 @@ class MediaFileViewSet(viewsets.ModelViewSet):
             log_action(self.request, 'create', 'media', target_id=instance.id, target_name=name, details={'source_url': source_url})
             # Fetch og:image asynchronously to avoid blocking the request
             fetch_og_image_task.delay(str(instance.id), source_url)
+
+    @action(detail=True, methods=['post'])
+    def schedule(self, request, pk=None):
+        """Deploy this content to a mix of devices/groups/locations at
+        once, optionally with a start/end date — the centralized
+        counterpart to picking one device at a time and deploying content
+        from its own page. Resolution rule (direct players ∪ players in a
+        target group ∪ players in a target location, directly or via a
+        located group) matches Playlist.resolve_target_players."""
+        media_file = self.get_object()
+
+        player_ids = request.data.get('target_player_ids') or []
+        group_ids = request.data.get('target_group_ids') or []
+        location_ids = request.data.get('target_location_ids') or []
+        if not (player_ids or group_ids or location_ids):
+            return Response({'error': 'At least one target device, group or location is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        duration = request.data.get('duration')
+        try:
+            duration = int(duration) if duration not in (None, '') else 10
+        except (TypeError, ValueError):
+            return Response({'error': 'duration must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        start_date = request.data.get('start_date') or None
+        end_date = request.data.get('end_date') or None
+
+        from players.services import PlayerConnectionError, deploy_media_file_to_player, resolve_players_from_targets
+        players = resolve_players_from_targets(player_ids, group_ids, location_ids)
+        if not players:
+            return Response({'error': 'No devices resolved from the selected targets.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        base_url = f'{request.scheme}://{request.get_host()}'
+        results = {}
+        for player in players:
+            try:
+                deploy_media_file_to_player(
+                    player, media_file, duration=duration,
+                    start_date=start_date, end_date=end_date, base_url=base_url,
+                )
+                results[str(player.id)] = {'name': player.name, 'success': True}
+            except PlayerConnectionError as exc:
+                results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}
+            except Exception as exc:
+                logger.exception('Error scheduling %s to %s', media_file.name, player.name)
+                results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}
+
+        log_action(
+            request, 'schedule', 'media', target_id=media_file.id, target_name=media_file.name,
+            details={'targets': len(results), 'start_date': start_date, 'end_date': end_date},
+        )
+        return Response({'success': True, 'results': results})

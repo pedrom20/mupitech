@@ -23,13 +23,21 @@ import {
   FaClock,
   FaTh,
   FaList,
+  FaDesktop,
+  FaLayerGroup,
+  FaMapMarkerAlt,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { media as mediaApi, folders as foldersApi, playbackLog, cctv as cctvApi } from '@/services/api'
 import { CctvFormContent } from '@/components/cctv/cctv-form-modal'
 import CctvFormModal from '@/components/cctv/cctv-form-modal'
 import { useFeatures } from '@/context/features-context'
+import { useAppDispatch, useAppSelector } from '@/store/index'
+import { fetchPlayers } from '@/store/playersSlice'
+import { fetchGroups } from '@/store/groupsSlice'
+import { fetchLocations } from '@/store/locationsSlice'
 import { FileTypeIcon, FilePreview, getDomain, isImageUrl } from '@/components/shared/media-preview'
+import { showToast } from '@/utils/toast'
 import type { MediaFile, MediaFolder, CctvConfig } from '@/types'
 
 function formatFileSize(bytes: number): string {
@@ -386,6 +394,10 @@ type FilterType = 'all' | 'video' | 'image' | 'web' | 'cctv'
 const ContentPage: React.FC = () => {
   const { t } = useTranslation()
   const { cctv: cctvEnabled } = useFeatures()
+  const dispatch = useAppDispatch()
+  const { players } = useAppSelector((state) => state.players)
+  const { groups } = useAppSelector((state) => state.groups)
+  const { locations } = useAppSelector((state) => state.locations)
 
   const [files, setFiles] = useState<MediaFile[]>([])
   const [loadingFiles, setLoadingFiles] = useState(true)
@@ -399,6 +411,17 @@ const ContentPage: React.FC = () => {
   // CCTV edit modal
   const [editCctvConfig, setEditCctvConfig] = useState<CctvConfig | null>(null)
   const [showCctvEditModal, setShowCctvEditModal] = useState(false)
+
+  // Schedule content to devices/groups/locations, with start/end dates —
+  // the centralized counterpart to deploying from a single device's own
+  // page one at a time.
+  const [schedulingFile, setSchedulingFile] = useState<MediaFile | null>(null)
+  const [scheduleTargetPlayers, setScheduleTargetPlayers] = useState<string[]>([])
+  const [scheduleTargetGroups, setScheduleTargetGroups] = useState<string[]>([])
+  const [scheduleTargetLocations, setScheduleTargetLocations] = useState<string[]>([])
+  const [scheduleStartDate, setScheduleStartDate] = useState('')
+  const [scheduleEndDate, setScheduleEndDate] = useState('')
+  const [scheduling, setScheduling] = useState(false)
 
   // View mode
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -451,7 +474,10 @@ const ContentPage: React.FC = () => {
     loadFiles()
     loadFolders()
     playbackLog.stats().then((r) => setPlaybackStats(r.stats)).catch(() => {})
-  }, [loadFiles, loadFolders])
+    dispatch(fetchPlayers())
+    dispatch(fetchGroups())
+    dispatch(fetchLocations())
+  }, [loadFiles, loadFolders, dispatch])
 
   // Auto-refresh while any file is processing
   useEffect(() => {
@@ -597,6 +623,49 @@ const ContentPage: React.FC = () => {
       } catch (err) {
         Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
       }
+    }
+  }
+
+  const toggleScheduleTarget = (list: string[], setList: (v: string[]) => void, id: string) => {
+    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
+  }
+
+  const handleOpenSchedule = (e: React.MouseEvent, file: MediaFile) => {
+    e.stopPropagation()
+    setSchedulingFile(file)
+    setScheduleTargetPlayers([])
+    setScheduleTargetGroups([])
+    setScheduleTargetLocations([])
+    setScheduleStartDate('')
+    setScheduleEndDate('')
+  }
+
+  const handleCloseSchedule = () => setSchedulingFile(null)
+
+  const handleSaveSchedule = async () => {
+    if (!schedulingFile) return
+    if (scheduleTargetPlayers.length === 0 && scheduleTargetGroups.length === 0 && scheduleTargetLocations.length === 0) return
+    setScheduling(true)
+    try {
+      const res = await mediaApi.schedule(schedulingFile.id, {
+        target_player_ids: scheduleTargetPlayers,
+        target_group_ids: scheduleTargetGroups,
+        target_location_ids: scheduleTargetLocations,
+        start_date: scheduleStartDate ? new Date(scheduleStartDate).toISOString() : null,
+        end_date: scheduleEndDate ? new Date(scheduleEndDate).toISOString() : null,
+      })
+      const entries = Object.values(res.results)
+      const failed = entries.filter((r) => !r.success).length
+      if (failed > 0) {
+        showToast('warning', t('content.scheduleResultWithFailures', { total: entries.length, failed }))
+      } else {
+        showToast('success', t('content.scheduleResult', { total: entries.length }))
+      }
+      setSchedulingFile(null)
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    } finally {
+      setScheduling(false)
     }
   }
 
@@ -1144,6 +1213,15 @@ const ContentPage: React.FC = () => {
                               <FaPen style={{ fontSize: '0.65rem' }} />
                             </button>
                           )}
+                          {file.file_type !== 'cctv' && (
+                            <button
+                              className="btn btn-sm btn-outline-secondary py-0 px-1"
+                              title={t('content.schedule')}
+                              onClick={(e) => handleOpenSchedule(e, file)}
+                            >
+                              <FaClock style={{ fontSize: '0.65rem' }} />
+                            </button>
+                          )}
                           <button
                             className="btn btn-sm btn-outline-danger py-0 px-1"
                             title={t('common.delete')}
@@ -1504,6 +1582,15 @@ const ContentPage: React.FC = () => {
                             <FaPen style={{ fontSize: '0.65rem' }} />
                           </button>
                         )}
+                        {file.file_type !== 'cctv' && (
+                          <button
+                            className="btn btn-sm btn-outline-secondary py-0 px-1"
+                            title={t('content.schedule')}
+                            onClick={(e) => handleOpenSchedule(e, file)}
+                          >
+                            <FaClock style={{ fontSize: '0.65rem' }} />
+                          </button>
+                        )}
                         <button
                           className="btn btn-sm btn-outline-danger py-0 px-1"
                           title={t('common.delete')}
@@ -1546,6 +1633,112 @@ const ContentPage: React.FC = () => {
         onSave={handleCctvSave}
         config={editCctvConfig}
       />
+
+      {/* Schedule Modal — deploy to a mix of devices/groups/locations, with an optional start/end date */}
+      {schedulingFile && (
+        <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={handleCloseSchedule}>
+          <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold text-purple-dark">
+                  <FaClock className="me-2" />
+                  {t('content.scheduleTitle', { name: schedulingFile.name })}
+                </h5>
+                <button type="button" className="btn-close" onClick={handleCloseSchedule} aria-label={t('common.close')} />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('content.scheduleDesc')}</p>
+                <div className="row">
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label fw-semibold d-flex align-items-center gap-1"><FaDesktop />{t('nav.players')}</label>
+                    <div className="border rounded p-2" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                      {players.map((p) => (
+                        <div className="form-check" key={p.id}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={scheduleTargetPlayers.includes(p.id)}
+                            onChange={() => toggleScheduleTarget(scheduleTargetPlayers, setScheduleTargetPlayers, p.id)}
+                            id={`sched-player-${p.id}`}
+                          />
+                          <label className="form-check-label" htmlFor={`sched-player-${p.id}`} style={{ fontSize: '0.85rem' }}>{p.name}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label fw-semibold d-flex align-items-center gap-1"><FaLayerGroup />{t('nav.groups')}</label>
+                    <div className="border rounded p-2" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                      {groups.map((g) => (
+                        <div className="form-check" key={g.id}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={scheduleTargetGroups.includes(g.id)}
+                            onChange={() => toggleScheduleTarget(scheduleTargetGroups, setScheduleTargetGroups, g.id)}
+                            id={`sched-group-${g.id}`}
+                          />
+                          <label className="form-check-label" htmlFor={`sched-group-${g.id}`} style={{ fontSize: '0.85rem' }}>{g.name}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-md-4 mb-3">
+                    <label className="form-label fw-semibold d-flex align-items-center gap-1"><FaMapMarkerAlt />{t('nav.locations')}</label>
+                    <div className="border rounded p-2" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                      {locations.map((l) => (
+                        <div className="form-check" key={l.id}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={scheduleTargetLocations.includes(l.id)}
+                            onChange={() => toggleScheduleTarget(scheduleTargetLocations, setScheduleTargetLocations, l.id)}
+                            id={`sched-location-${l.id}`}
+                          />
+                          <label className="form-check-label" htmlFor={`sched-location-${l.id}`} style={{ fontSize: '0.85rem' }}>{l.name}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="col-md-6 mb-2">
+                    <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('content.scheduleStart')}</label>
+                    <input
+                      type="datetime-local"
+                      className="form-control form-control-sm"
+                      value={scheduleStartDate}
+                      onChange={(e) => setScheduleStartDate(e.target.value)}
+                    />
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('content.scheduleStartHint')}</div>
+                  </div>
+                  <div className="col-md-6 mb-2">
+                    <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('content.scheduleEnd')}</label>
+                    <input
+                      type="datetime-local"
+                      className="form-control form-control-sm"
+                      value={scheduleEndDate}
+                      onChange={(e) => setScheduleEndDate(e.target.value)}
+                    />
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('content.scheduleEndHint')}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseSchedule}>{t('common.cancel')}</button>
+                <button
+                  type="button"
+                  className="fm-btn-primary"
+                  onClick={handleSaveSchedule}
+                  disabled={scheduling || (scheduleTargetPlayers.length === 0 && scheduleTargetGroups.length === 0 && scheduleTargetLocations.length === 0)}
+                >
+                  {scheduling ? t('common.loading') : t('content.scheduleButton')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
