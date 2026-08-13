@@ -256,6 +256,16 @@ def transcode_video(self, media_file_id):
         logger.exception('ffprobe failed for %s', input_path)
         probe = None
 
+    # Record pixel dimensions from the original file — a later transcode
+    # only scales down (force_original_aspect_ratio=decrease), it doesn't
+    # change orientation, so this holds regardless of which branch below
+    # runs. Used elsewhere to warn about portrait/landscape mismatches
+    # before deploying to a device.
+    if probe and probe.get('width') and probe.get('height'):
+        media_file.width = probe['width']
+        media_file.height = probe['height']
+        media_file.save(update_fields=['width', 'height'])
+
     if not _needs_transcode(probe, file_ext):
         logger.info('MediaFile %s already optimal, skipping transcode.', media_file_id)
         # Generate thumbnail even if no transcode needed
@@ -347,9 +357,24 @@ def transcode_video(self, media_file_id):
             os.remove(tmp_output)
 
 
+def _read_image_size(file_path):
+    """Return (width, height) for an image Pillow can open, or None.
+    SVGs and anything else Pillow can't decode are left without
+    dimensions — orientation-mismatch checks just don't apply to them."""
+    from PIL import Image
+    try:
+        with Image.open(file_path) as img:
+            return img.size
+    except Exception:
+        logger.debug('Could not read image dimensions from %s', file_path)
+        return None
+
+
 @shared_task(bind=True, max_retries=0, queue='transcode')
 def generate_image_thumbnail(self, media_file_id):
-    """Generate a thumbnail for an uploaded image."""
+    """Generate a thumbnail for an uploaded image, and record its pixel
+    dimensions (used elsewhere to warn about portrait/landscape mismatches
+    before deploying to a device)."""
     from content.models import MediaFile
 
     try:
@@ -359,6 +384,11 @@ def generate_image_thumbnail(self, media_file_id):
 
     if not media_file.file:
         return
+
+    size = _read_image_size(media_file.file.path)
+    if size:
+        media_file.width, media_file.height = size
+        media_file.save(update_fields=['width', 'height'])
 
     thumb_path = _generate_image_thumbnail(media_file.file.path)
     if thumb_path:

@@ -1399,14 +1399,22 @@ const PlayerDetail: React.FC = () => {
   })
 
   // Deploy content to player
+  const isOrientationMismatch = (file: MediaFile): boolean => {
+    if (!player || !file.width || !file.height) return false
+    const contentPortrait = file.height > file.width
+    const devicePortrait = player.screen_rotation === 90 || player.screen_rotation === 270
+    return contentPortrait !== devicePortrait
+  }
+
   const handleDeployContent = async (file: MediaFile) => {
     if (!id) return
+    const mismatch = isOrientationMismatch(file)
     const result = await Swal.fire({
-      title: t('assets.selectContent'),
-      text: `${file.name}`,
-      icon: 'question',
+      title: mismatch ? t('assets.orientationMismatchTitle') : t('assets.selectContent'),
+      text: mismatch ? t('assets.orientationMismatchText', { name: file.name }) : file.name,
+      icon: mismatch ? 'warning' : 'question',
       showCancelButton: true,
-      confirmButtonText: t('common.confirm'),
+      confirmButtonText: mismatch ? t('assets.deployAnyway') : t('common.confirm'),
       cancelButtonText: t('common.cancel'),
     })
     if (result.isConfirmed) {
@@ -1443,12 +1451,15 @@ const PlayerDetail: React.FC = () => {
   const handleDeploySelectedContent = async () => {
     if (!id || selectedContentIds.size === 0) return
     const fileIds = Array.from(selectedContentIds)
+    const mismatchCount = contentFiles.filter((f) => selectedContentIds.has(f.id) && isOrientationMismatch(f)).length
     const result = await Swal.fire({
-      title: t('assets.selectContent'),
-      text: t('assets.confirmBulkDeploy', { count: fileIds.length }),
-      icon: 'question',
+      title: mismatchCount > 0 ? t('assets.orientationMismatchTitle') : t('assets.selectContent'),
+      text: mismatchCount > 0
+        ? t('assets.orientationMismatchBulkText', { count: mismatchCount, total: fileIds.length })
+        : t('assets.confirmBulkDeploy', { count: fileIds.length }),
+      icon: mismatchCount > 0 ? 'warning' : 'question',
       showCancelButton: true,
-      confirmButtonText: t('common.confirm'),
+      confirmButtonText: mismatchCount > 0 ? t('assets.deployAnyway') : t('common.confirm'),
       cancelButtonText: t('common.cancel'),
     })
     if (!result.isConfirmed) return

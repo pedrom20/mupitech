@@ -86,6 +86,11 @@ export interface MediaFile {
   folder: string | null
   folder_name: string | null
   cctv_config?: CctvConfig | null
+  // Pixel dimensions, extracted at upload time — null for webpage assets,
+  // SVGs and anything Pillow/ffprobe couldn't read. Used to warn about
+  // portrait/landscape mismatches before deploying to a device.
+  width?: number | null
+  height?: number | null
   created_at: string
 }
 

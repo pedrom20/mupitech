@@ -41,6 +41,14 @@ class MediaFile(models.Model):
     folder = models.ForeignKey(MediaFolder, null=True, blank=True, on_delete=models.SET_NULL, related_name='files')
     file_type = models.CharField(max_length=20, default='other')
     file_size = models.BigIntegerField(default=0)
+    width = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text='Pixel dimensions for images/videos — extracted at upload time '
+                   '(content/tasks.py), used to warn about portrait/landscape '
+                   'mismatches before deploying to a device. Null for webpage '
+                   'assets, SVGs and anything Pillow/ffprobe could not read.',
+    )
+    height = models.PositiveIntegerField(null=True, blank=True)
     processing_status = models.CharField(
         max_length=20,
         choices=[('ready', 'Ready'), ('processing', 'Processing'), ('failed', 'Failed')],
