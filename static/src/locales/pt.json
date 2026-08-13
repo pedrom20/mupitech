@@ -1016,7 +1016,9 @@
     "loadingActivity": "A carregar atividade...",
     "viewFullAuditLog": "Ver registo de auditoria completo",
     "receiveOfflineAlerts": "Receber emails de alerta de dispositivo offline",
-    "receiveOfflineAlertsHint": "Só se aplica se os alertas por email estiverem ativos globalmente (Definições → Alertas por Email)."
+    "receiveOfflineAlertsHint": "Só se aplica se os alertas por email estiverem ativos globalmente (Definições → Alertas por Email).",
+    "canDeleteContent": "Pode apagar conteúdos da biblioteca",
+    "canDeleteContentHint": "Permite apagar conteúdos e imagens de marca (movendo-os para a reciclagem). Desative para deixar este utilizador carregar/editar conteúdos sem poder removê-los."
   },
   "audit": {
     "title": "Registo de Auditoria",

@@ -1,9 +1,10 @@
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, IsSuperAdmin
+from fleet_manager.permissions import IsAdmin, IsSuperAdmin, user_can_delete_content
 from history.logging import log_action
 
 from .models import BrandingImage
@@ -37,6 +38,8 @@ class BrandingImageViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         """Soft-delete — recoverable from the recycle bin."""
+        if not user_can_delete_content(self.request.user):
+            raise PermissionDenied('You do not have permission to delete content.')
         log_action(self.request, 'delete', 'branding_image', target_id=instance.id, target_name=instance.name)
         instance.is_deleted = True
         instance.deleted_at = timezone.now()

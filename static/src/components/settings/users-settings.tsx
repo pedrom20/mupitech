@@ -60,6 +60,7 @@ const UsersSettings: React.FC = () => {
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<string>('viewer')
   const [receiveOfflineAlerts, setReceiveOfflineAlerts] = useState(true)
+  const [canDeleteContent, setCanDeleteContent] = useState(true)
   const [saving, setSaving] = useState(false)
 
   // Scope pickers (leave all empty = unrestricted access, the default)
@@ -89,6 +90,7 @@ const UsersSettings: React.FC = () => {
     setPassword('')
     setRole('viewer')
     setReceiveOfflineAlerts(true)
+    setCanDeleteContent(true)
     setScopeLocationIds([])
     setScopeGroupIds([])
     setScopePlayerIds([])
@@ -113,6 +115,7 @@ const UsersSettings: React.FC = () => {
     setRole(u.role)
     setPassword('')
     setReceiveOfflineAlerts(u.receive_offline_alerts ?? true)
+    setCanDeleteContent(u.can_delete_content ?? true)
     setScopeLocationIds(u.scope?.location_ids || [])
     setScopeGroupIds(u.scope?.group_ids || [])
     setScopePlayerIds(u.scope?.player_ids || [])
@@ -144,12 +147,12 @@ const UsersSettings: React.FC = () => {
         player_ids: scopePlayerIds,
       }
       if (editUser) {
-        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, receive_offline_alerts: receiveOfflineAlerts, ...scopeData }
+        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, receive_offline_alerts: receiveOfflineAlerts, can_delete_content: canDeleteContent, ...scopeData }
         if (password) data.password = password
         await usersApi.update(editUser.id, data as Parameters<typeof usersApi.update>[1])
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.updated'), timer: 1500, showConfirmButton: false })
       } else {
-        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName, receive_offline_alerts: receiveOfflineAlerts, ...scopeData })
+        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName, receive_offline_alerts: receiveOfflineAlerts, can_delete_content: canDeleteContent, ...scopeData })
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.created'), timer: 1500, showConfirmButton: false })
       }
       setShowModal(false)
@@ -331,6 +334,22 @@ const UsersSettings: React.FC = () => {
                     </div>
                   )}
 
+                  {(role === 'editor' || role === 'admin') && (
+                    <div className="form-check mb-2">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="can-delete-content"
+                        checked={canDeleteContent}
+                        onChange={(e) => setCanDeleteContent(e.target.checked)}
+                      />
+                      <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="can-delete-content">
+                        {t('users.canDeleteContent')}
+                      </label>
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('users.canDeleteContentHint')}</div>
+                    </div>
+                  )}
+
                   {role !== 'admin' && role !== 'superadmin' && (
                     <fieldset disabled={isEditingSelf}>
                       <hr className="my-3" />
@@ -465,6 +484,12 @@ const UsersSettings: React.FC = () => {
                     <div className="col-sm-6">
                       <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.receiveOfflineAlerts')}</div>
                       <div>{(viewUser.receive_offline_alerts ?? true) ? t('common.yes') : t('common.no')}</div>
+                    </div>
+                  )}
+                  {(viewUser.role === 'editor' || viewUser.role === 'admin') && (
+                    <div className="col-sm-6">
+                      <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.canDeleteContent')}</div>
+                      <div>{(viewUser.can_delete_content ?? true) ? t('common.yes') : t('common.no')}</div>
                     </div>
                   )}
                 </div>

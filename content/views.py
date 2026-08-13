@@ -5,9 +5,10 @@ from django.db.models import Count
 from django.utils import timezone
 from rest_framework import parsers, serializers, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsEditorOrReadOnly, IsSuperAdmin
+from fleet_manager.permissions import IsEditorOrReadOnly, IsSuperAdmin, user_can_delete_content
 from history.logging import log_action
 
 from .models import MediaFile, MediaFolder, detect_file_type
@@ -62,6 +63,8 @@ class MediaFileViewSet(viewsets.ModelViewSet):
         """Soft-delete a MediaFile — hides it from normal use but keeps it
         recoverable from the recycle bin. If CCTV, stop the live stream
         (an inactive/deleted item shouldn't keep streaming)."""
+        if not user_can_delete_content(self.request.user):
+            raise PermissionDenied('You do not have permission to delete content.')
         log_action(self.request, 'delete', 'media', target_id=instance.id, target_name=instance.name)
         if instance.file_type == 'cctv':
             try:

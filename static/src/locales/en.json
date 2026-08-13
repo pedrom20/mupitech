@@ -1016,7 +1016,9 @@
     "loadingActivity": "Loading activity...",
     "viewFullAuditLog": "View full audit log",
     "receiveOfflineAlerts": "Receive device-offline alert emails",
-    "receiveOfflineAlertsHint": "Only applies if email alerts are enabled system-wide (Settings → Email Alerts)."
+    "receiveOfflineAlertsHint": "Only applies if email alerts are enabled system-wide (Settings → Email Alerts).",
+    "canDeleteContent": "Can delete library content",
+    "canDeleteContentHint": "Allows deleting content and branding images (moving them to the recycle bin). Turn off to let this user upload/edit content without being able to remove it."
   },
   "audit": {
     "title": "Audit Log",

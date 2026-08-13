@@ -261,6 +261,7 @@ export interface User {
   role: UserRole
   scope: UserScope
   receive_offline_alerts?: boolean
+  can_delete_content?: boolean
   last_login: string | null
   date_joined: string
 }

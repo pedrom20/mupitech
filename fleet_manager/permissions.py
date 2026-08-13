@@ -70,6 +70,19 @@ class IsEditorOrReadOnly(BasePermission):
         return _user_role(request.user) in ('editor', 'admin', 'superadmin')
 
 
+def user_can_delete_content(user):
+    """Whether this user may delete library content/branding images. Superadmins
+    always can; editors/admins default to allowed but can be individually
+    opted out via UserAccessScope.can_delete_content (see access/models.py)."""
+    role = _user_role(user)
+    if role == 'superadmin':
+        return True
+    if role not in ('editor', 'admin'):
+        return False
+    scope = getattr(user, 'access_scope', None)
+    return scope.can_delete_content if scope else True
+
+
 class IsAdminOrReadOnly(BasePermission):
     """Admin/superadmin for write ops; any authenticated user for read."""
 

@@ -31,6 +31,13 @@ class UserAccessScope(models.Model):
         help_text='Whether this user (if admin/superadmin) receives device-offline '
                    'alert emails. Only relevant if alert emails are enabled system-wide.',
     )
+    can_delete_content = models.BooleanField(
+        default=True,
+        help_text='Whether this user (if editor/admin) may delete library content and '
+                   'branding images. Superadmins are always allowed; viewers never are '
+                   '(no write access at all). Lets an admin grant upload/edit rights '
+                   'without also granting deletion rights.',
+    )
 
     def __str__(self):
         return f'Access scope for {self.user}'

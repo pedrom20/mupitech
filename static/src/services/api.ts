@@ -808,7 +808,7 @@ export const users = {
     username: string; email?: string; password: string; role: string
     first_name?: string; last_name?: string
     location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
-    receive_offline_alerts?: boolean
+    receive_offline_alerts?: boolean; can_delete_content?: boolean
   }): Promise<User> {
     return apiRequest<User>('POST', '/users/', data)
   },
@@ -816,7 +816,7 @@ export const users = {
   update(id: number, data: Partial<User> & {
     password?: string; role?: string
     location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
-    receive_offline_alerts?: boolean
+    receive_offline_alerts?: boolean; can_delete_content?: boolean
   }): Promise<User> {
     return apiRequest<User>('PATCH', `/users/${id}/`, data)
   },
