@@ -1830,7 +1830,7 @@ const PlayerDetail: React.FC = () => {
             >
               <FaSyncAlt />
             </button>
-            {isAdminRole(role) && player.device_type === 'x86' && (
+            {isAdminRole(role) && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={handleOpenMigrateImage}
