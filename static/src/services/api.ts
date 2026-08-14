@@ -795,6 +795,7 @@ export const system = {
     logo_url: string | null
     has_standby_image: boolean
     standby_url: string | null
+    standby_is_video: boolean
   }> {
     return apiRequest('GET', '/system/branding/')
   },
@@ -823,7 +824,7 @@ export const system = {
     return apiRequest('DELETE', '/system/branding/logo/delete/')
   },
 
-  uploadBrandingStandby(file: File): Promise<{ success: boolean; standby_url: string }> {
+  uploadBrandingStandby(file: File): Promise<{ success: boolean; standby_url: string; standby_is_video: boolean }> {
     const data = new FormData()
     data.append('standby', file)
     return apiRequest('POST', '/system/branding/standby/', data)

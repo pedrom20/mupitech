@@ -12,6 +12,7 @@ const BrandingSettings: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [hasStandby, setHasStandby] = useState(false)
   const [standbyUrl, setStandbyUrl] = useState<string | null>(null)
+  const [standbyIsVideo, setStandbyIsVideo] = useState(false)
   const [loading, setLoading] = useState(true)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingStandby, setUploadingStandby] = useState(false)
@@ -35,6 +36,7 @@ const BrandingSettings: React.FC = () => {
         setLogoUrl(res.logo_url)
         setHasStandby(res.has_standby_image)
         setStandbyUrl(res.standby_url)
+        setStandbyIsVideo(res.standby_is_video)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -93,6 +95,7 @@ const BrandingSettings: React.FC = () => {
       const res = await system.uploadBrandingStandby(file)
       setHasStandby(true)
       setStandbyUrl(res.standby_url)
+      setStandbyIsVideo(res.standby_is_video)
       showToast('success', t('common.success'))
       setShowStandbyPicker(false)
     } catch (err) {
@@ -106,7 +109,8 @@ const BrandingSettings: React.FC = () => {
     const file = e.target.files?.[0]
     if (!file) return
     const name = file.name.toLowerCase()
-    if (!name.endsWith('.png') && !name.endsWith('.jpg') && !name.endsWith('.jpeg') && !name.endsWith('.gif')) {
+    const validExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.mp4', '.webm']
+    if (!validExtensions.some((ext) => name.endsWith(ext))) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: t('branding.standbyFormatHint') })
       return
     }
@@ -243,7 +247,18 @@ const BrandingSettings: React.FC = () => {
                   style={{ width: '160px', height: '90px', background: '#000', flexShrink: 0 }}
                 >
                   {standbyUrl && (
-                    <img src={standbyUrl} alt="Standby image" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                    standbyIsVideo ? (
+                      <video
+                        src={standbyUrl}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                      />
+                    ) : (
+                      <img src={standbyUrl} alt="Standby image" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                    )
                   )}
                 </div>
                 <div className="d-flex flex-column gap-2">
@@ -253,7 +268,7 @@ const BrandingSettings: React.FC = () => {
                   <input
                     ref={standbyInputRef}
                     type="file"
-                    accept=".png,image/png,.jpg,.jpeg,image/jpeg,.gif,image/gif"
+                    accept=".png,image/png,.jpg,.jpeg,image/jpeg,.gif,image/gif,.mp4,video/mp4,.webm,video/webm"
                     className="d-none"
                     onChange={handleStandbyChange}
                   />

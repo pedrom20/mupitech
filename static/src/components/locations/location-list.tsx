@@ -17,6 +17,7 @@ import { fetchLocations, createLocation, updateLocation, deleteLocation } from '
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchPlayers } from '@/store/playersSlice'
 import { locations as locationsApi } from '@/services/api'
+import { isVideoUrl } from '@/utils/media'
 import type { Location } from '@/types'
 
 const LocationList: React.FC = () => {
@@ -471,11 +472,15 @@ const LocationList: React.FC = () => {
                           style={{ width: '70px', height: '44px', background: '#000', flexShrink: 0 }}
                         >
                           {detailLocation.standby_image && (
-                            <img src={detailLocation.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            isVideoUrl(detailLocation.standby_image) ? (
+                              <video src={detailLocation.standby_image} autoPlay muted loop playsInline style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            ) : (
+                              <img src={detailLocation.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            )
                           )}
                         </div>
                         <div className="d-flex flex-column gap-1">
-                          <input ref={locationStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif" className="d-none" onChange={handleLocationStandbyChange} />
+                          <input ref={locationStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif,.mp4,.webm" className="d-none" onChange={handleLocationStandbyChange} />
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => locationStandbyInputRef.current?.click()} disabled={uploadingLocationStandby} style={{ fontSize: '0.72rem' }}>
                             {t('branding.standbyLabel')}
                           </button>

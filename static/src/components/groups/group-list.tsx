@@ -16,6 +16,7 @@ import { fetchGroups, createGroup, updateGroup, deleteGroup } from '@/store/grou
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { groups as groupsApi, system as systemApi } from '@/services/api'
+import { isVideoUrl } from '@/utils/media'
 import type { Group } from '@/types'
 
 const ROTATION_OPTIONS: (0 | 90 | 180 | 270)[] = [0, 90, 180, 270]
@@ -776,11 +777,15 @@ const GroupList: React.FC = () => {
                           style={{ width: '70px', height: '44px', background: '#000', flexShrink: 0 }}
                         >
                           {detailGroup.standby_image && (
-                            <img src={detailGroup.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            isVideoUrl(detailGroup.standby_image) ? (
+                              <video src={detailGroup.standby_image} autoPlay muted loop playsInline style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            ) : (
+                              <img src={detailGroup.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            )
                           )}
                         </div>
                         <div className="d-flex flex-column gap-1">
-                          <input ref={groupStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif" className="d-none" onChange={handleGroupStandbyChange} />
+                          <input ref={groupStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif,.mp4,.webm" className="d-none" onChange={handleGroupStandbyChange} />
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => groupStandbyInputRef.current?.click()} disabled={uploadingGroupStandby} style={{ fontSize: '0.72rem' }}>
                             {t('branding.standbyLabel')}
                           </button>

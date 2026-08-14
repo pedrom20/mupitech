@@ -48,6 +48,24 @@ STANDBY_FILENAME = 'standby-image.png'
 CONTAINER_STANDBY_PATH = '/usr/src/app/staticfiles/img/standby.png'
 REMOTE_TMP_STANDBY_PATH = '/tmp/mupitech-standby-image.png'
 
+# Video standby (mp4/webm) — a distinct fixed filename per extension so
+# switching from one video format (or from an image) to the other
+# doesn't leave a stale file the viewer might pick up instead; see the
+# `also_remove` cleanup in push_standby_image_to_player.
+STANDBY_VIDEO_EXTENSIONS = ('.mp4', '.webm')
+CONTAINER_STANDBY_VIDEO_PATHS = {
+    '.mp4': '/usr/src/app/staticfiles/img/standby.mp4',
+    '.webm': '/usr/src/app/staticfiles/img/standby.webm',
+}
+REMOTE_TMP_STANDBY_VIDEO_PATHS = {
+    '.mp4': '/tmp/mupitech-standby-video.mp4',
+    '.webm': '/tmp/mupitech-standby-video.webm',
+}
+
+
+def is_video_standby_path(path):
+    return path.lower().endswith(STANDBY_VIDEO_EXTENSIONS)
+
 
 class BrandingPushError(Exception):
     """Raised when pushing a branding asset to a device fails."""
@@ -174,8 +192,11 @@ def get_standby_path(player=None):
         location = player.effective_location
         if location and location.standby_image:
             return location.standby_image.path
-    path = os.path.join(BRANDING_DIR, STANDBY_FILENAME)
-    return path if os.path.isfile(path) else None
+    for filename in (STANDBY_FILENAME, 'standby.mp4', 'standby.webm'):
+        path = os.path.join(BRANDING_DIR, filename)
+        if os.path.isfile(path):
+            return path
+    return None
 
 
 def save_logo_upload(instance, uploaded_file):
@@ -194,21 +215,29 @@ def save_logo_upload(instance, uploaded_file):
 
 
 def save_standby_upload(instance, uploaded_file):
-    """Save a PNG/JPEG/GIF upload as `instance.standby_image` (a Group or
-    Location) — an animated GIF is kept as-is (see convert_to_png),
-    anything else converted to real PNG bytes. Raises ValueError on an
-    unsupported format."""
+    """Save a PNG/JPEG/GIF/MP4/WEBM upload as `instance.standby_image`
+    (a Group, Location or Player) — an animated GIF is kept as-is (see
+    convert_to_png), a static image is converted to real PNG bytes, and
+    a video is stored byte-for-byte under a fixed name matching its own
+    extension (no transcoding — the device plays it directly via a
+    looping <video> tag, see mupitech-player's standby-video view).
+    Raises ValueError on an unsupported format."""
     from django.core.files.base import ContentFile
 
     name_lower = uploaded_file.name.lower()
+    if name_lower.endswith(STANDBY_VIDEO_EXTENSIONS):
+        ext = '.mp4' if name_lower.endswith('.mp4') else '.webm'
+        instance.standby_image.save(f'standby{ext}', uploaded_file, save=True)
+        return
     if not name_lower.endswith(('.png', '.jpg', '.jpeg', '.gif')):
-        raise ValueError('Only PNG, JPEG or GIF files are supported')
+        raise ValueError('Only PNG, JPEG, GIF, MP4 or WEBM files are supported')
     image_bytes = convert_to_png(uploaded_file, add_margin=True)
     instance.standby_image.save('standby.png', ContentFile(image_bytes), save=True)
 
 
 def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
-                          local_path, remote_tmp_path, container_path):
+                          local_path, remote_tmp_path, container_path,
+                          also_remove=None):
     import paramiko
 
     host = urlparse(player.url).hostname
@@ -245,6 +274,19 @@ def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
             f'docker cp {remote_tmp_path} {_shell_quote(container)}:{container_path}',
             timeout=timeout,
         )
+        # Clear out any other standby-slot file the container might
+        # already have (e.g. a previous video override when this push
+        # is an image, or the other video extension) — the standby
+        # slot is meant to hold exactly one file at a time; leaving a
+        # stale one behind would make the viewer's own detection
+        # (checks for standby.mp4/webm before falling back to the
+        # image) pick the wrong one.
+        for stale_path in (also_remove or []):
+            _ssh_run(
+                ssh,
+                f'docker exec {_shell_quote(container)} rm -f {stale_path}',
+                timeout=timeout, check=False,
+            )
         _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
         _ssh_run(ssh, f'rm -f {remote_tmp_path}', timeout=timeout, check=False)
     except BrandingPushError:
@@ -270,7 +312,8 @@ def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, time
 
 
 def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and replace its "no content" standby image.
+    """SSH into `player`'s host and replace its "no content" standby
+    slot — an image (PNG/animated GIF) or a video (MP4/WEBM).
 
     Same group/location/fleet-wide precedence as the logo, but raises
     BrandingPushError if nothing is set at any level — unlike the logo
@@ -280,11 +323,25 @@ def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, ti
     standby_path = get_standby_path(player)
     if not standby_path:
         raise BrandingPushError('No custom standby image has been uploaded yet.')
+
+    if is_video_standby_path(standby_path):
+        ext = os.path.splitext(standby_path)[1].lower()
+        container_path = CONTAINER_STANDBY_VIDEO_PATHS[ext]
+        remote_tmp_path = REMOTE_TMP_STANDBY_VIDEO_PATHS[ext]
+        also_remove = [CONTAINER_STANDBY_PATH] + [
+            p for e, p in CONTAINER_STANDBY_VIDEO_PATHS.items() if e != ext
+        ]
+    else:
+        container_path = CONTAINER_STANDBY_PATH
+        remote_tmp_path = REMOTE_TMP_STANDBY_PATH
+        also_remove = list(CONTAINER_STANDBY_VIDEO_PATHS.values())
+
     _push_file_to_player(
         player, ssh_user, ssh_password, ssh_port, timeout,
         local_path=standby_path,
-        remote_tmp_path=REMOTE_TMP_STANDBY_PATH,
-        container_path=CONTAINER_STANDBY_PATH,
+        remote_tmp_path=remote_tmp_path,
+        container_path=container_path,
+        also_remove=also_remove,
     )
 
 

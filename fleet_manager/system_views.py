@@ -531,8 +531,14 @@ def registry_sync_status(request):
 # here rather than redefined so the two never drift apart.
 from players.branding import (
     BRANDING_DIR, BRANDING_LOGO_FILENAME, STANDBY_FILENAME,
+    STANDBY_VIDEO_EXTENSIONS,
     convert_to_png, wrap_raster_as_svg,
 )
+
+# Only one of these exists on disk at a time — branding_upload_standby
+# clears the others whenever it writes one, so BRANDING_DIR never holds
+# a stale sibling from a previous upload of the other type.
+_STANDBY_CANDIDATE_FILENAMES = (STANDBY_FILENAME, 'standby.mp4', 'standby.webm')
 
 
 def _branding_logo_path():
@@ -540,19 +546,29 @@ def _branding_logo_path():
 
 
 def _branding_standby_path():
+    """Path to whichever fleet-wide standby file exists (image or
+    video). Falls back to the (nonexistent) default image path when
+    none does, so callers can still build a URL/check os.path.isfile
+    without a None check."""
+    for filename in _STANDBY_CANDIDATE_FILENAMES:
+        path = os.path.join(BRANDING_DIR, filename)
+        if os.path.isfile(path):
+            return path
     return os.path.join(BRANDING_DIR, STANDBY_FILENAME)
 
 
 @api_view(['GET'])
 def branding_settings(request):
-    """Branding asset status: splash logo (custom vs. bundled default) and standby image."""
+    """Branding asset status: splash logo (custom vs. bundled default) and standby image/video."""
     logo_exists = os.path.isfile(_branding_logo_path())
-    standby_exists = os.path.isfile(_branding_standby_path())
+    standby_path = _branding_standby_path()
+    standby_exists = os.path.isfile(standby_path)
     return Response({
         'has_custom_logo': logo_exists,
         'logo_url': f'{settings.MEDIA_URL}branding/{BRANDING_LOGO_FILENAME}' if logo_exists else '/static/img/logo.svg',
         'has_standby_image': standby_exists,
-        'standby_url': f'{settings.MEDIA_URL}branding/{STANDBY_FILENAME}' if standby_exists else None,
+        'standby_url': f'{settings.MEDIA_URL}branding/{os.path.basename(standby_path)}' if standby_exists else None,
+        'standby_is_video': standby_exists and standby_path.lower().endswith(STANDBY_VIDEO_EXTENSIONS),
     })
 
 
@@ -605,8 +621,8 @@ def branding_delete_logo(request):
 @api_view(['POST'])
 @permission_classes([IsAdmin])
 def branding_upload_standby(request):
-    """Upload the fleet-wide "no content" standby image (PNG, JPEG or an
-    animated GIF).
+    """Upload the fleet-wide "no content" standby slot — an image (PNG,
+    JPEG or animated GIF) or a video (MP4/WEBM).
 
     A static image is always converted to real PNG bytes at the fixed
     standby.png path the device expects; an animated GIF is kept as-is
@@ -614,30 +630,57 @@ def branding_upload_standby(request):
     GIFs natively, decoding by content rather than the .png filename).
     SVG isn't accepted here (unlike the logo) — Pillow can't rasterize
     vectors, and standby.png is loaded by the viewer as a plain raster
-    image, not through a browser that could render one.
+    image, not through a browser that could render one. A video is
+    stored byte-for-byte under a fixed name matching its own extension
+    — no transcoding, the device plays it directly via a looping
+    <video> tag (mupitech-player's standby-video view).
+
+    Only one standby file is ever kept on disk: uploading clears out
+    any sibling from a previous upload of the other type, so a stale
+    file can't linger and get pushed to a device by mistake.
     """
-    image = request.FILES.get('standby')
-    if not image:
+    file_obj = request.FILES.get('standby')
+    if not file_obj:
         return Response({'error': 'standby file is required'}, status=400)
 
-    name_lower = image.name.lower()
-    if not name_lower.endswith(('.png', '.jpg', '.jpeg', '.gif')):
-        return Response({'error': 'Only PNG, JPEG or GIF files are supported'}, status=400)
-
+    name_lower = file_obj.name.lower()
     os.makedirs(BRANDING_DIR, exist_ok=True)
-    try:
-        image_bytes = convert_to_png(image, add_margin=True)
-    except Exception as exc:
-        return Response({'error': f'Could not process image: {exc}'}, status=400)
-    with open(_branding_standby_path(), 'wb') as f:
-        f.write(image_bytes)
+
+    if name_lower.endswith(STANDBY_VIDEO_EXTENSIONS):
+        ext = '.mp4' if name_lower.endswith('.mp4') else '.webm'
+        target_filename = f'standby{ext}'
+        target_path = os.path.join(BRANDING_DIR, target_filename)
+        with open(target_path, 'wb') as f:
+            for chunk in file_obj.chunks():
+                f.write(chunk)
+    else:
+        if not name_lower.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            return Response(
+                {'error': 'Only PNG, JPEG, GIF, MP4 or WEBM files are supported'}, status=400,
+            )
+        try:
+            image_bytes = convert_to_png(file_obj, add_margin=True)
+        except Exception as exc:
+            return Response({'error': f'Could not process image: {exc}'}, status=400)
+        target_filename = STANDBY_FILENAME
+        target_path = os.path.join(BRANDING_DIR, target_filename)
+        with open(target_path, 'wb') as f:
+            f.write(image_bytes)
+
+    for filename in _STANDBY_CANDIDATE_FILENAMES:
+        if filename == target_filename:
+            continue
+        stale_path = os.path.join(BRANDING_DIR, filename)
+        if os.path.isfile(stale_path):
+            os.remove(stale_path)
 
     from history.logging import log_action
     log_action(request, 'upload', 'branding_standby')
 
     return Response({
         'success': True,
-        'standby_url': f'{settings.MEDIA_URL}branding/{STANDBY_FILENAME}',
+        'standby_url': f'{settings.MEDIA_URL}branding/{target_filename}',
+        'standby_is_video': target_filename != STANDBY_FILENAME,
     })
 
 

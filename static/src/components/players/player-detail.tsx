@@ -52,6 +52,7 @@ import Swal from 'sweetalert2'
 import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi, groups as groupsApi, locations as locationsApi, ApiError } from '@/services/api'
 import { translateApiError } from '@/utils/translateError'
 import { showToast } from '@/utils/toast'
+import { isVideoUrl } from '@/utils/media'
 import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
 import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus, Group, Location } from '@/types'
 import PlayerTerminal from './player-terminal'
@@ -3550,11 +3551,15 @@ const PlayerDetail: React.FC = () => {
                           style={{ width: '70px', height: '44px', background: '#000', flexShrink: 0 }}
                         >
                           {player?.standby_image && (
-                            <img src={player.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            isVideoUrl(player.standby_image) ? (
+                              <video src={player.standby_image} autoPlay muted loop playsInline style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            ) : (
+                              <img src={player.standby_image} alt="Standby" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            )
                           )}
                         </div>
                         <div className="d-flex flex-column gap-1">
-                          <input ref={deviceStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif" className="d-none" onChange={handleDeviceStandbyChange} />
+                          <input ref={deviceStandbyInputRef} type="file" accept=".png,.jpg,.jpeg,.gif,.mp4,.webm" className="d-none" onChange={handleDeviceStandbyChange} />
                           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => deviceStandbyInputRef.current?.click()} disabled={uploadingDeviceStandby} style={{ fontSize: '0.72rem' }}>
                             {t('branding.standbyLabel')}
                           </button>

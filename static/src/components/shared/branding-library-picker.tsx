@@ -4,6 +4,7 @@ import { FaTrash, FaUpload, FaCheck, FaTrashRestore, FaBan } from 'react-icons/f
 import Swal from 'sweetalert2'
 import { brandingLibrary, type BrandingImage } from '@/services/api'
 import { RoleContext, isSuperAdminRole } from '@/components/app'
+import { isVideoUrl } from '@/utils/media'
 
 interface BrandingLibraryPickerProps {
   kind: 'logo' | 'standby'
@@ -137,7 +138,7 @@ const BrandingLibraryPicker: React.FC<BrandingLibraryPickerProps> = ({ kind, sho
             <input
               ref={fileInputRef}
               type="file"
-              accept={kind === 'logo' ? '.svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg' : '.png,image/png,.jpg,.jpeg,image/jpeg,.gif,image/gif'}
+              accept={kind === 'logo' ? '.svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg' : '.png,image/png,.jpg,.jpeg,image/jpeg,.gif,image/gif,.mp4,video/mp4,.webm,video/webm'}
               className="d-none"
               onChange={handleUploadNew}
             />
@@ -181,7 +182,11 @@ const BrandingLibraryPicker: React.FC<BrandingLibraryPickerProps> = ({ kind, sho
                         className="d-flex align-items-center justify-content-center"
                         style={{ height: '80px', background: kind === 'standby' ? '#000' : 'var(--bs-tertiary-bg, #f5f5f5)', borderRadius: '6px 6px 0 0', overflow: 'hidden' }}
                       >
-                        <img src={image.file} alt={image.name} style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                        {isVideoUrl(image.file) ? (
+                          <video src={image.file} autoPlay muted loop playsInline style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                        ) : (
+                          <img src={image.file} alt={image.name} style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                        )}
                       </div>
                       <div className="card-body p-2 d-flex align-items-center justify-content-between gap-1">
                         <small className="text-truncate" title={image.name}>{image.name}</small>
