@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi, system as systemApi } from '@/services/api'
-import { RoleContext, AuthContext, isAdminRole } from '@/components/app'
+import { AuthContext } from '@/components/app'
 import { useTapTrigger } from '@/hooks/use-tap-trigger'
 
 const FLEET_ROUTES = ['/fleet', '/players', '/groups', '/locations']
@@ -130,6 +130,15 @@ const UserMenu: React.FC = () => {
               </div>
             )}
           </div>
+          <NavLink
+            to="/account"
+            className="d-flex align-items-center gap-2 w-100 border-0 bg-transparent px-3 py-2 text-start text-dark text-decoration-none"
+            style={{ fontSize: '0.875rem' }}
+            onClick={() => setIsOpen(false)}
+          >
+            <FaUserCog />
+            <span>{t('account.title')}</span>
+          </NavLink>
           <button
             className="d-flex align-items-center gap-2 w-100 border-0 bg-transparent px-3 py-2 text-start text-dark"
             style={{ fontSize: '0.875rem', cursor: 'pointer' }}
@@ -154,7 +163,6 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
   const { t } = useTranslation()
-  const role = useContext(RoleContext)
   const { user, checked } = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
   const [partnerLogoUrl, setPartnerLogoUrl] = useState<string | null>(null)
@@ -175,7 +183,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
     { to: '/scheduling', icon: <FaCalendarAlt className="nav-icon" />, label: t('nav.scheduling'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },
-    ...(isAdminRole(role) ? [{ to: '/audit', icon: <FaClipboardList className="nav-icon" />, label: t('nav.audit'), end: false }] : []),
     { to: '/settings', icon: <FaCog className="nav-icon" />, label: t('nav.settings'), end: false },
   ]
 

@@ -4,6 +4,7 @@ import { FaShieldAlt, FaCheckCircle, FaMobileAlt } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { mfa, duo, ApiError } from '@/services/api'
 import { showToast } from '@/utils/toast'
+import CodeInput from '@/components/shared/code-input'
 
 type Phase = 'loading' | 'disabled' | 'enrolling' | 'enabled'
 type DuoPhase = 'loading' | 'unavailable' | 'disabled' | 'enrolling' | 'enabled'
@@ -66,10 +67,10 @@ const SecuritySettings: React.FC = () => {
     }).finally(() => setBusy(false))
   }
 
-  const handleConfirm = (e: React.FormEvent) => {
-    e.preventDefault()
+  const submitConfirmCode = (submittedCode: string) => {
+    if (submittedCode.length !== 6) return
     setBusy(true)
-    mfa.confirm(code).then(() => {
+    mfa.confirm(submittedCode).then(() => {
       showToast('success', t('security.enabledSuccess'))
       loadStatus()
     }).catch((error) => {
@@ -80,6 +81,11 @@ const SecuritySettings: React.FC = () => {
       })
       setCode('')
     }).finally(() => setBusy(false))
+  }
+
+  const handleConfirm = (e: React.FormEvent) => {
+    e.preventDefault()
+    submitConfirmCode(code)
   }
 
   const handleCancelEnroll = () => {
@@ -256,22 +262,11 @@ const SecuritySettings: React.FC = () => {
                 </code>
 
                 <form onSubmit={handleConfirm}>
-                  <div className="mb-3" style={{ maxWidth: 200 }}>
-                    <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold mb-1 d-block" style={{ fontSize: '0.85rem' }}>
                       {t('security.enterCodeLabel')}
                     </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={6}
-                      className="form-control text-center"
-                      style={{ letterSpacing: '0.3em' }}
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                      required
-                      autoFocus
-                    />
+                    <CodeInput value={code} onChange={setCode} onComplete={submitConfirmCode} disabled={busy} autoFocus />
                   </div>
                   <div className="d-flex gap-2">
                     <button type="submit" className="fm-btn-primary btn-sm" disabled={busy || code.length !== 6}>

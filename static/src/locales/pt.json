@@ -1220,5 +1220,9 @@
     "duoScanHint": "Digitalize este código QR com a app Duo Mobile.",
     "duoWaitingForScan": "A aguardar que termine o registo na Duo Mobile…",
     "duoEnrollError": "Não foi possível iniciar o registo no Duo."
+  },
+  "account": {
+    "title": "O Meu Perfil",
+    "subtitle": "Faça a gestão das definições de segurança da sua conta."
   }
 }

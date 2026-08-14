@@ -1219,5 +1219,9 @@
     "duoScanHint": "Scan this QR code with the Duo Mobile app.",
     "duoWaitingForScan": "Waiting for you to finish enrolling in Duo Mobile…",
     "duoEnrollError": "Couldn't start Duo enrollment."
+  },
+  "account": {
+    "title": "My Profile",
+    "subtitle": "Manage your own account security settings."
   }
 }

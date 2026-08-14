@@ -5,6 +5,7 @@ import { FaSignInAlt, FaArrowLeft, FaShieldAlt, FaMobileAlt } from 'react-icons/
 import Swal from 'sweetalert2'
 import { AuthContext } from '@/components/app'
 import { auth, ApiError } from '@/services/api'
+import CodeInput from '@/components/shared/code-input'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
@@ -45,12 +46,11 @@ const Login: React.FC = () => {
     }
   }
 
-  const handleMfaSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!challengeId) return
+  const submitMfaCode = async (submittedCode: string) => {
+    if (!challengeId || submittedCode.length !== 6) return
     setLoading(true)
     try {
-      await auth.verifyMfa(challengeId, code)
+      await auth.verifyMfa(challengeId, submittedCode)
       refresh()
       navigate('/')
     } catch (error) {
@@ -63,6 +63,11 @@ const Login: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleMfaSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    submitMfaCode(code)
   }
 
   const sendDuoPush = async (challenge: string) => {
@@ -183,20 +188,8 @@ const Login: React.FC = () => {
                 <p className="form-text">{t('auth.mfa.description')}</p>
               </div>
               <div className="mb-4">
-                <label className="form-label fw-semibold">{t('auth.mfa.code')}</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  className="form-control text-center"
-                  style={{ letterSpacing: '0.3em', fontSize: '1.25rem' }}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  required
-                  autoFocus
-                />
+                <label className="form-label fw-semibold d-block text-center mb-2">{t('auth.mfa.code')}</label>
+                <CodeInput value={code} onChange={setCode} onComplete={submitMfaCode} disabled={loading} autoFocus />
               </div>
               <button
                 type="submit"

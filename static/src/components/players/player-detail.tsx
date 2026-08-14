@@ -47,6 +47,7 @@ import {
   FaMapMarkerAlt,
   FaLayerGroup,
   FaExchangeAlt,
+  FaEye,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { players as playersApi, media as mediaApi, folders as foldersApi, cctv as cctvApi, system as systemApi, groups as groupsApi, locations as locationsApi, ApiError } from '@/services/api'
@@ -722,6 +723,37 @@ const PlayerDetail: React.FC = () => {
       window.open(res.url, '_blank', 'noopener,noreferrer')
     } catch (error) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: error instanceof ApiError ? error.message : String(error) })
+    }
+  }
+
+  const handleRevealCredentials = async () => {
+    if (!id) return
+    const { value: adminPassword } = await Swal.fire({
+      title: t('players.revealCredentialsPrompt'),
+      input: 'password',
+      inputPlaceholder: t('players.yourPassword'),
+      showCancelButton: true,
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
+      inputValidator: (value) => (value ? undefined : t('players.yourPassword')),
+    })
+    if (!adminPassword) return
+
+    try {
+      const result = await playersApi.revealCredentials(id, adminPassword)
+      Swal.fire({
+        icon: 'info',
+        title: t('players.password'),
+        html: `<div class="text-start"><strong>${t('players.username')}:</strong> `
+          + `<code>${result.username}</code><br><strong>${t('players.password')}:</strong> `
+          + `<code style="user-select: all">${result.password}</code></div>`,
+      })
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : String(error),
+      })
     }
   }
 
@@ -1992,6 +2024,15 @@ const PlayerDetail: React.FC = () => {
                 title={t('players.openLocalDashboard')}
               >
                 <FaExternalLinkAlt />
+              </button>
+            )}
+            {isAdminRole(role) && (
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={handleRevealCredentials}
+                title={t('players.reveal')}
+              >
+                <FaEye />
               </button>
             )}
             {isAdminRole(role) && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (

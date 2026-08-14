@@ -23,6 +23,7 @@ import DeployHistory from '@/components/deploy/deploy-history'
 import DeployProgress from '@/components/deploy/deploy-progress'
 import Settings from '@/components/settings/settings'
 import AuditLog from '@/components/settings/audit-log'
+import AccountPage from '@/components/account/account-page'
 import Login from '@/components/auth/login'
 import ChangelogPage from '@/components/changelog-page'
 import { users as usersApi } from '@/services/api'
@@ -197,6 +198,7 @@ const App: React.FC = () => {
               <Route path="/deploy/history" element={<DeployHistory />} />
               <Route path="/deploy/:id" element={<DeployProgress />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/account" element={<AccountPage />} />
               <Route path="/audit" element={<AuditLog />} />
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/login" element={<Login />} />
