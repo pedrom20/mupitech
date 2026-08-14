@@ -64,6 +64,7 @@ const UsersSettings: React.FC = () => {
   const [mustChangePassword, setMustChangePassword] = useState(false)
   const [forceMfaEnroll, setForceMfaEnroll] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [modalActiveTab, setModalActiveTab] = useState<'general' | 'access'>('general')
 
   // Scope pickers (leave all empty = unrestricted access, the default)
   const [allLocations, setAllLocations] = useState<Location[]>([])
@@ -84,6 +85,15 @@ const UsersSettings: React.FC = () => {
     playersApi.list().then(setAllPlayers).catch(() => {})
   }, [])
 
+  // The "Access" tab only exists for non-admin roles (admins/superadmins
+  // are unrestricted) — bounce back to General if a role change makes it
+  // disappear out from under the user.
+  useEffect(() => {
+    if ((role === 'admin' || role === 'superadmin') && modalActiveTab === 'access') {
+      setModalActiveTab('general')
+    }
+  }, [role, modalActiveTab])
+
   const resetForm = () => {
     setUsername('')
     setEmail('')
@@ -95,6 +105,7 @@ const UsersSettings: React.FC = () => {
     setCanDeleteContent(true)
     setMustChangePassword(false)
     setForceMfaEnroll(false)
+    setModalActiveTab('general')
     setScopeLocationIds([])
     setScopeGroupIds([])
     setScopePlayerIds([])
@@ -122,6 +133,7 @@ const UsersSettings: React.FC = () => {
     setCanDeleteContent(u.can_delete_content ?? true)
     setMustChangePassword(u.must_change_password ?? false)
     setForceMfaEnroll(u.force_mfa_enroll ?? false)
+    setModalActiveTab('general')
     setScopeLocationIds(u.scope?.location_ids || [])
     setScopeGroupIds(u.scope?.group_ids || [])
     setScopePlayerIds(u.scope?.player_ids || [])
@@ -300,14 +312,109 @@ const UsersSettings: React.FC = () => {
       {/* Modal */}
       {showModal && (
         <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
+          <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div className="modal-header py-2">
                 <h5 className="modal-title">{editUser ? t('users.editUser') : t('users.addUser')}</h5>
                 <button type="button" className="btn-close" onClick={() => setShowModal(false)} />
               </div>
+              {role !== 'admin' && role !== 'superadmin' && (
+                <ul className="nav nav-tabs px-3 pt-2">
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link ${modalActiveTab === 'general' ? 'active' : ''}`}
+                      onClick={() => setModalActiveTab('general')}
+                    >
+                      {t('users.tabGeneral')}
+                    </button>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link ${modalActiveTab === 'access' ? 'active' : ''}`}
+                      onClick={() => setModalActiveTab('access')}
+                    >
+                      <FaShieldAlt className="me-1" />
+                      {t('users.tabAccess')}
+                    </button>
+                  </li>
+                </ul>
+              )}
               <form onSubmit={handleSubmit}>
-                <div className="modal-body">
+                <div className="modal-body" style={{ height: '440px', maxHeight: '65vh', overflowY: 'auto' }}>
+                  {modalActiveTab === 'access' && role !== 'admin' && role !== 'superadmin' ? (
+                    <fieldset disabled={isEditingSelf}>
+                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>
+                        {isEditingSelf ? t('users.ownAccessLocked') : t('users.scopeHint')}
+                      </p>
+                      <div className="mb-2">
+                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
+                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                          {allLocations.length === 0 ? (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                          ) : allLocations.map((l) => (
+                            <div className="form-check" key={l.id}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`scope-loc-${l.id}`}
+                                checked={scopeLocationIds.includes(l.id)}
+                                onChange={() => toggleId(scopeLocationIds, setScopeLocationIds, l.id)}
+                              />
+                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-loc-${l.id}`}>
+                                {l.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('groups.title')}</label>
+                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                          {allGroups.length === 0 ? (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                          ) : allGroups.map((g) => (
+                            <div className="form-check" key={g.id}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`scope-group-${g.id}`}
+                                checked={scopeGroupIds.includes(g.id)}
+                                onChange={() => toggleId(scopeGroupIds, setScopeGroupIds, g.id)}
+                              />
+                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-group-${g.id}`}>
+                                {g.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('players.title')}</label>
+                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                          {allPlayers.length === 0 ? (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                          ) : allPlayers.map((p) => (
+                            <div className="form-check" key={p.id}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`scope-player-${p.id}`}
+                                checked={scopePlayerIds.includes(p.id)}
+                                onChange={() => toggleId(scopePlayerIds, setScopePlayerIds, p.id)}
+                              />
+                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-player-${p.id}`}>
+                                {p.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </fieldset>
+                  ) : (
+                  <div className="row">
+                  <div className="col-md-6">
                   <div className="mb-2">
                     <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('users.username')}</label>
                     <input className="form-control form-control-sm" value={username} onChange={(e) => setUsername(e.target.value)} required />
@@ -332,7 +439,9 @@ const UsersSettings: React.FC = () => {
                     </label>
                     <input type="password" className="form-control form-control-sm" value={password} onChange={(e) => setPassword(e.target.value)} required={!editUser} minLength={6} />
                   </div>
+                  </div>
 
+                  <div className="col-md-6">
                   <div className="form-check mb-2">
                     <input
                       type="checkbox"
@@ -415,76 +524,8 @@ const UsersSettings: React.FC = () => {
                     </div>
                   )}
 
-                  {role !== 'admin' && role !== 'superadmin' && (
-                    <fieldset disabled={isEditingSelf}>
-                      <hr className="my-3" />
-                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>
-                        {isEditingSelf ? t('users.ownAccessLocked') : t('users.scopeHint')}
-                      </p>
-                      <div className="mb-2">
-                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
-                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
-                          {allLocations.length === 0 ? (
-                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
-                          ) : allLocations.map((l) => (
-                            <div className="form-check" key={l.id}>
-                              <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id={`scope-loc-${l.id}`}
-                                checked={scopeLocationIds.includes(l.id)}
-                                onChange={() => toggleId(scopeLocationIds, setScopeLocationIds, l.id)}
-                              />
-                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-loc-${l.id}`}>
-                                {l.name}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="mb-2">
-                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('groups.title')}</label>
-                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
-                          {allGroups.length === 0 ? (
-                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
-                          ) : allGroups.map((g) => (
-                            <div className="form-check" key={g.id}>
-                              <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id={`scope-group-${g.id}`}
-                                checked={scopeGroupIds.includes(g.id)}
-                                onChange={() => toggleId(scopeGroupIds, setScopeGroupIds, g.id)}
-                              />
-                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-group-${g.id}`}>
-                                {g.name}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="mb-2">
-                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('players.title')}</label>
-                        <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
-                          {allPlayers.length === 0 ? (
-                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
-                          ) : allPlayers.map((p) => (
-                            <div className="form-check" key={p.id}>
-                              <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id={`scope-player-${p.id}`}
-                                checked={scopePlayerIds.includes(p.id)}
-                                onChange={() => toggleId(scopePlayerIds, setScopePlayerIds, p.id)}
-                              />
-                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`scope-player-${p.id}`}>
-                                {p.name}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </fieldset>
+                  </div>
+                  </div>
                   )}
                 </div>
                 <div className="modal-footer py-2">

@@ -1094,6 +1094,8 @@
     "title": "Users",
     "addUser": "Add User",
     "editUser": "Edit User",
+    "tabGeneral": "General",
+    "tabAccess": "Access",
     "username": "Username",
     "email": "Email",
     "firstName": "First Name",

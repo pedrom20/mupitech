@@ -3240,7 +3240,7 @@ const PlayerDetail: React.FC = () => {
                   </li>
                 )}
               </ul>
-              <div className="modal-body py-2" style={{ maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
+              <div className="modal-body py-2" style={{ height: '560px', maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
                 {settingsLoading ? (
                   <div className="text-center py-4">
                     <div className="spinner-border" />
