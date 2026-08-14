@@ -59,6 +59,29 @@ class UserViewSet(viewsets.ModelViewSet):
         log_action(request, 'deactivate', 'user', target_id=user.id, target_name=user.username)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=['post'], url_path='reset-mfa')
+    def reset_mfa(self, request, pk=None):
+        """Admin-triggered MFA reset — the Fase 1 recovery path for a user
+        who lost their authenticator (no backup codes yet). Forces the
+        user back through enrolment on next login."""
+        from history.logging import log_action
+        from mfa.models import TOTPDevice
+
+        user = self.get_object()
+        if user == request.user:
+            return Response(
+                {'error': 'Use your own account settings to disable your own MFA.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if _user_role(user) == 'superadmin' and _user_role(request.user) != 'superadmin':
+            return Response(
+                {'error': 'Only a superadmin can reset another superadmin\'s MFA.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        deleted, _ = TOTPDevice.objects.filter(user=user).delete()
+        log_action(request, 'mfa_reset', 'user', target_id=user.id, target_name=user.username)
+        return Response({'success': True, 'had_mfa': bool(deleted)})
+
     @action(detail=False, methods=['get'], url_path='me', permission_classes=[])
     def me(self, request):
         """Return current user info + role. Available to any authenticated user."""

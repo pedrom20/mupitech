@@ -51,12 +51,13 @@ class UserSerializer(serializers.ModelSerializer):
     scope = serializers.SerializerMethodField()
     receive_offline_alerts = serializers.SerializerMethodField()
     can_delete_content = serializers.SerializerMethodField()
+    mfa_enabled = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
                   'is_active', 'role', 'scope', 'receive_offline_alerts', 'can_delete_content',
-                  'last_login', 'date_joined']
+                  'mfa_enabled', 'last_login', 'date_joined']
         read_only_fields = ['id', 'last_login', 'date_joined']
 
     def get_role(self, obj):
@@ -75,6 +76,10 @@ class UserSerializer(serializers.ModelSerializer):
     def get_can_delete_content(self, obj):
         scope = getattr(obj, 'access_scope', None)
         return scope.can_delete_content if scope else True
+
+    def get_mfa_enabled(self, obj):
+        device = getattr(obj, 'totp_device', None)
+        return bool(device and device.confirmed)
 
 
 def _validate_role_escalation(role, context):

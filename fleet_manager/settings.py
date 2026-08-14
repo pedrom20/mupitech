@@ -13,6 +13,12 @@ if not SECRET_KEY:
         'DJANGO_SECRET_KEY environment variable is required when DEBUG is off.'
     )
 
+# Dedicated Fernet key (base64, `Fernet.generate_key()`) for encrypting
+# MFA/TOTP secrets at rest — kept separate from SECRET_KEY so rotating
+# SECRET_KEY doesn't also silently invalidate everyone's 2FA (see
+# mfa/crypto.py for the fallback used in dev when this is unset).
+MFA_ENCRYPTION_KEY = os.environ.get('MFA_ENCRYPTION_KEY', '')
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1' if not DEBUG else '*').split(',')
 
 INSTALLED_APPS = [
@@ -37,6 +43,7 @@ INSTALLED_APPS = [
     'deploy',
     'playlists',
     'access',
+    'mfa',
 ]
 
 MIDDLEWARE = [

@@ -882,6 +882,38 @@ export const auth = {
   logout(): Promise<{ success: boolean }> {
     return apiRequest('POST', '/auth/logout/')
   },
+
+  /** First factor. Returns either {success, username} (no MFA enrolled —
+   * a real session was already established) or {mfa_required, challenge_id}
+   * (second factor needed — verifyMfa() below must succeed before there's
+   * a session). */
+  login(username: string, password: string): Promise<
+    { success: true; username: string } | { mfa_required: true; challenge_id: string }
+  > {
+    return apiRequest('POST', '/auth/login/', { username, password })
+  },
+
+  verifyMfa(challengeId: string, code: string): Promise<{ success: boolean; username: string }> {
+    return apiRequest('POST', '/auth/mfa/verify/', { challenge_id: challengeId, code })
+  },
+}
+
+export const mfa = {
+  status(): Promise<{ enabled: boolean; confirmed_at: string | null }> {
+    return apiRequest('GET', '/mfa/status/')
+  },
+
+  enroll(): Promise<{ otpauth_uri: string; qr_png_base64: string }> {
+    return apiRequest('POST', '/mfa/enroll/')
+  },
+
+  confirm(code: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/mfa/confirm/', { code })
+  },
+
+  disable(password: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/mfa/disable/', { password })
+  },
 }
 
 export const users = {
@@ -912,6 +944,10 @@ export const users = {
 
   delete(id: number): Promise<void> {
     return apiRequest<void>('DELETE', `/users/${id}/`)
+  },
+
+  resetMfa(id: number): Promise<{ success: boolean; had_mfa: boolean }> {
+    return apiRequest('POST', `/users/${id}/reset-mfa/`)
   },
 }
 

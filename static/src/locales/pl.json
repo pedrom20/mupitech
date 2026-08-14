@@ -284,7 +284,15 @@
     "username": "Nazwa użytkownika",
     "password": "Hasło",
     "invalidCredentials": "Nieprawidłowa nazwa użytkownika lub hasło",
-    "brandSuffix": "Fleet Manager"
+    "brandSuffix": "Fleet Manager",
+    "mfa": {
+      "title": "Weryfikacja dwuetapowa",
+      "description": "Wprowadź 6-cyfrowy kod wygenerowany przez aplikację uwierzytelniającą.",
+      "code": "Kod",
+      "verify": "Zweryfikuj",
+      "back": "Wstecz",
+      "invalidCode": "Nieprawidłowy kod"
+    }
   },
   "schedule": {
     "title": "Sloty harmonogramu",
@@ -626,5 +634,28 @@
     "fr": "Français",
     "de": "Deutsch",
     "pl": "Polski"
+  },
+  "security": {
+    "title": "Bezpieczeństwo",
+    "mfaTitle": "Uwierzytelnianie dwuskładnikowe",
+    "mfaDescription": "Dodaj dodatkową warstwę zabezpieczeń do swojego konta, wymagając 6-cyfrowego kodu oprócz hasła podczas logowania.",
+    "statusEnabled": "Włączone",
+    "statusDisabled": "Wyłączone",
+    "confirmedOn": "Włączone {{date}}",
+    "enableButton": "Włącz uwierzytelnianie dwuskładnikowe",
+    "disableButton": "Wyłącz",
+    "scanQrHint": "Zeskanuj ten kod QR aplikacją uwierzytelniającą (np. Google Authenticator, Authy).",
+    "manualEntryLabel": "Lub wprowadź ten klucz ręcznie:",
+    "enterCodeLabel": "Wprowadź wygenerowany kod, aby potwierdzić",
+    "confirmButton": "Potwierdź",
+    "cancelButton": "Anuluj",
+    "currentPasswordLabel": "Bieżące hasło",
+    "disableConfirmTitle": "Wyłączyć uwierzytelnianie dwuskładnikowe?",
+    "disableConfirmText": "Twoje konto będzie wtedy chronione wyłącznie hasłem.",
+    "enrollError": "Nie udało się rozpocząć rejestracji.",
+    "confirmError": "Nieprawidłowy kod — spróbuj ponownie.",
+    "disableError": "Nieprawidłowe hasło.",
+    "enabledSuccess": "Uwierzytelnianie dwuskładnikowe włączone.",
+    "disabledSuccess": "Uwierzytelnianie dwuskładnikowe wyłączone."
   }
 }

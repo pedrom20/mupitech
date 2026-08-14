@@ -262,6 +262,7 @@ export interface User {
   scope: UserScope
   receive_offline_alerts?: boolean
   can_delete_content?: boolean
+  mfa_enabled?: boolean
   last_login: string | null
   date_joined: string
 }

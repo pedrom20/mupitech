@@ -30,6 +30,7 @@ services:
     restart: unless-stopped
     environment: &app-env
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       DB_ENGINE: django.db.backends.postgresql

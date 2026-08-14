@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes, FaEye, FaMapMarkerAlt, FaLayerGroup, FaDesktop } from 'react-icons/fa'
+import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes, FaEye, FaMapMarkerAlt, FaLayerGroup, FaDesktop, FaShieldAlt } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { users as usersApi, locations as locationsApi, groups as groupsApi, players as playersApi, audit as auditApi } from '@/services/api'
 import { RoleContext, AuthContext, isSuperAdminRole } from '@/components/app'
@@ -185,6 +185,26 @@ const UsersSettings: React.FC = () => {
     })
   }
 
+  const handleResetMfa = (u: User) => {
+    Swal.fire({
+      title: t('users.resetMfaConfirmTitle', { username: u.username }),
+      text: t('users.resetMfaConfirmText'),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
+    }).then((result) => {
+      if (result.isConfirmed) {
+        usersApi.resetMfa(u.id).then(() => {
+          loadUsers()
+          Swal.fire({ icon: 'success', title: t('users.resetMfaSuccess'), timer: 1500, showConfirmButton: false })
+        }).catch(() => {
+          Swal.fire({ icon: 'error', title: t('common.error') })
+        })
+      }
+    })
+  }
+
   const isEditingSelf = !!editUser && !!currentUser && editUser.id === currentUser.id && !isSuperAdminRole(currentRole)
 
   return (
@@ -227,6 +247,11 @@ const UsersSettings: React.FC = () => {
                         {t(`users.role_${u.role}`)}
                       </span>
                       {!u.is_active && <span className="badge bg-dark ms-1">{t('users.inactive')}</span>}
+                      {u.mfa_enabled && (
+                        <span className="badge bg-success ms-1">
+                          <FaShieldAlt className="me-1" />{t('users.mfaEnabled')}
+                        </span>
+                      )}
                     </td>
                     <td>
                       {scopedCount > 0 ? (
@@ -245,6 +270,12 @@ const UsersSettings: React.FC = () => {
                       <button className="btn btn-sm btn-outline-primary me-1" onClick={() => openEdit(u)} title={t('common.edit')}>
                         <FaEdit />
                       </button>
+                      {u.mfa_enabled && currentUser?.id !== u.id
+                        && (u.role !== 'superadmin' || isSuperAdminRole(currentRole)) && (
+                        <button className="btn btn-sm btn-outline-warning me-1" onClick={() => handleResetMfa(u)} title={t('users.resetMfa')}>
+                          <FaShieldAlt />
+                        </button>
+                      )}
                       {u.is_active && (u.role !== 'superadmin' || isSuperAdminRole(currentRole)) && (
                         <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(u)} title={t('common.delete')}>
                           <FaTrash />

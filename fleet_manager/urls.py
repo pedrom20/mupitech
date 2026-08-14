@@ -56,6 +56,8 @@ user_router.register('users', UserViewSet)
 @permission_classes([AllowAny])
 def auth_login(request):
     from history.logging import log_action
+    from mfa.models import TOTPDevice
+
     data = request.data
     user = authenticate(
         request,
@@ -63,6 +65,24 @@ def auth_login(request):
         password=data.get('password'),
     )
     if user is not None:
+        if TOTPDevice.objects.filter(user=user, confirmed=True).exists():
+            # Second factor required — do NOT call login() yet, that would
+            # establish a real session on password alone and defeat MFA.
+            # The challenge lives in the (Redis-backed) cache, not a signed
+            # token: a signed token isn't single-use without a shared store
+            # anyway (need somewhere to record "already consumed"), and a
+            # cache entry gives that for free via cache.delete() below.
+            import secrets
+
+            from django.core.cache import cache
+
+            challenge_id = secrets.token_urlsafe(32)
+            cache.set(
+                f'mfa_challenge:{challenge_id}',
+                {'user_id': user.id, 'attempts': 0},
+                timeout=300,
+            )
+            return Response({'mfa_required': True, 'challenge_id': challenge_id})
         login(request, user)
         log_action(request, 'login', 'session', target_name=user.username)
         return Response({'success': True, 'username': user.username})
@@ -71,6 +91,50 @@ def auth_login(request):
         {'detail': 'Invalid credentials'},
         status=401,
     )
+
+
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(key='post:challenge_id', rate='8/5m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_mfa_verify(request):
+    import pyotp
+    from django.contrib.auth.models import User
+    from django.core.cache import cache
+    from django.utils import timezone
+
+    from history.logging import log_action
+    from mfa.models import TOTPDevice
+
+    challenge_id = request.data.get('challenge_id', '')
+    cache_key = f'mfa_challenge:{challenge_id}'
+    entry = cache.get(cache_key)
+    if not entry:
+        return Response({'detail': 'Challenge expired or invalid — please log in again.'}, status=400)
+
+    device = TOTPDevice.objects.filter(user_id=entry['user_id'], confirmed=True).first()
+    code = str(request.data.get('code', ''))
+    if device and pyotp.TOTP(device.get_secret()).verify(code, valid_window=1):
+        cache.delete(cache_key)
+        user = User.objects.get(pk=entry['user_id'])
+        login(request, user)
+        device.last_used_at = timezone.now()
+        device.save(update_fields=['last_used_at'])
+        log_action(request, 'login', 'session', target_name=user.username, details={'mfa': True})
+        return Response({'success': True, 'username': user.username})
+
+    # Wrong code: bump the attempt counter and drop the challenge after a
+    # few failures so a caller can't keep guessing against the same
+    # challenge_id forever even from a fresh IP (the rate limits above
+    # only bound a single IP / a single challenge_id's *request rate*,
+    # not the total number of guesses across sources).
+    entry['attempts'] += 1
+    if entry['attempts'] >= 5:
+        cache.delete(cache_key)
+    else:
+        cache.set(cache_key, entry, timeout=300)
+    log_action(request, 'login_failed', 'session', details={'mfa': True})
+    return Response({'detail': 'Invalid code.'}, status=401)
 
 
 @api_view(['POST'])
@@ -146,6 +210,7 @@ def cctv_player_view(request, config_id):
 urlpatterns = [
     path('manage-d8f2a1/', admin.site.urls),
     path('api/auth/login/', auth_login),
+    path('api/auth/mfa/verify/', auth_mfa_verify),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),
     path('api/auth/token/', obtain_auth_token, name='api-token'),
@@ -179,6 +244,7 @@ urlpatterns = [
     path('api/', include('cctv.urls')),
     path('api/', include('players.urls')),
     path('api/', include('deploy.urls')),
+    path('api/', include('mfa.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     path('cctv/<uuid:config_id>/', cctv_player_view, name='cctv-player'),
     path('', TemplateView.as_view(template_name='index.html'), name='index'),

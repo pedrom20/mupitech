@@ -8,6 +8,7 @@ import type { TailscaleSettings } from '@/types'
 import { APP_VERSION } from '../../changelog'
 import { RoleContext, ThemeContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
+import SecuritySettings from './security-settings'
 import BrandingSettings from './branding-settings'
 import PartnerLogoSettings from './partner-logo-settings'
 import AlertSettings from './alert-settings'
@@ -216,6 +217,7 @@ const Settings: React.FC = () => {
       {(() => {
         const settingsTabs = [
           { id: 'general', label: t('settings.general'), show: true },
+          { id: 'security', label: t('security.title'), show: true },
           { id: 'registration', label: t('settings.autoRegistration'), show: true },
           { id: 'updates', label: t('updates.title'), show: true },
           { id: 'tailscale', label: t('tailscale.title'), show: isSuperAdminRole(role) },
@@ -350,6 +352,10 @@ const Settings: React.FC = () => {
           </div>
         </div>
         </div>
+        )}
+
+        {activeSettingsTab === 'security' && (
+          <SecuritySettings />
         )}
 
         {activeSettingsTab === 'registration' && (

@@ -107,7 +107,7 @@
     "screenshotLoading": "A capturar ecrã...",
     "screenshotError": "Falha ao capturar o ecrã",
     "screenshotUnavailable": "Captura de ecrã não disponível",
-    "screenshotNotSupported": "Este dispositivo não suporta capturas de ecrã",
+    "screenshotNotSupported": "Captura de ecrã não disponível para este dispositivo",
     "cpu": "CPU",
     "disk": "Disco",
     "throttleUnderVoltage": "Subtensão!",
@@ -118,7 +118,6 @@
     "liveViewStop": "Captura de Ecrã",
     "liveBadge": "AO VIVO",
     "featureNotSupported": "Esta funcionalidade não é suportada neste dispositivo",
-    "screenshotNotSupported": "Captura de ecrã não disponível para este dispositivo",
     "sidecarCapture": "Capturar via SSH",
     "sidecarPromptTitle": "Credenciais SSH deste dispositivo",
     "checkUpdate": "Verificar Atualização",
@@ -466,7 +465,15 @@
     "username": "Utilizador",
     "password": "Palavra-passe",
     "invalidCredentials": "Utilizador ou palavra-passe inválidos",
-    "brandSuffix": "Gestor de Mupis Digitais"
+    "brandSuffix": "Gestor de Mupis Digitais",
+    "mfa": {
+      "title": "Verificação em dois passos",
+      "description": "Introduza o código de 6 dígitos gerado pela sua app de autenticação.",
+      "code": "Código",
+      "verify": "Verificar",
+      "back": "Voltar",
+      "invalidCode": "Código inválido"
+    }
   },
   "schedule": {
     "title": "Intervalos de Agendamento",
@@ -1087,7 +1094,12 @@
     "receiveOfflineAlerts": "Receber emails de alerta de dispositivo offline",
     "receiveOfflineAlertsHint": "Só se aplica se os alertas por email estiverem ativos globalmente (Definições → Alertas por Email).",
     "canDeleteContent": "Pode apagar conteúdos da biblioteca",
-    "canDeleteContentHint": "Permite apagar conteúdos e imagens de marca (movendo-os para a reciclagem). Desative para deixar este utilizador carregar/editar conteúdos sem poder removê-los."
+    "canDeleteContentHint": "Permite apagar conteúdos e imagens de marca (movendo-os para a reciclagem). Desative para deixar este utilizador carregar/editar conteúdos sem poder removê-los.",
+    "mfaEnabled": "2FA ativo",
+    "resetMfa": "Repor 2FA",
+    "resetMfaConfirmTitle": "Repor a autenticação de dois fatores de {{username}}?",
+    "resetMfaConfirmText": "O utilizador terá de configurar novamente a autenticação de dois fatores no próximo início de sessão.",
+    "resetMfaSuccess": "Autenticação de dois fatores reposta."
   },
   "audit": {
     "title": "Registo de Auditoria",
@@ -1163,5 +1175,28 @@
     "dosBadge": "SAIR",
     "hackedReveal": "Era só uma brincadeira — o MupiTech está seguro.",
     "hackedRevealHint": "(Easter egg — escreva \"hacked\" em qualquer sítio para repetir)"
+  },
+  "security": {
+    "title": "Segurança",
+    "mfaTitle": "Autenticação de dois fatores",
+    "mfaDescription": "Adicione uma camada extra de segurança à sua conta, exigindo um código de 6 dígitos além da password ao iniciar sessão.",
+    "statusEnabled": "Ativada",
+    "statusDisabled": "Desativada",
+    "confirmedOn": "Ativada em {{date}}",
+    "enableButton": "Ativar autenticação de dois fatores",
+    "disableButton": "Desativar",
+    "scanQrHint": "Digitalize este código QR com a sua app de autenticação (ex. Google Authenticator, Authy).",
+    "manualEntryLabel": "Ou introduza esta chave manualmente:",
+    "enterCodeLabel": "Introduza o código gerado para confirmar",
+    "confirmButton": "Confirmar",
+    "cancelButton": "Cancelar",
+    "currentPasswordLabel": "Palavra-passe atual",
+    "disableConfirmTitle": "Desativar a autenticação de dois fatores?",
+    "disableConfirmText": "A sua conta ficará protegida apenas pela password.",
+    "enrollError": "Não foi possível iniciar a ativação.",
+    "confirmError": "Código inválido — tente novamente.",
+    "disableError": "Palavra-passe incorreta.",
+    "enabledSuccess": "Autenticação de dois fatores ativada.",
+    "disabledSuccess": "Autenticação de dois fatores desativada."
   }
 }

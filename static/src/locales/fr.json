@@ -296,7 +296,15 @@
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
     "invalidCredentials": "Nom d'utilisateur ou mot de passe incorrect",
-    "brandSuffix": "Fleet Manager"
+    "brandSuffix": "Fleet Manager",
+    "mfa": {
+      "title": "Vérification en deux étapes",
+      "description": "Saisissez le code à 6 chiffres généré par votre application d'authentification.",
+      "code": "Code",
+      "verify": "Vérifier",
+      "back": "Retour",
+      "invalidCode": "Code invalide"
+    }
   },
   "schedule": {
     "title": "Créneaux horaires",
@@ -638,5 +646,28 @@
     "fr": "Français",
     "de": "Deutsch",
     "pl": "Polski"
+  },
+  "security": {
+    "title": "Sécurité",
+    "mfaTitle": "Authentification à deux facteurs",
+    "mfaDescription": "Ajoutez une couche de sécurité supplémentaire à votre compte en exigeant un code à 6 chiffres en plus de votre mot de passe lors de la connexion.",
+    "statusEnabled": "Activée",
+    "statusDisabled": "Désactivée",
+    "confirmedOn": "Activée le {{date}}",
+    "enableButton": "Activer l'authentification à deux facteurs",
+    "disableButton": "Désactiver",
+    "scanQrHint": "Scannez ce code QR avec votre application d'authentification (ex. Google Authenticator, Authy).",
+    "manualEntryLabel": "Ou saisissez cette clé manuellement :",
+    "enterCodeLabel": "Saisissez le code généré pour confirmer",
+    "confirmButton": "Confirmer",
+    "cancelButton": "Annuler",
+    "currentPasswordLabel": "Mot de passe actuel",
+    "disableConfirmTitle": "Désactiver l'authentification à deux facteurs ?",
+    "disableConfirmText": "Votre compte ne sera alors protégé que par votre mot de passe.",
+    "enrollError": "Impossible de démarrer l'activation.",
+    "confirmError": "Code invalide — veuillez réessayer.",
+    "disableError": "Mot de passe incorrect.",
+    "enabledSuccess": "Authentification à deux facteurs activée.",
+    "disabledSuccess": "Authentification à deux facteurs désactivée."
   }
 }

@@ -296,7 +296,15 @@
     "username": "Benutzername",
     "password": "Passwort",
     "invalidCredentials": "Ungültiger Benutzername oder Passwort",
-    "brandSuffix": "Fleet Manager"
+    "brandSuffix": "Fleet Manager",
+    "mfa": {
+      "title": "Zwei-Faktor-Verifizierung",
+      "description": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.",
+      "code": "Code",
+      "verify": "Bestätigen",
+      "back": "Zurück",
+      "invalidCode": "Ungültiger Code"
+    }
   },
   "schedule": {
     "title": "Zeitfenster",
@@ -638,5 +646,28 @@
     "fr": "Français",
     "de": "Deutsch",
     "pl": "Polski"
+  },
+  "security": {
+    "title": "Sicherheit",
+    "mfaTitle": "Zwei-Faktor-Authentifizierung",
+    "mfaDescription": "Fügen Sie Ihrem Konto eine zusätzliche Sicherheitsebene hinzu, indem beim Anmelden zusätzlich zum Passwort ein 6-stelliger Code verlangt wird.",
+    "statusEnabled": "Aktiviert",
+    "statusDisabled": "Deaktiviert",
+    "confirmedOn": "Aktiviert am {{date}}",
+    "enableButton": "Zwei-Faktor-Authentifizierung aktivieren",
+    "disableButton": "Deaktivieren",
+    "scanQrHint": "Scannen Sie diesen QR-Code mit Ihrer Authenticator-App (z. B. Google Authenticator, Authy).",
+    "manualEntryLabel": "Oder geben Sie diesen Schlüssel manuell ein:",
+    "enterCodeLabel": "Geben Sie den generierten Code zur Bestätigung ein",
+    "confirmButton": "Bestätigen",
+    "cancelButton": "Abbrechen",
+    "currentPasswordLabel": "Aktuelles Passwort",
+    "disableConfirmTitle": "Zwei-Faktor-Authentifizierung deaktivieren?",
+    "disableConfirmText": "Ihr Konto ist dann nur noch durch Ihr Passwort geschützt.",
+    "enrollError": "Aktivierung konnte nicht gestartet werden.",
+    "confirmError": "Ungültiger Code — bitte erneut versuchen.",
+    "disableError": "Falsches Passwort.",
+    "enabledSuccess": "Zwei-Faktor-Authentifizierung aktiviert.",
+    "disabledSuccess": "Zwei-Faktor-Authentifizierung deaktiviert."
   }
 }
