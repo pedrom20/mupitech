@@ -6,7 +6,7 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -51,3 +51,32 @@ jobs:
             BUILD_DATE=${{ steps.build_date.outputs.value }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # The in-app update checker (fleet_manager/system_views.py) reads
+      # GitHub Releases/tags to find out if a newer version exists — with
+      # neither ever published, it always reported "nothing to compare
+      # against". Publish one release per version bump so it has
+      # something real to check. Guarded to branch pushes only (not tag
+      # pushes) so creating the tag here can't retrigger this workflow.
+      - name: Extract version from changelog.ts
+        id: version
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VERSION=$(grep -oP "APP_VERSION = '\K[^']+" static/src/changelog.ts || echo "")
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release for this version
+        if: github.ref == 'refs/heads/main' && steps.version.outputs.value != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.value }}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping."
+          else
+            gh release create "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "$TAG" \
+              --generate-notes \
+              --target "${{ github.sha }}"
+          fi

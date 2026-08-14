@@ -760,7 +760,17 @@
       "scheduleRecheck": "Nova verificação periódica do agendamento a cada 30s durante a reprodução — novos intervalos de horário entram em vigor sem esperar que o conteúdo atual termine",
       "tailscaleHostname": "O provisionamento via Tailscale passa a definir o nome do dispositivo como nome de anfitrião, para fácil identificação",
       "pi5ProvisionDynamicIp": "Provisionamento Pi 5: o redis-init passa a detetar o IP dinamicamente em vez de o fixar, evitando IP desatualizado após alterações de rede",
-      "fixPhonehomeAuth": "Corrigido o script de phone-home: um erro de continuação de linha no cabeçalho de autenticação impedia o registo do dispositivo"
+      "fixPhonehomeAuth": "Corrigido o script de phone-home: um erro de continuação de linha no cabeçalho de autenticação impedia o registo do dispositivo",
+      "mfaTotp": "Autenticação de dois fatores (TOTP) com ativação por código QR nos logins do Fleet Manager",
+      "mfaDuoPush": "Push do Duo Security como método alternativo de segundo fator",
+      "mfaCodeBoxes": "Introdução do código de 6 dígitos do MFA redesenhada com caixas individuais",
+      "deviceRevealCredentials": "Admins podem ver as credenciais do dashboard local de um device (com reprova de password)",
+      "deviceSsoLogin": "Login SSO com um clique no dashboard local de um device, usando a sua conta do Fleet Manager",
+      "standbyVideoSupport": "O ecrã de standby passa a suportar vídeo em loop (MP4/WebM), além de imagens",
+      "accountPage": "Nova página pessoal \"O Meu Perfil\" para as definições de segurança da conta, fora dos Settings partilhados",
+      "auditNavMove": "Registo de Auditoria saiu da navegação principal — agora só acessível via Settings",
+      "duplicateDeviceFix": "Corrigido um bug de registo duplicado de devices causado por uma entrada antiga com um URL igual exceto na barra final",
+      "updateCheckReleaseFix": "Corrigida a verificação de atualizações — as releases passam a ser publicadas automaticamente para poderem ser detetadas"
     }
   },
   "updates": {

@@ -760,7 +760,17 @@
       "scheduleRecheck": "Periodic schedule re-check every 30s during playback — new time slots take effect without waiting for current asset to finish",
       "tailscaleHostname": "Tailscale provisioning now sets player name as hostname for easy identification",
       "pi5ProvisionDynamicIp": "Pi5 provisioning: redis-init now detects IP dynamically instead of hardcoding, preventing stale IP after network changes",
-      "fixPhonehomeAuth": "Fixed phone-home script: auth header line continuation bug prevented player registration"
+      "fixPhonehomeAuth": "Fixed phone-home script: auth header line continuation bug prevented player registration",
+      "mfaTotp": "Two-factor authentication (TOTP) with QR code enrollment for Fleet Manager logins",
+      "mfaDuoPush": "Duo Security push notification as an alternative second factor",
+      "mfaCodeBoxes": "6-digit MFA code entry redesigned as individual boxes",
+      "deviceRevealCredentials": "Admins can reveal a device's local dashboard credentials (with password reproof)",
+      "deviceSsoLogin": "One-click SSO login into a device's local dashboard using your Fleet Manager account",
+      "standbyVideoSupport": "Standby screen now supports looping video (MP4/WebM) in addition to images",
+      "accountPage": "New personal \"My Profile\" page for account security settings, moved out of shared Settings",
+      "auditNavMove": "Audit Log moved out of the top navigation — now only accessible via Settings",
+      "duplicateDeviceFix": "Fixed a duplicate device registration bug caused by a stale entry sharing a URL with only a trailing slash difference",
+      "updateCheckReleaseFix": "Fixed the update checker — releases are now automatically published so it can detect new versions"
     }
   },
   "updates": {
