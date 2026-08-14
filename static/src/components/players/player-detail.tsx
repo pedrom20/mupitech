@@ -664,6 +664,67 @@ const PlayerDetail: React.FC = () => {
   }
 
 
+  const handleSsoLogin = async () => {
+    if (!id) return
+    try {
+      const res = await playersApi.ssoLogin(id)
+      window.open(res.url, '_blank', 'noopener,noreferrer')
+      return
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.message.indexOf('SSO has not been set up') === -1) {
+        Swal.fire({ icon: 'error', title: t('common.error'), text: error instanceof ApiError ? error.message : String(error) })
+        return
+      }
+    }
+
+    // Not provisioned yet — offer to set it up now, using the saved SSH
+    // credential if there is one (same convention as branding pushes).
+    const confirmed = await Swal.fire({
+      icon: 'question',
+      title: t('players.ssoNotSetUp'),
+      text: t('players.ssoSetUpPrompt'),
+      showCancelButton: true,
+      confirmButtonText: t('players.ssoSetUpButton'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!confirmed.isConfirmed) return
+
+    let sshUser = player?.ssh_username || 'pi'
+    let sshPassword = ''
+    let sshPort = player?.ssh_port || 22
+    if (!player?.has_ssh_credentials) {
+      const { value: formValues } = await Swal.fire({
+        title: t('players.sshCredentialsTitle'),
+        html:
+          `<input id="swal-ssh-user" class="swal2-input" placeholder="${t('branding.sshUser')}" value="pi">` +
+          `<input id="swal-ssh-password" type="password" class="swal2-input" placeholder="${t('branding.sshPassword')}">`,
+        confirmButtonText: t('common.confirm'),
+        showCancelButton: true,
+        cancelButtonText: t('common.cancel'),
+        preConfirm: () => {
+          const user = (document.getElementById('swal-ssh-user') as HTMLInputElement)?.value
+          const password = (document.getElementById('swal-ssh-password') as HTMLInputElement)?.value
+          if (!password) {
+            Swal.showValidationMessage(t('branding.sshPassword'))
+            return false
+          }
+          return { user, password }
+        },
+      })
+      if (!formValues) return
+      sshUser = formValues.user || 'pi'
+      sshPassword = formValues.password
+    }
+
+    try {
+      await playersApi.pushSsoSecret(id, sshUser, sshPassword, sshPort)
+      const res = await playersApi.ssoLogin(id)
+      window.open(res.url, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: error instanceof ApiError ? error.message : String(error) })
+    }
+  }
+
   const handleForgetSshCredentials = async () => {
     if (!id || !player) return
     try {
@@ -1923,6 +1984,16 @@ const PlayerDetail: React.FC = () => {
             >
               <FaSyncAlt />
             </button>
+            {isAdminRole(role) && (
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={handleSsoLogin}
+                disabled={!player.is_online}
+                title={t('players.openLocalDashboard')}
+              >
+                <FaExternalLinkAlt />
+              </button>
+            )}
             {isAdminRole(role) && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
               <button
                 className="fm-btn-outline fm-btn-sm"

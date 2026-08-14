@@ -140,7 +140,12 @@
     "monitorWakeSent": "Monitor ligado",
     "reveal": "Ver",
     "revealCredentialsPrompt": "Introduza a sua password para ver as credenciais deste device",
-    "yourPassword": "A sua password"
+    "yourPassword": "A sua password",
+    "openLocalDashboard": "Abrir painel local",
+    "ssoNotSetUp": "SSO ainda não configurado para este dispositivo",
+    "ssoSetUpPrompt": "Configurar agora este dispositivo com um segredo de login? É uma configuração única — o SSO continua a funcionar depois disso sem voltar a pedir.",
+    "ssoSetUpButton": "Configurar SSO",
+    "sshCredentialsTitle": "Credenciais SSH"
   },
   "groups": {
     "title": "Grupos",

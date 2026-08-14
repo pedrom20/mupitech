@@ -140,7 +140,12 @@
     "monitorWakeSent": "Monitor on",
     "reveal": "Reveal",
     "revealCredentialsPrompt": "Enter your password to reveal this device's login",
-    "yourPassword": "Your password"
+    "yourPassword": "Your password",
+    "openLocalDashboard": "Open local dashboard",
+    "ssoNotSetUp": "SSO not set up for this device yet",
+    "ssoSetUpPrompt": "Provision this device with a login secret now? This is a one-time setup — SSO stays working after that without asking again.",
+    "ssoSetUpButton": "Set up SSO",
+    "sshCredentialsTitle": "SSH credentials"
   },
   "groups": {
     "title": "Groups",

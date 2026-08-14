@@ -138,7 +138,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         return filter_players(super().get_queryset(), self.request.user)
 
     def get_permissions(self):
-        if self.action in ('destroy', 'reveal_credentials'):
+        if self.action in ('destroy', 'reveal_credentials', 'sso_login', 'push_sso_secret'):
             return [IsAdmin()]
         return super().get_permissions()
 
@@ -690,6 +690,50 @@ class PlayerViewSet(viewsets.ModelViewSet):
         from history.logging import log_action
         log_action(request, 'reveal_credentials', 'player', target_id=player.id, target_name=player.name)
         return Response({'username': player.username, 'password': player.get_password()})
+
+    @action(detail=True, methods=['post'], url_path='sso-login')
+    def sso_login(self, request, pk=None):
+        """Admin-only: mint a one-time login URL for this device's own
+        local dashboard, scoped to (this player, the requesting admin)
+        and valid for 60s — see players/sso.py. 404s if the device
+        hasn't been provisioned with an SSO secret yet (push-sso-secret
+        below)."""
+        from .sso import build_sso_login_url
+
+        player = self.get_object()
+        url = build_sso_login_url(player, request.user)
+        if not url:
+            return Response(
+                {'error': 'SSO has not been set up for this device yet.'}, status=404,
+            )
+
+        from history.logging import log_action
+        log_action(request, 'sso_login', 'player', target_id=player.id, target_name=player.name)
+        return Response({'url': url})
+
+    @action(detail=True, methods=['post'], url_path='push-sso-secret')
+    def push_sso_secret(self, request, pk=None):
+        """Admin-only: (re)provision this device with an SSO secret over
+        SSH, generating one first if it doesn't have one yet. Same SSH
+        credential conventions as rebuild-image/ssh-credentials — an
+        explicit password in the request, or the player's saved one."""
+        from .sso import SSOPushError, push_sso_secret_to_player
+
+        player = self.get_object()
+        ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
+        if not ssh_password:
+            return Response({'error': 'ssh_password is required'}, status=400)
+        ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
+
+        try:
+            push_sso_secret_to_player(player, ssh_user, ssh_password, ssh_port)
+        except SSOPushError as exc:
+            return Response({'error': str(exc)}, status=502)
+
+        from history.logging import log_action
+        log_action(request, 'push_sso_secret', 'player', target_id=player.id, target_name=player.name)
+        return Response({'success': True})
 
     @action(detail=True, methods=['post', 'delete'], url_path='logo')
     def logo(self, request, pk=None):

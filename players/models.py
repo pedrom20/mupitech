@@ -100,6 +100,12 @@ class Player(models.Model):
     )
     ssh_password_encrypted = models.CharField(max_length=500, blank=True, default='', help_text='Stored encrypted.')
     ssh_port = models.IntegerField(default=22)
+    sso_secret_encrypted = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text='Per-device shared secret for signing SSO login tokens (see players/sso.py). '
+                   'Stored encrypted; pushed to the device\'s anthias.conf via SSH, never '
+                   'transmitted as part of a login request itself.',
+    )
     screen_rotation = models.IntegerField(
         default=0, choices=[(0, '0'), (90, '90'), (180, '180'), (270, '270')],
         help_text='Cached screen_rotation from this device\'s settings — synced whenever '
@@ -199,6 +205,29 @@ class Player(models.Model):
         except Exception:
             logger.warning(
                 'Failed to decrypt SSH password for player %s (%s). '
+                'This may indicate a SECRET_KEY rotation.',
+                self.name, self.pk,
+            )
+            return ''
+
+    def set_sso_secret(self, raw_secret):
+        """Encrypt and store the per-device SSO signing secret."""
+        if raw_secret:
+            f = _get_fernet()
+            self.sso_secret_encrypted = f.encrypt(raw_secret.encode()).decode()
+        else:
+            self.sso_secret_encrypted = ''
+
+    def get_sso_secret(self):
+        """Decrypt and return the stored SSO signing secret."""
+        if not self.sso_secret_encrypted:
+            return ''
+        try:
+            f = _get_fernet()
+            return f.decrypt(self.sso_secret_encrypted.encode()).decode()
+        except Exception:
+            logger.warning(
+                'Failed to decrypt SSO secret for player %s (%s). '
                 'This may indicate a SECRET_KEY rotation.',
                 self.name, self.pk,
             )

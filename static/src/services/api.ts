@@ -310,6 +310,21 @@ export const players = {
     return apiRequest('POST', `/players/${id}/reveal-credentials/`, { password: adminPassword })
   },
 
+  /** Admin-only. Mints a one-time (60s) login URL for this device's own
+   * local dashboard — see players/sso.py and players/views.py::sso_login.
+   * Throws (404) if push-sso-secret hasn't been run for this device yet. */
+  ssoLogin(id: string): Promise<{ url: string }> {
+    return apiRequest('POST', `/players/${id}/sso-login/`)
+  },
+
+  /** Admin-only. (Re)provisions this device with an SSO secret over SSH —
+   * see players/views.py::push_sso_secret. */
+  pushSsoSecret(id: string, sshUser: string, sshPassword: string, sshPort: number): Promise<{ success: boolean }> {
+    return apiRequest('POST', `/players/${id}/push-sso-secret/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+    })
+  },
+
   uploadLogo(id: string, file: File): Promise<{ success: boolean; logo_url: string }> {
     const data = new FormData()
     data.append('logo', file)
