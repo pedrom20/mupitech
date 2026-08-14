@@ -38,6 +38,18 @@ class UserAccessScope(models.Model):
                    '(no write access at all). Lets an admin grant upload/edit rights '
                    'without also granting deletion rights.',
     )
+    must_change_password = models.BooleanField(
+        default=False,
+        help_text='Set at user creation to force a password change before the user can '
+                   'use the Fleet Manager. Cleared automatically once they change it via '
+                   'the self-service change-password endpoint.',
+    )
+    force_mfa_enroll = models.BooleanField(
+        default=False,
+        help_text='Set at user creation to force MFA enrolment (TOTP or Duo) before the '
+                   'user can use the Fleet Manager. Cleared automatically once either '
+                   'enrolment is confirmed.',
+    )
 
     def __str__(self):
         return f'Access scope for {self.user}'

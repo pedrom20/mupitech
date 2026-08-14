@@ -24,6 +24,7 @@ import DeployProgress from '@/components/deploy/deploy-progress'
 import Settings from '@/components/settings/settings'
 import AuditLog from '@/components/settings/audit-log'
 import AccountPage from '@/components/account/account-page'
+import OnboardingWizard from '@/components/onboarding/onboarding-wizard'
 import Login from '@/components/auth/login'
 import ChangelogPage from '@/components/changelog-page'
 import { users as usersApi } from '@/services/api'
@@ -185,24 +186,28 @@ const App: React.FC = () => {
           )}
           <Navbar onLogoTapSequence={toggleDosTheme} />
           <main className="fm-content">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/fleet" element={<FleetOverview />} />
-              <Route path="/players" element={<PlayerList />} />
-              <Route path="/players/:id" element={<PlayerDetail />} />
-              <Route path="/groups" element={<GroupList />} />
-              <Route path="/locations" element={<LocationList />} />
-              <Route path="/playlists" element={<PlaylistList />} />
-              <Route path="/scheduling" element={<SchedulingPage />} />
-              <Route path="/content" element={<ContentPage />} />
-              <Route path="/deploy/history" element={<DeployHistory />} />
-              <Route path="/deploy/:id" element={<DeployProgress />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/audit" element={<AuditLog />} />
-              <Route path="/changelog" element={<ChangelogPage />} />
-              <Route path="/login" element={<Login />} />
-            </Routes>
+            {user && (user.must_change_password || user.force_mfa_enroll) ? (
+              <OnboardingWizard />
+            ) : (
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/fleet" element={<FleetOverview />} />
+                <Route path="/players" element={<PlayerList />} />
+                <Route path="/players/:id" element={<PlayerDetail />} />
+                <Route path="/groups" element={<GroupList />} />
+                <Route path="/locations" element={<LocationList />} />
+                <Route path="/playlists" element={<PlaylistList />} />
+                <Route path="/scheduling" element={<SchedulingPage />} />
+                <Route path="/content" element={<ContentPage />} />
+                <Route path="/deploy/history" element={<DeployHistory />} />
+                <Route path="/deploy/:id" element={<DeployProgress />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/audit" element={<AuditLog />} />
+                <Route path="/changelog" element={<ChangelogPage />} />
+                <Route path="/login" element={<Login />} />
+              </Routes>
+            )}
           </main>
           <Footer onSecretTrigger={toggleRetroTheme} />
           {retroTheme && (

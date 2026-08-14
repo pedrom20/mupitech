@@ -1120,6 +1120,10 @@
     "receiveOfflineAlertsHint": "Only applies if email alerts are enabled system-wide (Settings → Email Alerts).",
     "canDeleteContent": "Can delete library content",
     "canDeleteContentHint": "Allows deleting content and branding images (moving them to the recycle bin). Turn off to let this user upload/edit content without being able to remove it.",
+    "mustChangePassword": "Force password change on first login",
+    "mustChangePasswordHint": "The user must set a new password before they can use the Fleet Manager.",
+    "forceMfaEnroll": "Force two-factor authentication enrollment on first login",
+    "forceMfaEnrollHint": "The user must enroll in TOTP or Duo push before they can use the Fleet Manager.",
     "mfaEnabled": "2FA enabled",
     "resetMfa": "Reset 2FA",
     "resetMfaConfirmTitle": "Reset {{username}}'s two-factor authentication?",
@@ -1233,5 +1237,18 @@
   "account": {
     "title": "My Profile",
     "subtitle": "Manage your own account security settings."
+  },
+  "onboarding": {
+    "title": "Welcome to MupiTech Fleet Manager",
+    "subtitle": "A couple of quick steps before you can continue.",
+    "passwordStepTitle": "Set a new password",
+    "passwordStepHint": "Your account requires a password change before you can continue.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "continueButton": "Continue",
+    "passwordMismatch": "The new password and confirmation don't match.",
+    "passwordChangeError": "Couldn't change your password.",
+    "mfaStepHint": "Your account requires two-factor authentication before you can continue — enable one of the methods below."
   }
 }

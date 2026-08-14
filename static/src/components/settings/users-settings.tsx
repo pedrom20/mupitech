@@ -61,6 +61,8 @@ const UsersSettings: React.FC = () => {
   const [role, setRole] = useState<string>('viewer')
   const [receiveOfflineAlerts, setReceiveOfflineAlerts] = useState(true)
   const [canDeleteContent, setCanDeleteContent] = useState(true)
+  const [mustChangePassword, setMustChangePassword] = useState(false)
+  const [forceMfaEnroll, setForceMfaEnroll] = useState(false)
   const [saving, setSaving] = useState(false)
 
   // Scope pickers (leave all empty = unrestricted access, the default)
@@ -91,6 +93,8 @@ const UsersSettings: React.FC = () => {
     setRole('viewer')
     setReceiveOfflineAlerts(true)
     setCanDeleteContent(true)
+    setMustChangePassword(false)
+    setForceMfaEnroll(false)
     setScopeLocationIds([])
     setScopeGroupIds([])
     setScopePlayerIds([])
@@ -116,6 +120,8 @@ const UsersSettings: React.FC = () => {
     setPassword('')
     setReceiveOfflineAlerts(u.receive_offline_alerts ?? true)
     setCanDeleteContent(u.can_delete_content ?? true)
+    setMustChangePassword(u.must_change_password ?? false)
+    setForceMfaEnroll(u.force_mfa_enroll ?? false)
     setScopeLocationIds(u.scope?.location_ids || [])
     setScopeGroupIds(u.scope?.group_ids || [])
     setScopePlayerIds(u.scope?.player_ids || [])
@@ -147,12 +153,12 @@ const UsersSettings: React.FC = () => {
         player_ids: scopePlayerIds,
       }
       if (editUser) {
-        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, receive_offline_alerts: receiveOfflineAlerts, can_delete_content: canDeleteContent, ...scopeData }
+        const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, receive_offline_alerts: receiveOfflineAlerts, can_delete_content: canDeleteContent, must_change_password: mustChangePassword, force_mfa_enroll: forceMfaEnroll, ...scopeData }
         if (password) data.password = password
         await usersApi.update(editUser.id, data as Parameters<typeof usersApi.update>[1])
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.updated'), timer: 1500, showConfirmButton: false })
       } else {
-        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName, receive_offline_alerts: receiveOfflineAlerts, can_delete_content: canDeleteContent, ...scopeData })
+        await usersApi.create({ username, email, password, role, first_name: firstName, last_name: lastName, receive_offline_alerts: receiveOfflineAlerts, can_delete_content: canDeleteContent, must_change_password: mustChangePassword, force_mfa_enroll: forceMfaEnroll, ...scopeData })
         Swal.fire({ icon: 'success', title: t('common.success'), text: t('users.created'), timer: 1500, showConfirmButton: false })
       }
       setShowModal(false)
@@ -326,6 +332,34 @@ const UsersSettings: React.FC = () => {
                     </label>
                     <input type="password" className="form-control form-control-sm" value={password} onChange={(e) => setPassword(e.target.value)} required={!editUser} minLength={6} />
                   </div>
+
+                  <div className="form-check mb-2">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="must-change-password"
+                      checked={mustChangePassword}
+                      onChange={(e) => setMustChangePassword(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="must-change-password">
+                      {t('users.mustChangePassword')}
+                    </label>
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('users.mustChangePasswordHint')}</div>
+                  </div>
+                  <div className="form-check mb-2">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="force-mfa-enroll"
+                      checked={forceMfaEnroll}
+                      onChange={(e) => setForceMfaEnroll(e.target.checked)}
+                    />
+                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="force-mfa-enroll">
+                      {t('users.forceMfaEnroll')}
+                    </label>
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('users.forceMfaEnrollHint')}</div>
+                  </div>
+
                   <div className="mb-2">
                     <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('users.role')}</label>
                     <select

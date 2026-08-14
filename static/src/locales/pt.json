@@ -1120,6 +1120,10 @@
     "receiveOfflineAlertsHint": "Só se aplica se os alertas por email estiverem ativos globalmente (Definições → Alertas por Email).",
     "canDeleteContent": "Pode apagar conteúdos da biblioteca",
     "canDeleteContentHint": "Permite apagar conteúdos e imagens de marca (movendo-os para a reciclagem). Desative para deixar este utilizador carregar/editar conteúdos sem poder removê-los.",
+    "mustChangePassword": "Forçar mudança de password no primeiro login",
+    "mustChangePasswordHint": "O utilizador tem de definir uma nova password antes de poder usar o Fleet Manager.",
+    "forceMfaEnroll": "Forçar ativação de autenticação de dois fatores no primeiro login",
+    "forceMfaEnrollHint": "O utilizador tem de ativar o TOTP ou o push do Duo antes de poder usar o Fleet Manager.",
     "mfaEnabled": "2FA ativo",
     "resetMfa": "Repor 2FA",
     "resetMfaConfirmTitle": "Repor a autenticação de dois fatores de {{username}}?",
@@ -1234,5 +1238,18 @@
   "account": {
     "title": "O Meu Perfil",
     "subtitle": "Faça a gestão das definições de segurança da sua conta."
+  },
+  "onboarding": {
+    "title": "Bem-vindo ao MupiTech Fleet Manager",
+    "subtitle": "Faltam só alguns passos rápidos antes de poder continuar.",
+    "passwordStepTitle": "Defina uma nova password",
+    "passwordStepHint": "A sua conta exige uma mudança de password antes de poder continuar.",
+    "currentPassword": "Password atual",
+    "newPassword": "Nova password",
+    "confirmPassword": "Confirmar nova password",
+    "continueButton": "Continuar",
+    "passwordMismatch": "A nova password e a confirmação não coincidem.",
+    "passwordChangeError": "Não foi possível mudar a sua password.",
+    "mfaStepHint": "A sua conta exige autenticação de dois fatores antes de poder continuar — ative um dos métodos abaixo."
   }
 }

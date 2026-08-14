@@ -982,6 +982,7 @@ export const users = {
     first_name?: string; last_name?: string
     location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
     receive_offline_alerts?: boolean; can_delete_content?: boolean
+    must_change_password?: boolean; force_mfa_enroll?: boolean
   }): Promise<User> {
     return apiRequest<User>('POST', '/users/', data)
   },
@@ -990,6 +991,7 @@ export const users = {
     password?: string; role?: string
     location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
     receive_offline_alerts?: boolean; can_delete_content?: boolean
+    must_change_password?: boolean; force_mfa_enroll?: boolean
   }): Promise<User> {
     return apiRequest<User>('PATCH', `/users/${id}/`, data)
   },
@@ -1000,6 +1002,13 @@ export const users = {
 
   resetMfa(id: number): Promise<{ success: boolean; had_mfa: boolean }> {
     return apiRequest('POST', `/users/${id}/reset-mfa/`)
+  },
+
+  changeOwnPassword(currentPassword: string, newPassword: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/users/me/change-password/', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    })
   },
 }
 

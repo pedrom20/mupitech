@@ -15,10 +15,25 @@ class ScopeSerializer(serializers.ModelSerializer):
         fields = ['location_ids', 'group_ids', 'player_ids']
 
 
-def _set_scope(user, location_ids=None, group_ids=None, player_ids=None):
-    """Create/update/clear the user's access scope from lists of IDs (None = leave unchanged)."""
-    if location_ids is None and group_ids is None and player_ids is None:
+def _apply_scope_updates(user, *, location_ids=None, group_ids=None, player_ids=None,
+                          receive_offline_alerts=None, can_delete_content=None,
+                          must_change_password=None, force_mfa_enroll=None):
+    """Create/update the user's access scope from a batch of optional fields
+    (None = leave that field unchanged). Deliberately a single get_or_create
+    + save, rather than one per field: chaining separate get_or_create calls
+    each fetches its own fresh UserAccessScope instance, and Django's
+    reverse-relation cache on `user` only reflects whichever one happened
+    to be assigned last — meaning every earlier field silently vanished
+    from the very serializer.data response returned right after, even
+    though each write actually landed in the database correctly."""
+    all_none = (
+        location_ids is None and group_ids is None and player_ids is None
+        and receive_offline_alerts is None and can_delete_content is None
+        and must_change_password is None and force_mfa_enroll is None
+    )
+    if all_none:
         return
+
     scope, _ = UserAccessScope.objects.get_or_create(user=user)
     if location_ids is not None:
         scope.locations.set(location_ids)
@@ -27,23 +42,27 @@ def _set_scope(user, location_ids=None, group_ids=None, player_ids=None):
     if player_ids is not None:
         scope.players.set(player_ids)
 
+    update_fields = []
+    if receive_offline_alerts is not None:
+        scope.receive_offline_alerts = receive_offline_alerts
+        update_fields.append('receive_offline_alerts')
+    if can_delete_content is not None:
+        scope.can_delete_content = can_delete_content
+        update_fields.append('can_delete_content')
+    if must_change_password is not None:
+        scope.must_change_password = must_change_password
+        update_fields.append('must_change_password')
+    if force_mfa_enroll is not None:
+        scope.force_mfa_enroll = force_mfa_enroll
+        update_fields.append('force_mfa_enroll')
+    if update_fields:
+        scope.save(update_fields=update_fields)
 
-def _set_receive_offline_alerts(user, value):
-    """Set the user's offline-alert opt-in flag (None = leave unchanged)."""
-    if value is None:
-        return
-    scope, _ = UserAccessScope.objects.get_or_create(user=user)
-    scope.receive_offline_alerts = value
-    scope.save(update_fields=['receive_offline_alerts'])
-
-
-def _set_can_delete_content(user, value):
-    """Set whether this user may delete library content (None = leave unchanged)."""
-    if value is None:
-        return
-    scope, _ = UserAccessScope.objects.get_or_create(user=user)
-    scope.can_delete_content = value
-    scope.save(update_fields=['can_delete_content'])
+    # Keep `user`'s reverse-relation cache in sync with what was just
+    # written, so a get_role_property()-style read via `user.access_scope`
+    # later in the same request (e.g. serializing the response) sees the
+    # up-to-date object instead of triggering a stale/duplicate fetch.
+    user.access_scope = scope
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -52,12 +71,14 @@ class UserSerializer(serializers.ModelSerializer):
     receive_offline_alerts = serializers.SerializerMethodField()
     can_delete_content = serializers.SerializerMethodField()
     mfa_enabled = serializers.SerializerMethodField()
+    must_change_password = serializers.SerializerMethodField()
+    force_mfa_enroll = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
                   'is_active', 'role', 'scope', 'receive_offline_alerts', 'can_delete_content',
-                  'mfa_enabled', 'last_login', 'date_joined']
+                  'mfa_enabled', 'must_change_password', 'force_mfa_enroll', 'last_login', 'date_joined']
         read_only_fields = ['id', 'last_login', 'date_joined']
 
     def get_role(self, obj):
@@ -80,6 +101,14 @@ class UserSerializer(serializers.ModelSerializer):
     def get_mfa_enabled(self, obj):
         device = getattr(obj, 'totp_device', None)
         return bool(device and device.confirmed)
+
+    def get_must_change_password(self, obj):
+        scope = getattr(obj, 'access_scope', None)
+        return bool(scope and scope.must_change_password)
+
+    def get_force_mfa_enroll(self, obj):
+        scope = getattr(obj, 'access_scope', None)
+        return bool(scope and scope.force_mfa_enroll)
 
 
 def _validate_role_escalation(role, context):
@@ -120,15 +149,26 @@ class CreateUserSerializer(serializers.ModelSerializer):
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     receive_offline_alerts = serializers.BooleanField(required=False, write_only=True)
     can_delete_content = serializers.BooleanField(required=False, write_only=True)
+    must_change_password = serializers.BooleanField(required=False, write_only=True)
+    force_mfa_enroll = serializers.BooleanField(required=False, write_only=True)
 
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password', 'role',
-                  'location_ids', 'group_ids', 'player_ids', 'receive_offline_alerts', 'can_delete_content']
+                  'location_ids', 'group_ids', 'player_ids', 'receive_offline_alerts', 'can_delete_content',
+                  'must_change_password', 'force_mfa_enroll']
 
     def validate_role(self, value):
         _validate_role_escalation(value, self.context)
         return value
+
+    def to_representation(self, instance):
+        # `role` isn't a real User attribute (it's derived — see
+        # _user_role) so the default ModelSerializer representation
+        # crashes trying to read it back off the saved instance. Delegate
+        # to the read serializer instead, which already knows how to
+        # compute it (and gives a response shaped like list()/retrieve()).
+        return UserSerializer(instance, context=self.context).data
 
     def create(self, validated_data):
         role = validated_data.pop('role')
@@ -138,11 +178,15 @@ class CreateUserSerializer(serializers.ModelSerializer):
         player_ids = validated_data.pop('player_ids', None)
         receive_offline_alerts = validated_data.pop('receive_offline_alerts', None)
         can_delete_content = validated_data.pop('can_delete_content', None)
+        must_change_password = validated_data.pop('must_change_password', None)
+        force_mfa_enroll = validated_data.pop('force_mfa_enroll', None)
         user = User.objects.create_user(**validated_data, password=password)
         _assign_role(user, role)
-        _set_scope(user, location_ids, group_ids, player_ids)
-        _set_receive_offline_alerts(user, receive_offline_alerts)
-        _set_can_delete_content(user, can_delete_content)
+        _apply_scope_updates(
+            user, location_ids=location_ids, group_ids=group_ids, player_ids=player_ids,
+            receive_offline_alerts=receive_offline_alerts, can_delete_content=can_delete_content,
+            must_change_password=must_change_password, force_mfa_enroll=force_mfa_enroll,
+        )
         return user
 
 
@@ -154,12 +198,15 @@ class UpdateUserSerializer(serializers.ModelSerializer):
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     receive_offline_alerts = serializers.BooleanField(required=False, write_only=True)
     can_delete_content = serializers.BooleanField(required=False, write_only=True)
+    must_change_password = serializers.BooleanField(required=False, write_only=True)
+    force_mfa_enroll = serializers.BooleanField(required=False, write_only=True)
 
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password',
                   'role', 'is_active', 'location_ids', 'group_ids', 'player_ids',
-                  'receive_offline_alerts', 'can_delete_content']
+                  'receive_offline_alerts', 'can_delete_content',
+                  'must_change_password', 'force_mfa_enroll']
 
     def validate_role(self, value):
         _validate_role_escalation(value, self.context)
@@ -186,6 +233,11 @@ class UpdateUserSerializer(serializers.ModelSerializer):
             self._reject_self_privilege_edit('access scope')
         return value
 
+    def to_representation(self, instance):
+        # Same reasoning as CreateUserSerializer.to_representation above —
+        # `role` isn't a real User attribute.
+        return UserSerializer(instance, context=self.context).data
+
     def _current_scope_ids(self, relation):
         scope = getattr(self.instance, 'access_scope', None)
         if not scope:
@@ -211,6 +263,8 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         player_ids = validated_data.pop('player_ids', None)
         receive_offline_alerts = validated_data.pop('receive_offline_alerts', None)
         can_delete_content = validated_data.pop('can_delete_content', None)
+        must_change_password = validated_data.pop('must_change_password', None)
+        force_mfa_enroll = validated_data.pop('force_mfa_enroll', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -223,8 +277,10 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         if role:
             _assign_role(instance, role)
 
-        _set_scope(instance, location_ids, group_ids, player_ids)
-        _set_receive_offline_alerts(instance, receive_offline_alerts)
-        _set_can_delete_content(instance, can_delete_content)
+        _apply_scope_updates(
+            instance, location_ids=location_ids, group_ids=group_ids, player_ids=player_ids,
+            receive_offline_alerts=receive_offline_alerts, can_delete_content=can_delete_content,
+            must_change_password=must_change_password, force_mfa_enroll=force_mfa_enroll,
+        )
 
         return instance

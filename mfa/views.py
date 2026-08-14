@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 _ISSUER = 'MupiTech Fleet Manager'
 
 
+def _clear_force_mfa_enroll(user):
+    """Clears the onboarding 'must enrol MFA' flag once any method (TOTP
+    or Duo) gets confirmed — set at user creation, see access/models.py."""
+    from access.models import UserAccessScope
+    UserAccessScope.objects.filter(user=user, force_mfa_enroll=True).update(force_mfa_enroll=False)
+
+
 def _qr_png_base64(otpauth_uri):
     img = qrcode.make(otpauth_uri, image_factory=PilImage)
     buf = io.BytesIO()
@@ -74,6 +81,7 @@ def mfa_confirm(request):
     device.confirmed = True
     device.confirmed_at = timezone.now()
     device.save(update_fields=['confirmed', 'confirmed_at'])
+    _clear_force_mfa_enroll(request.user)
     log_action(request, 'mfa_enable', 'session', target_name=request.user.username)
     return Response({'success': True})
 
@@ -160,6 +168,7 @@ def duo_confirm(request):
     enrollment.confirmed_at = timezone.now()
     enrollment.activation_code = ''
     enrollment.save(update_fields=['confirmed', 'confirmed_at', 'activation_code'])
+    _clear_force_mfa_enroll(request.user)
     log_action(request, 'duo_enable', 'session', target_name=request.user.username)
     return Response({'status': 'success'})
 

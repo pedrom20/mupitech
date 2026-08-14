@@ -89,3 +89,39 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({'authenticated': False}, status=status.HTTP_401_UNAUTHORIZED)
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='me/change-password', permission_classes=[])
+    def change_own_password(self, request):
+        """Self-service password change — the only path a non-admin user
+        has to change their own password (the rest of this viewset is
+        admin-only). Also the mechanism that clears the onboarding
+        must_change_password flag set at user creation."""
+        from django.contrib.auth import update_session_auth_hash
+
+        from access.models import UserAccessScope
+        from history.logging import log_action
+
+        if not request.user.is_authenticated:
+            return Response({'authenticated': False}, status=status.HTTP_401_UNAUTHORIZED)
+
+        current_password = request.data.get('current_password', '')
+        new_password = request.data.get('new_password', '')
+        if not request.user.check_password(current_password):
+            return Response({'error': 'Incorrect current password.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(new_password) < 6:
+            return Response(
+                {'error': 'New password must be at least 6 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request.user.set_password(new_password)
+        request.user.save(update_fields=['password'])
+        # Changing your own password normally invalidates the session hash —
+        # keep the current session alive so onboarding can continue past this step.
+        update_session_auth_hash(request, request.user)
+        UserAccessScope.objects.filter(user=request.user, must_change_password=True).update(
+            must_change_password=False,
+        )
+        log_action(request, 'change_password', 'user', target_id=request.user.id,
+                   target_name=request.user.username)
+        return Response({'success': True})

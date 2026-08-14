@@ -263,6 +263,8 @@ export interface User {
   receive_offline_alerts?: boolean
   can_delete_content?: boolean
   mfa_enabled?: boolean
+  must_change_password?: boolean
+  force_mfa_enroll?: boolean
   last_login: string | null
   date_joined: string
 }
