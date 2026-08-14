@@ -784,7 +784,8 @@
       "deviceSsoDisableToggle": "O login SSO pode agora ser desativado por device a partir da página de detalhe do player",
       "deviceVersionRoleSplit": "Os devices só mostram a versão técnica completa quando acedidos por SSO por um admin/superadmin — os restantes veem um número de versão simples",
       "mfaMethodSwitch": "O login passa a permitir trocar para o outro método de 2FA quando tem TOTP e push do Duo ativos",
-      "userModalTabs": "Modal de criar/editar user mais largo, com separador 'Acessos' dedicado e altura estável entre separadores"
+      "userModalTabs": "Modal de criar/editar user mais largo, com separador 'Acessos' dedicado e altura estável entre separadores",
+      "playerListEditFix": "O botão Editar na lista de devices abre agora o mesmo modal Definições completo da página de detalhe, em vez de um formulário mais antigo e limitado"
     }
   },
   "updates": {

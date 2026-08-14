@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   FaDesktop,
   FaPlus,
@@ -27,6 +27,7 @@ const LAYOUT_STORAGE_KEY = 'fm_player_list_layout'
 
 const PlayerList: React.FC = () => {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const role = useContext(RoleContext)
   const { players, loading } = useAppSelector((state) => state.players)
@@ -91,8 +92,12 @@ const PlayerList: React.FC = () => {
   }
 
   const handleEdit = (player: Player) => {
-    setEditingPlayer(player)
-    setShowForm(true)
+    // The list used to open this same file's basic add/provision modal
+    // in "edit" mode — a materially older, more limited experience than
+    // the full Settings modal (general/location/branding/image tabs,
+    // live device sync) player-detail.tsx grew later. Route to that one
+    // instead so both entry points land on the same UI.
+    navigate(`/players/${player.id}?settings=1`)
   }
 
   const handleAdd = () => {

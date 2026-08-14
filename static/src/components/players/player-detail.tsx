@@ -1424,6 +1424,18 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  // Auto-open the Settings modal when arriving via ?settings=1 — the
+  // player list's own Edit button routes here now instead of opening
+  // its old, more limited edit form (see player-list.tsx::handleEdit).
+  // Strips the param right after so a refresh/back-nav doesn't reopen it.
+  useEffect(() => {
+    if (!player) return
+    if (new URLSearchParams(location.search).get('settings') !== '1') return
+    handleOpenSettings(player.is_online ? 'general' : 'location')
+    navigate(`/players/${player.id}`, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player])
+
   // Save player settings
   const handleSaveSettings = async () => {
     if (!id) return
