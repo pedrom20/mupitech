@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.1.3.2'
+export const APP_VERSION = '1.1.3.3'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.1.3.3',
+    date: '2026-08-15',
+    changeKeys: [
+      'playerCardMobileCollapse',
+    ],
+  },
   {
     version: '1.1.3.2',
     date: '2026-08-15',

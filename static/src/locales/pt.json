@@ -650,6 +650,8 @@
     "delete": "Eliminar",
     "edit": "Editar",
     "close": "Fechar",
+    "collapse": "Recolher detalhes",
+    "expand": "Expandir detalhes",
     "yes": "Sim",
     "no": "Não",
     "select": "Selecionar...",
@@ -785,7 +787,8 @@
       "deviceVersionRoleSplit": "Os devices só mostram a versão técnica completa quando acedidos por SSO por um admin/superadmin — os restantes veem um número de versão simples",
       "mfaMethodSwitch": "O login passa a permitir trocar para o outro método de 2FA quando tem TOTP e push do Duo ativos",
       "userModalTabs": "Modal de criar/editar user mais largo, com separador 'Acessos' dedicado e altura estável entre separadores",
-      "playerListEditFix": "O botão Editar na lista de devices abre agora o mesmo modal Definições completo da página de detalhe, em vez de um formulário mais antigo e limitado"
+      "playerListEditFix": "O botão Editar na lista de devices abre agora o mesmo modal Definições completo da página de detalhe, em vez de um formulário mais antigo e limitado",
+      "playerCardMobileCollapse": "Os cards na lista de devices são agora colapsáveis em mobile para poupar espaço, e grupo/localização passam a partilhar uma só linha"
     }
   },
   "updates": {

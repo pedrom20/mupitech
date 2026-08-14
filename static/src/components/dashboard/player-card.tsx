@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaInfoCircle, FaSyncAlt, FaEdit, FaTrash } from 'react-icons/fa'
+import { FaInfoCircle, FaSyncAlt, FaEdit, FaTrash, FaChevronDown } from 'react-icons/fa'
 import type { Player } from '@/types'
 import { players as playersApi } from '@/services/api'
 import Swal from 'sweetalert2'
@@ -19,6 +19,10 @@ interface PlayerCardProps {
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, compact }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  // Collapsed by default on mobile to save vertical space in the list —
+  // the d-md-block override below keeps it always expanded on desktop
+  // regardless of this state, so this only matters below that breakpoint.
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   const group = player.group_detail || player.group
   const location = player.effective_location_detail
@@ -87,12 +91,22 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, compa
     <div className="fm-player-card" onClick={handleCardClick}>
       <div className="player-card-header">
         <h5 className="player-name">{player.name}</h5>
-        <span className={player.is_online ? 'fm-badge-online' : 'fm-badge-offline'}>
-          {player.is_online ? t('players.online') : t('players.offline')}
-        </span>
+        <div className="d-flex align-items-center gap-2">
+          <span className={player.is_online ? 'fm-badge-online' : 'fm-badge-offline'}>
+            {player.is_online ? t('players.online') : t('players.offline')}
+          </span>
+          <button
+            type="button"
+            className="fm-btn-icon d-md-none"
+            onClick={(e) => { e.stopPropagation(); setDetailsOpen((open) => !open) }}
+            title={detailsOpen ? t('common.collapse') : t('common.expand')}
+          >
+            <FaChevronDown style={{ transform: detailsOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }} />
+          </button>
+        </div>
       </div>
 
-      <div className="player-card-body">
+      <div className={`player-card-body ${detailsOpen ? 'd-block' : 'd-none'} d-md-block`}>
         <div className="player-info-row">
           <span className="info-label">{t('players.url')}</span>
           <span className="info-value" style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -101,8 +115,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, compa
         </div>
 
         <div className="player-info-row">
-          <span className="info-label">{t('players.group')}</span>
-          <span className="info-value">
+          <span className="info-label">{t('players.group')} / {t('locations.title')}</span>
+          <span className="info-value d-flex flex-wrap justify-content-end gap-1">
             {group ? (
               <span
                 className="fm-group-tag"
@@ -116,12 +130,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, compa
             ) : (
               <span className="text-muted">{t('players.noGroup')}</span>
             )}
-          </span>
-        </div>
-
-        <div className="player-info-row">
-          <span className="info-label">{t('locations.title')}</span>
-          <span className="info-value">
             {location ? (
               <span
                 className="fm-group-tag"

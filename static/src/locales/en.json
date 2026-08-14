@@ -650,6 +650,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "close": "Close",
+    "collapse": "Collapse details",
+    "expand": "Expand details",
     "yes": "Yes",
     "no": "No",
     "select": "Select...",
@@ -785,7 +787,8 @@
       "deviceVersionRoleSplit": "Devices now show the full technical build version only when accessed via SSO by an admin/superadmin — everyone else sees a simple version number",
       "mfaMethodSwitch": "Login now lets you switch to your other 2FA method if you have both TOTP and Duo push enabled",
       "userModalTabs": "Wider user create/edit modal with a dedicated Access tab, and a stable modal height across tabs",
-      "playerListEditFix": "The Edit button on the player list now opens the same full Settings modal as the player detail page, instead of an older, more limited form"
+      "playerListEditFix": "The Edit button on the player list now opens the same full Settings modal as the player detail page, instead of an older, more limited form",
+      "playerCardMobileCollapse": "Player list cards are collapsible on mobile to save space, and group/location now share a single row"
     }
   },
   "updates": {
