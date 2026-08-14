@@ -212,6 +212,7 @@ const PlayerDetail: React.FC = () => {
   const [migrateProgressText, setMigrateProgressText] = useState('')
   const [preserveContent, setPreserveContent] = useState(true)
   const [migrateTarget, setMigrateTarget] = useState<'mupitech' | 'official'>('mupitech')
+  const [rebuildingImage, setRebuildingImage] = useState(false)
 
   // CCTV live view state
   const [cctvConfigId, setCctvConfigId] = useState<string | null>(null)
@@ -871,6 +872,68 @@ const PlayerDetail: React.FC = () => {
       Swal.fire({ icon: 'error', title: t('migrateImage.restoreFailed'), text: resolveMigrateImageError(err) })
     } finally {
       setRestoringImage(false)
+    }
+  }
+
+  const handleRebuildImage = async () => {
+    const canUseSavedPassword = !!player?.has_ssh_credentials && !pushLogoSshPassword
+    if (!id || (!pushLogoSshPassword && !canUseSavedPassword)) return
+    const result = await Swal.fire({
+      icon: 'error',
+      title: t('migrateImage.rebuildConfirmTitle'),
+      text: t('migrateImage.rebuildConfirmText'),
+      showCancelButton: true,
+      confirmButtonText: t('migrateImage.rebuildConfirmButton'),
+      cancelButtonText: t('common.cancel'),
+      confirmButtonColor: '#dc3545',
+    })
+    if (!result.isConfirmed) return
+    setRebuildingImage(true)
+    setMigrateProgressText(t('migrateImage.progressConnecting'))
+    const progressTimers = [
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressWiping')), 4_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressPulling')), 20_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressRestarting')), 45_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressBranding')), 60_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressSlow')), 100_000),
+    ]
+    try {
+      const rebuildResult = await playersApi.rebuildImage(
+        id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, saveSshCredentials, preserveContent,
+      )
+      const brandingFailedCount = rebuildResult.branding_failed?.length || 0
+      const brandingNote = brandingFailedCount > 0
+        ? t('migrateImage.brandingPushedWithFailures', { pushed: rebuildResult.branding_pushed?.length || 0, failed: brandingFailedCount })
+        : ''
+      if (preserveContent && rebuildResult.content_restored != null) {
+        const failedCount = rebuildResult.content_restore_failed?.length || 0
+        showToast(
+          failedCount > 0 || brandingFailedCount > 0 ? 'warning' : 'success',
+          t('migrateImage.rebuilt'),
+          [
+            failedCount > 0
+              ? t('migrateImage.contentRestoredSummaryWithFailures', { restored: rebuildResult.content_restored, failed: failedCount })
+              : t('migrateImage.contentRestoredSummary', { restored: rebuildResult.content_restored }),
+            brandingNote,
+          ].filter(Boolean).join(' '),
+        )
+      } else if (preserveContent && rebuildResult.content_restore_error) {
+        showToast('warning', t('migrateImage.rebuilt'), [rebuildResult.content_restore_error, brandingNote].filter(Boolean).join(' '))
+      } else if (brandingNote) {
+        showToast('warning', t('migrateImage.rebuilt'), brandingNote)
+      } else {
+        showToast('success', t('migrateImage.rebuilt'))
+      }
+      if (saveSshCredentials && player && pushLogoSshPassword) {
+        setPlayer({ ...player, has_ssh_credentials: true, ssh_username: pushLogoSshUser, ssh_port: pushLogoSshPort })
+      }
+      setPushLogoSshPassword('')
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('migrateImage.rebuildFailed'), text: resolveMigrateImageError(err) })
+    } finally {
+      progressTimers.forEach(clearTimeout)
+      setMigrateProgressText('')
+      setRebuildingImage(false)
     }
   }
 
@@ -3750,8 +3813,8 @@ const PlayerDetail: React.FC = () => {
                       </div>
                     )}
 
-                    {migratingImage && (
-                      <div className="alert alert-info py-2 px-2 d-flex align-items-center gap-2 mb-0" style={{ fontSize: '0.8rem' }}>
+                    {(migratingImage || rebuildingImage) && (
+                      <div className={`alert py-2 px-2 d-flex align-items-center gap-2 mb-0 ${rebuildingImage ? 'alert-danger' : 'alert-info'}`} style={{ fontSize: '0.8rem' }}>
                         <span className="spinner-border spinner-border-sm" />
                         <span>{migrateProgressText || t('migrateImage.progressConnecting')}</span>
                       </div>
@@ -3800,18 +3863,36 @@ const PlayerDetail: React.FC = () => {
                     {t('branding.push')}
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    className="fm-btn-primary"
-                    onClick={handleMigrateImage}
-                    disabled={
-                      migratingImage
-                      || (!pushLogoSshPassword && !player?.has_ssh_credentials)
-                      || (imageSourceResult ? !imageSourceResult.can_migrate : false)
-                    }
-                  >
-                    {migratingImage ? t('common.loading') : t('migrateImage.migrateButton')}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={handleRebuildImage}
+                      disabled={
+                        rebuildingImage
+                        || migratingImage
+                        || (!pushLogoSshPassword && !player?.has_ssh_credentials)
+                        || (imageSourceResult ? !imageSourceResult.can_migrate : false)
+                      }
+                      title={t('migrateImage.rebuildHint')}
+                    >
+                      {rebuildingImage ? <span className="spinner-border spinner-border-sm me-1" /> : null}
+                      {t('migrateImage.rebuildButton')}
+                    </button>
+                    <button
+                      type="button"
+                      className="fm-btn-primary"
+                      onClick={handleMigrateImage}
+                      disabled={
+                        migratingImage
+                        || rebuildingImage
+                        || (!pushLogoSshPassword && !player?.has_ssh_credentials)
+                        || (imageSourceResult ? !imageSourceResult.can_migrate : false)
+                      }
+                    >
+                      {migratingImage ? t('common.loading') : t('migrateImage.migrateButton')}
+                    </button>
+                  </>
                 )}
               </div>
             </div>

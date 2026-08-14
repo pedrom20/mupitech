@@ -275,6 +275,17 @@ export const players = {
     })
   },
 
+  rebuildImage(id: string, sshUser: string, sshPassword: string, sshPort: number, saveCredentials = false, preserveContent = false): Promise<{
+    success: boolean; action: 'rebuilt'; backup_path: string
+    content_restored?: number | null; content_restore_failed?: string[] | null; content_restore_error?: string | null
+    branding_pushed?: string[] | null; branding_failed?: { name: string; error: string }[] | null
+  }> {
+    return apiRequest('POST', `/players/${id}/rebuild-image/`, {
+      ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
+      save_credentials: saveCredentials, preserve_content: preserveContent,
+    })
+  },
+
   cloneContent(targetId: string, sourcePlayerId: string): Promise<{
     success: boolean; restored: number; failed: string[]
   }> {
