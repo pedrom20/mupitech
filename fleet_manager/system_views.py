@@ -707,3 +707,54 @@ def branding_push_all(request):
         details={'logo': bool(push_logo), 'standby': bool(push_standby), 'results': results},
     )
     return Response({'success': True, 'results': results})
+
+
+@api_view(['GET'])
+def fm_theme_settings(request):
+    """The Fleet Manager's own UI theme — currently just an optional
+    partner/reseller logo shown alongside the MupiTech wordmark in the
+    navbar (e.g. "MupiTech | [partner logo]"). Distinct from
+    /api/system/branding/, which is about what gets pushed to player
+    devices, not this app's own interface."""
+    from players.models import FleetManagerTheme
+
+    theme = FleetManagerTheme.get_solo()
+    return Response({
+        'partner_logo_url': theme.partner_logo.url if theme.partner_logo else None,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def fm_theme_upload_partner_logo(request):
+    """Upload the partner/reseller logo shown next to MupiTech in the navbar."""
+    from players.models import FleetManagerTheme
+
+    logo = request.FILES.get('logo')
+    if not logo:
+        return Response({'error': 'logo file is required'}, status=400)
+    name_lower = logo.name.lower()
+    if not name_lower.endswith(('.svg', '.png', '.jpg', '.jpeg')):
+        return Response({'error': 'Only SVG, PNG or JPEG files are supported'}, status=400)
+
+    theme = FleetManagerTheme.get_solo()
+    theme.partner_logo.save(logo.name, logo, save=True)
+
+    from history.logging import log_action
+    log_action(request, 'upload', 'fm_theme_partner_logo')
+
+    return Response({'success': True, 'partner_logo_url': theme.partner_logo.url})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdmin])
+def fm_theme_delete_partner_logo(request):
+    """Remove the partner/reseller logo — the navbar reverts to showing just MupiTech."""
+    from players.models import FleetManagerTheme
+
+    theme = FleetManagerTheme.get_solo()
+    if theme.partner_logo:
+        theme.partner_logo.delete(save=True)
+        from history.logging import log_action
+        log_action(request, 'delete', 'fm_theme_partner_logo')
+    return Response(status=204)

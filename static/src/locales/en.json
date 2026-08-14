@@ -937,6 +937,14 @@
     "emptyDeleted": "The recycle bin is empty.",
     "confirmDelete": "Remove \"{{name}}\" from the library? Devices already using it keep working."
   },
+  "partnerLogo": {
+    "title": "Partner logo",
+    "description": "Optional logo shown next to \"MupiTech\" in the Fleet Manager's navbar (e.g. co-branding with a partner or client).",
+    "upload": "Upload logo",
+    "uploaded": "Partner logo updated",
+    "removed": "Partner logo removed",
+    "none": "None set"
+  },
   "branding": {
     "title": "Device Branding",
     "description": "Images shown on your devices instead of Anthias's own branding. Applies fleet-wide — push it to a device from its detail page, or to a whole group from the groups page.",

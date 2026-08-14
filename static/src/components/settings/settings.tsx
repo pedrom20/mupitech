@@ -9,6 +9,7 @@ import { APP_VERSION } from '../../changelog'
 import { RoleContext, ThemeContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
 import BrandingSettings from './branding-settings'
+import PartnerLogoSettings from './partner-logo-settings'
 import AlertSettings from './alert-settings'
 import RegistrySettings from './registry-settings'
 
@@ -587,7 +588,14 @@ const Settings: React.FC = () => {
         )}
 
         {activeSettingsTab === 'branding' && isAdminRole(role) && (
-          <BrandingSettings />
+          <div className="row g-3">
+            <div className="col-lg-8">
+              <BrandingSettings />
+            </div>
+            <div className="col-lg-4">
+              <PartnerLogoSettings />
+            </div>
+          </div>
         )}
 
         {activeSettingsTab === 'users' && isAdminRole(role) && (

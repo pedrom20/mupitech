@@ -793,6 +793,20 @@ export const system = {
     return apiRequest('GET', '/system/branding/')
   },
 
+  getTheme(): Promise<{ partner_logo_url: string | null }> {
+    return apiRequest('GET', '/system/theme/')
+  },
+
+  uploadPartnerLogo(file: File): Promise<{ success: boolean; partner_logo_url: string }> {
+    const data = new FormData()
+    data.append('logo', file)
+    return apiRequest('POST', '/system/theme/partner-logo/', data)
+  },
+
+  deletePartnerLogo(): Promise<void> {
+    return apiRequest('DELETE', '/system/theme/partner-logo/delete/')
+  },
+
   uploadBrandingLogo(file: File): Promise<{ success: boolean; logo_url: string }> {
     const data = new FormData()
     data.append('logo', file)

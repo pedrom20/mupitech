@@ -937,6 +937,14 @@
     "emptyDeleted": "A reciclagem está vazia.",
     "confirmDelete": "Remover \"{{name}}\" da biblioteca? Os dispositivos que já a usam continuam a funcionar."
   },
+  "partnerLogo": {
+    "title": "Logótipo do parceiro",
+    "description": "Logótipo opcional mostrado ao lado de \"MupiTech\" no menu do Fleet Manager (ex: co-branding com um parceiro ou cliente).",
+    "upload": "Carregar logótipo",
+    "uploaded": "Logótipo do parceiro atualizado",
+    "removed": "Logótipo do parceiro removido",
+    "none": "Nenhum definido"
+  },
   "branding": {
     "title": "Marca dos Dispositivos",
     "description": "Imagens mostradas nos dispositivos em vez da marca do próprio Anthias. Aplica-se a todo o parque — envie a partir da página de detalhe de um dispositivo, ou a um grupo inteiro a partir da página de grupos.",

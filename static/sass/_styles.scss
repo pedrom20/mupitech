@@ -77,6 +77,26 @@ body {
     }
   }
 
+  // Optional partner/reseller logo, shown as "MupiTech | [logo]" when set
+  // in Settings — see FleetManagerTheme (players/models.py).
+  .navbar-partner-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-right: 2rem;
+
+    &__divider {
+      width: 1px;
+      height: 28px;
+      background: rgba($white, 0.2);
+    }
+
+    img {
+      height: 36px;
+      width: auto;
+    }
+  }
+
   .nav-link {
     color: rgba($white, 0.85);
     font-weight: $font-weight-medium;

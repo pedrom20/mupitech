@@ -298,3 +298,35 @@ class BrandingImage(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.kind})'
+
+
+class FleetManagerTheme(models.Model):
+    """Singleton: an optional partner/reseller logo shown alongside the
+    MupiTech wordmark in the Fleet Manager's own navbar (e.g. "MupiTech |
+    [partner logo]") — editable from Settings without a code change or
+    redeploy. Distinct from BrandingImage above, which is about what
+    gets pushed to player DEVICES, not this app's own interface.
+
+    Enforced as a single row via a fixed pk=1 (see save()); read through
+    get_solo() rather than a raw queryset so callers never have to think
+    about "what if the row doesn't exist yet" on a fresh install.
+    """
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    partner_logo = models.FileField(upload_to='branding/fleet_manager/', blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Fleet Manager theme'
+        verbose_name_plural = 'Fleet Manager theme'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return 'Fleet Manager theme'
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

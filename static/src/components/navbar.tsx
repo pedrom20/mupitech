@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaClipboardList, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
-import { auth as authApi } from '@/services/api'
+import { auth as authApi, system as systemApi } from '@/services/api'
 import { RoleContext, AuthContext, isAdminRole } from '@/components/app'
 import { useTapTrigger } from '@/hooks/use-tap-trigger'
 
@@ -157,7 +157,12 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
   const role = useContext(RoleContext)
   const { user, checked } = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
+  const [partnerLogoUrl, setPartnerLogoUrl] = useState<string | null>(null)
   const registerLogoTap = useTapTrigger(() => onLogoTapSequence?.())
+
+  useEffect(() => {
+    systemApi.getTheme().then((res) => setPartnerLogoUrl(res.partner_logo_url)).catch(() => {})
+  }, [])
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
@@ -186,6 +191,12 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
             <img src="/static/img/logo-retro.svg" alt="MupiTech Fleet Manager" className="logo-retro" />
             <img src="/static/img/logo-dos.svg" alt="MupiTech Fleet Manager" className="logo-dos" />
           </NavLink>
+          {partnerLogoUrl && (
+            <span className="navbar-partner-logo">
+              <span className="navbar-partner-logo__divider" aria-hidden="true" />
+              <img src={partnerLogoUrl} alt="" />
+            </span>
+          )}
 
           {isAuthenticated && (
             <button
