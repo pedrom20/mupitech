@@ -89,7 +89,10 @@
     "monitorOff": "Вимк",
     "cecNotAvailable": "CEC недоступний",
     "monitorStandbySent": "Монітор вимкнено",
-    "monitorWakeSent": "Монітор увімкнено"
+    "monitorWakeSent": "Монітор увімкнено",
+    "reveal": "Показати",
+    "revealCredentialsPrompt": "Введіть свій пароль, щоб переглянути дані входу цього пристрою",
+    "yourPassword": "Ваш пароль"
   },
   "groups": {
     "title": "Групи",

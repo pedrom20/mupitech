@@ -75,7 +75,10 @@
     "monitorOff": "Aus",
     "cecNotAvailable": "CEC nicht verfügbar",
     "monitorStandbySent": "Monitor ausgeschaltet",
-    "monitorWakeSent": "Monitor eingeschaltet"
+    "monitorWakeSent": "Monitor eingeschaltet",
+    "reveal": "Anzeigen",
+    "revealCredentialsPrompt": "Geben Sie Ihr Passwort ein, um die Anmeldedaten dieses Geräts anzuzeigen",
+    "yourPassword": "Ihr Passwort"
   },
   "groups": {
     "title": "Gruppen",

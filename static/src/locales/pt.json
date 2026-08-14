@@ -137,7 +137,10 @@
     "monitorOff": "Desligado",
     "cecNotAvailable": "CEC N/D",
     "monitorStandbySent": "Monitor desligado",
-    "monitorWakeSent": "Monitor ligado"
+    "monitorWakeSent": "Monitor ligado",
+    "reveal": "Ver",
+    "revealCredentialsPrompt": "Introduza a sua password para ver as credenciais deste device",
+    "yourPassword": "A sua password"
   },
   "groups": {
     "title": "Grupos",

@@ -75,7 +75,10 @@
     "monitorOff": "Wył",
     "cecNotAvailable": "CEC niedostępny",
     "monitorStandbySent": "Monitor wyłączony",
-    "monitorWakeSent": "Monitor włączony"
+    "monitorWakeSent": "Monitor włączony",
+    "reveal": "Pokaż",
+    "revealCredentialsPrompt": "Wprowadź swoje hasło, aby wyświetlić dane logowania tego urządzenia",
+    "yourPassword": "Twoje hasło"
   },
   "groups": {
     "title": "Grupy",

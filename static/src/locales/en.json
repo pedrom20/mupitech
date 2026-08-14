@@ -137,7 +137,10 @@
     "monitorOff": "Off",
     "cecNotAvailable": "CEC N/A",
     "monitorStandbySent": "Monitor off",
-    "monitorWakeSent": "Monitor on"
+    "monitorWakeSent": "Monitor on",
+    "reveal": "Reveal",
+    "revealCredentialsPrompt": "Enter your password to reveal this device's login",
+    "yourPassword": "Your password"
   },
   "groups": {
     "title": "Groups",

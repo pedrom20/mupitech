@@ -304,6 +304,12 @@ export const players = {
     return apiRequest('DELETE', `/players/${id}/ssh-credentials/`)
   },
 
+  /** Admin-only. Requires the requesting admin's own current password —
+   * see players/views.py::PlayerViewSet.reveal_credentials. */
+  revealCredentials(id: string, adminPassword: string): Promise<{ username: string; password: string }> {
+    return apiRequest('POST', `/players/${id}/reveal-credentials/`, { password: adminPassword })
+  },
+
   uploadLogo(id: string, file: File): Promise<{ success: boolean; logo_url: string }> {
     const data = new FormData()
     data.append('logo', file)

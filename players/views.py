@@ -138,7 +138,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         return filter_players(super().get_queryset(), self.request.user)
 
     def get_permissions(self):
-        if self.action == 'destroy':
+        if self.action in ('destroy', 'reveal_credentials'):
             return [IsAdmin()]
         return super().get_permissions()
 
@@ -668,6 +668,28 @@ class PlayerViewSet(viewsets.ModelViewSet):
         from history.logging import log_action
         log_action(request, 'save_ssh_credentials', 'player', target_id=player.id, target_name=player.name)
         return Response({'success': True, 'has_ssh_credentials': True, 'ssh_username': ssh_user, 'ssh_port': ssh_port})
+
+    @action(detail=True, methods=['post'], url_path='reveal-credentials')
+    def reveal_credentials(self, request, pk=None):
+        """Admin-only: decrypt and return this device's local dashboard
+        login (Player.username/password — already the system-of-record
+        credential used by services.py for API calls to the device, and
+        the fallback login when SSO/the device can't reach the Fleet
+        Manager). Nobody else can read this in cleartext: PlayerSerializer
+        keeps `password` write_only, so this action is the only reveal
+        path — gated to IsAdmin via get_permissions() above, and further
+        requires the requesting admin's own current password, since
+        exposing another party's stored secret is a sensitive action even
+        for an admin."""
+        player = self.get_object()
+        if not request.user.check_password(request.data.get('password', '')):
+            return Response({'error': 'Incorrect password.'}, status=400)
+        if not player.username or not player.password:
+            return Response({'error': 'No credentials stored for this device.'}, status=404)
+
+        from history.logging import log_action
+        log_action(request, 'reveal_credentials', 'player', target_id=player.id, target_name=player.name)
+        return Response({'username': player.username, 'password': player.get_password()})
 
     @action(detail=True, methods=['post', 'delete'], url_path='logo')
     def logo(self, request, pk=None):

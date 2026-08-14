@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaPlug } from 'react-icons/fa'
+import { FaPlug, FaEye } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch } from '@/store/index'
 import { createPlayer, updatePlayer } from '@/store/playersSlice'
-import { players as playersApi } from '@/services/api'
+import { players as playersApi, ApiError } from '@/services/api'
+import { RoleContext, isAdminRole } from '@/components/app'
 import type { Player, Group, Location } from '@/types'
 
 interface PlayerFormProps {
@@ -19,6 +20,7 @@ interface PlayerFormProps {
 const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onClose, onSaved, embedded }) => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const role = useContext(RoleContext)
   const isEditing = player !== null
 
   const [name, setName] = useState(player?.name || '')
@@ -63,6 +65,37 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onCl
       })
     } finally {
       setTesting(false)
+    }
+  }
+
+  const handleRevealCredentials = async () => {
+    if (!player) return
+    const { value: adminPassword } = await Swal.fire({
+      title: t('players.revealCredentialsPrompt'),
+      input: 'password',
+      inputPlaceholder: t('players.yourPassword'),
+      showCancelButton: true,
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
+      inputValidator: (value) => (value ? undefined : t('players.yourPassword')),
+    })
+    if (!adminPassword) return
+
+    try {
+      const result = await playersApi.revealCredentials(player.id, adminPassword)
+      Swal.fire({
+        icon: 'info',
+        title: t('players.password'),
+        html: `<div class="text-start"><strong>${t('players.username')}:</strong> `
+          + `<code>${result.username}</code><br><strong>${t('players.password')}:</strong> `
+          + `<code style="user-select: all">${result.password}</code></div>`,
+      })
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : String(error),
+      })
     }
   }
 
@@ -206,8 +239,18 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, groups, locations, onCl
         </div>
 
         <div className="mb-3">
-          <label className="form-label fw-semibold">
+          <label className="form-label fw-semibold d-flex justify-content-between align-items-center">
             {t('players.password')}
+            {isEditing && isAdminRole(role) && player?.username && (
+              <button
+                type="button"
+                className="btn btn-sm btn-link p-0"
+                onClick={handleRevealCredentials}
+                title={t('players.revealCredentialsPrompt')}
+              >
+                <FaEye className="me-1" />{t('players.reveal')}
+              </button>
+            )}
           </label>
           <input
             type="password"
