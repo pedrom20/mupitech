@@ -31,6 +31,9 @@ services:
     environment: &app-env
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
+      DUO_IKEY: ${DUO_IKEY:-}
+      DUO_SKEY: ${DUO_SKEY:-}
+      DUO_HOST: ${DUO_HOST:-}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       DB_ENGINE: django.db.backends.postgresql

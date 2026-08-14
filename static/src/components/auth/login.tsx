@@ -1,7 +1,7 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { FaSignInAlt, FaArrowLeft, FaShieldAlt } from 'react-icons/fa'
+import { FaSignInAlt, FaArrowLeft, FaShieldAlt, FaMobileAlt } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { AuthContext } from '@/components/app'
 import { auth, ApiError } from '@/services/api'
@@ -17,7 +17,10 @@ const Login: React.FC = () => {
   // Second factor: only entered once the first factor comes back with
   // mfa_required — no session exists yet at that point.
   const [challengeId, setChallengeId] = useState<string | null>(null)
+  const [method, setMethod] = useState<'totp' | 'duo' | null>(null)
   const [code, setCode] = useState('')
+  const [duoStatus, setDuoStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
+  const [duoError, setDuoError] = useState('')
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +29,7 @@ const Login: React.FC = () => {
       const result = await auth.login(username, password)
       if ('mfa_required' in result) {
         setChallengeId(result.challenge_id)
+        setMethod(result.method)
       } else {
         refresh()
         navigate('/')
@@ -61,9 +65,36 @@ const Login: React.FC = () => {
     }
   }
 
+  const sendDuoPush = async (challenge: string) => {
+    setDuoStatus('pending')
+    setDuoError('')
+    try {
+      await auth.verifyDuo(challenge)
+      refresh()
+      navigate('/')
+    } catch (error) {
+      if (error instanceof ApiError && error.message === 'timeout') {
+        setDuoStatus('timeout')
+      } else {
+        setDuoStatus('error')
+        setDuoError(error instanceof ApiError ? error.message : String(error))
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (challengeId && method === 'duo') {
+      sendDuoPush(challengeId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challengeId, method])
+
   const backToCredentials = () => {
     setChallengeId(null)
+    setMethod(null)
     setCode('')
+    setDuoStatus('pending')
+    setDuoError('')
   }
 
   return (
@@ -107,6 +138,43 @@ const Login: React.FC = () => {
                 {loading ? t('common.loading') : t('auth.login')}
               </button>
             </form>
+          ) : method === 'duo' ? (
+            <div>
+              <div className="text-center mb-4">
+                <FaMobileAlt size={28} className="mb-2" />
+                <p className="mb-0 fw-semibold">{t('auth.duo.title')}</p>
+                {duoStatus === 'pending' && (
+                  <p className="form-text">
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    {t('auth.duo.waiting')}
+                  </p>
+                )}
+                {duoStatus === 'timeout' && (
+                  <p className="form-text text-warning">{t('auth.duo.timeout')}</p>
+                )}
+                {duoStatus === 'error' && (
+                  <p className="form-text text-danger">{duoError || t('auth.duo.denied')}</p>
+                )}
+              </div>
+              {duoStatus !== 'pending' && (
+                <button
+                  type="button"
+                  className="fm-btn-primary w-100 mb-2"
+                  onClick={() => challengeId && sendDuoPush(challengeId)}
+                >
+                  <FaMobileAlt />
+                  {t('auth.duo.retry')}
+                </button>
+              )}
+              <button
+                type="button"
+                className="fm-btn-outline w-100"
+                onClick={backToCredentials}
+              >
+                <FaArrowLeft />
+                {t('auth.mfa.back')}
+              </button>
+            </div>
           ) : (
             <form onSubmit={handleMfaSubmit}>
               <div className="text-center mb-3">

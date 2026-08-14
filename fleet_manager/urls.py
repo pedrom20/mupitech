@@ -56,7 +56,7 @@ user_router.register('users', UserViewSet)
 @permission_classes([AllowAny])
 def auth_login(request):
     from history.logging import log_action
-    from mfa.models import TOTPDevice
+    from mfa.models import DuoEnrollment, TOTPDevice
 
     data = request.data
     user = authenticate(
@@ -65,24 +65,29 @@ def auth_login(request):
         password=data.get('password'),
     )
     if user is not None:
-        if TOTPDevice.objects.filter(user=user, confirmed=True).exists():
-            # Second factor required — do NOT call login() yet, that would
-            # establish a real session on password alone and defeat MFA.
-            # The challenge lives in the (Redis-backed) cache, not a signed
-            # token: a signed token isn't single-use without a shared store
-            # anyway (need somewhere to record "already consumed"), and a
-            # cache entry gives that for free via cache.delete() below.
+        # Duo push takes priority when a user has both — it's a single
+        # tap, no code to type. Whichever fires, do NOT call login() yet:
+        # that would establish a real session on password alone and
+        # defeat MFA. The challenge lives in the (Redis-backed) cache,
+        # not a signed token: a signed token isn't single-use without a
+        # shared store anyway (need somewhere to record "already
+        # consumed"), and a cache entry gives that for free via
+        # cache.delete() in the matching verify endpoint.
+        has_duo = DuoEnrollment.objects.filter(user=user, confirmed=True).exists()
+        has_totp = TOTPDevice.objects.filter(user=user, confirmed=True).exists()
+        if has_duo or has_totp:
             import secrets
 
             from django.core.cache import cache
 
+            method = 'duo' if has_duo else 'totp'
             challenge_id = secrets.token_urlsafe(32)
             cache.set(
                 f'mfa_challenge:{challenge_id}',
-                {'user_id': user.id, 'attempts': 0},
+                {'user_id': user.id, 'attempts': 0, 'method': method},
                 timeout=300,
             )
-            return Response({'mfa_required': True, 'challenge_id': challenge_id})
+            return Response({'mfa_required': True, 'challenge_id': challenge_id, 'method': method})
         login(request, user)
         log_action(request, 'login', 'session', target_name=user.username)
         return Response({'success': True, 'username': user.username})
@@ -135,6 +140,64 @@ def auth_mfa_verify(request):
         cache.set(cache_key, entry, timeout=300)
     log_action(request, 'login_failed', 'session', details={'mfa': True})
     return Response({'detail': 'Invalid code.'}, status=401)
+
+
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(key='post:challenge_id', rate='5/5m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_duo_verify(request):
+    """Companion to auth_mfa_verify for the Duo-push case: no code to
+    check, this just triggers the push and blocks (up to Duo's own
+    ~60s default) until the operator approves/denies or it times out —
+    see mfa/duo.py::push_auth. Rate limits are looser than the TOTP
+    verify's since there's no code to brute-force here; they exist
+    purely to stop someone spamming push notifications at a user."""
+    from django.contrib.auth.models import User
+    from django.core.cache import cache
+    from django.utils import timezone
+
+    from history.logging import log_action
+    from mfa import duo
+    from mfa.models import DuoEnrollment
+
+    challenge_id = request.data.get('challenge_id', '')
+    cache_key = f'mfa_challenge:{challenge_id}'
+    entry = cache.get(cache_key)
+    if not entry:
+        return Response({'detail': 'Challenge expired or invalid — please log in again.'}, status=400)
+
+    enrollment = DuoEnrollment.objects.filter(user_id=entry['user_id'], confirmed=True).first()
+    if not enrollment:
+        cache.delete(cache_key)
+        return Response({'detail': 'Duo push is not set up for this account.'}, status=400)
+
+    try:
+        result = duo.push_auth(enrollment.duo_user_id)
+    except Exception as exc:
+        logger.warning('Duo push_auth failed: %s', exc)
+        return Response({'detail': "Couldn't reach Duo — try again."}, status=502)
+
+    if result.get('result') == 'allow':
+        cache.delete(cache_key)
+        user = User.objects.get(pk=entry['user_id'])
+        login(request, user)
+        enrollment.last_used_at = timezone.now()
+        enrollment.save(update_fields=['last_used_at'])
+        log_action(request, 'login', 'session', target_name=user.username, details={'mfa': 'duo'})
+        return Response({'success': True, 'username': user.username})
+
+    if result.get('status') == 'timeout':
+        # Let the frontend retry (send another push) without forcing a
+        # fresh password entry — the challenge is still good.
+        log_action(request, 'login_failed', 'session', details={'mfa': 'duo', 'status': 'timeout'})
+        return Response({'detail': 'timeout', 'status_msg': result.get('status_msg', '')}, status=401)
+
+    # Explicit deny (or any other terminal state) — don't allow retrying
+    # the same challenge; force a fresh login.
+    cache.delete(cache_key)
+    log_action(request, 'login_failed', 'session', details={'mfa': 'duo', 'status': result.get('status')})
+    return Response({'detail': 'denied', 'status_msg': result.get('status_msg', '')}, status=401)
 
 
 @api_view(['POST'])
@@ -211,6 +274,7 @@ urlpatterns = [
     path('manage-d8f2a1/', admin.site.urls),
     path('api/auth/login/', auth_login),
     path('api/auth/mfa/verify/', auth_mfa_verify),
+    path('api/auth/mfa/duo-verify/', auth_duo_verify),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),
     path('api/auth/token/', obtain_auth_token, name='api-token'),

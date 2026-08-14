@@ -481,6 +481,13 @@
       "verify": "Verify",
       "back": "Back",
       "invalidCode": "Invalid code"
+    },
+    "duo": {
+      "title": "Duo push verification",
+      "waiting": "Check your phone for a Duo Mobile approval request…",
+      "timeout": "The request timed out — no response in time.",
+      "denied": "The request was denied.",
+      "retry": "Send push again"
     }
   },
   "schedule": {
@@ -1204,6 +1211,13 @@
     "confirmError": "Invalid code — please try again.",
     "disableError": "Incorrect password.",
     "enabledSuccess": "Two-factor authentication enabled.",
-    "disabledSuccess": "Two-factor authentication disabled."
+    "disabledSuccess": "Two-factor authentication disabled.",
+    "duoTitle": "Duo Security push",
+    "duoDescription": "Approve logins with a tap in the Duo Mobile app instead of typing a code — needs a Duo account set up by an admin first.",
+    "duoNotConfigured": "Duo isn't set up on this Fleet Manager instance yet.",
+    "duoEnableButton": "Enable Duo push",
+    "duoScanHint": "Scan this QR code with the Duo Mobile app.",
+    "duoWaitingForScan": "Waiting for you to finish enrolling in Duo Mobile…",
+    "duoEnrollError": "Couldn't start Duo enrollment."
   }
 }

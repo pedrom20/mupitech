@@ -481,6 +481,13 @@
       "verify": "Verificar",
       "back": "Voltar",
       "invalidCode": "Código inválido"
+    },
+    "duo": {
+      "title": "Verificação por push Duo",
+      "waiting": "Verifique o seu telemóvel — pedido de aprovação no Duo Mobile…",
+      "timeout": "O pedido expirou — sem resposta a tempo.",
+      "denied": "O pedido foi recusado.",
+      "retry": "Enviar push novamente"
     }
   },
   "schedule": {
@@ -1205,6 +1212,13 @@
     "confirmError": "Código inválido — tente novamente.",
     "disableError": "Palavra-passe incorreta.",
     "enabledSuccess": "Autenticação de dois fatores ativada.",
-    "disabledSuccess": "Autenticação de dois fatores desativada."
+    "disabledSuccess": "Autenticação de dois fatores desativada.",
+    "duoTitle": "Push do Duo Security",
+    "duoDescription": "Aprove logins com um toque na app Duo Mobile em vez de escrever um código — precisa de uma conta Duo configurada primeiro por um admin.",
+    "duoNotConfigured": "O Duo ainda não está configurado nesta instância do Fleet Manager.",
+    "duoEnableButton": "Ativar push do Duo",
+    "duoScanHint": "Digitalize este código QR com a app Duo Mobile.",
+    "duoWaitingForScan": "A aguardar que termine o registo na Duo Mobile…",
+    "duoEnrollError": "Não foi possível iniciar o registo no Duo."
   }
 }

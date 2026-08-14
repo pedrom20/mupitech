@@ -906,17 +906,27 @@ export const auth = {
   },
 
   /** First factor. Returns either {success, username} (no MFA enrolled —
-   * a real session was already established) or {mfa_required, challenge_id}
-   * (second factor needed — verifyMfa() below must succeed before there's
-   * a session). */
+   * a real session was already established) or {mfa_required, challenge_id,
+   * method} (second factor needed — verifyMfa()/verifyDuo() below must
+   * succeed before there's a session; method picks which one to call,
+   * 'duo' takes priority over 'totp' when a user has both enrolled). */
   login(username: string, password: string): Promise<
-    { success: true; username: string } | { mfa_required: true; challenge_id: string }
+    { success: true; username: string } | { mfa_required: true; challenge_id: string; method: 'totp' | 'duo' }
   > {
     return apiRequest('POST', '/auth/login/', { username, password })
   },
 
   verifyMfa(challengeId: string, code: string): Promise<{ success: boolean; username: string }> {
     return apiRequest('POST', '/auth/mfa/verify/', { challenge_id: challengeId, code })
+  },
+
+  /** Triggers a Duo Mobile push and blocks (up to ~60s) until the
+   * operator approves/denies or it times out — see
+   * fleet_manager/urls.py::auth_duo_verify. A 401 with
+   * detail: 'timeout' means the challenge is still good, safe to call
+   * again (sends a fresh push); any other failure means log in again. */
+  verifyDuo(challengeId: string): Promise<{ success: boolean; username: string }> {
+    return apiRequest('POST', '/auth/mfa/duo-verify/', { challenge_id: challengeId })
   },
 }
 
@@ -935,6 +945,26 @@ export const mfa = {
 
   disable(password: string): Promise<{ success: boolean }> {
     return apiRequest('POST', '/mfa/disable/', { password })
+  },
+}
+
+export const duo = {
+  status(): Promise<{ configured: boolean; enabled: boolean }> {
+    return apiRequest('GET', '/mfa/duo/status/')
+  },
+
+  enroll(): Promise<{ activation_barcode: string; expiration: number }> {
+    return apiRequest('POST', '/mfa/duo/enroll/')
+  },
+
+  /** Poll while the operator scans the QR in Duo Mobile — status is
+   * 'waiting' until they do, or 'success' once confirmed. */
+  confirm(): Promise<{ status: 'waiting' | 'success' }> {
+    return apiRequest('POST', '/mfa/duo/confirm/')
+  },
+
+  disable(password: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/mfa/duo/disable/', { password })
   },
 }
 

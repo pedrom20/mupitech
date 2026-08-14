@@ -19,6 +19,14 @@ if not SECRET_KEY:
 # mfa/crypto.py for the fallback used in dev when this is unset).
 MFA_ENCRYPTION_KEY = os.environ.get('MFA_ENCRYPTION_KEY', '')
 
+# Duo Security Auth API credentials (mfa/duo.py) — from an "Auth API"
+# application created in the Duo Admin Panel. Optional: Duo push stays
+# unavailable (mfa.duo.duo_configured() is False) until all three are
+# set, TOTP keeps working either way.
+DUO_IKEY = os.environ.get('DUO_IKEY', '')
+DUO_SKEY = os.environ.get('DUO_SKEY', '')
+DUO_HOST = os.environ.get('DUO_HOST', '')
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1' if not DEBUG else '*').split(',')
 
 INSTALLED_APPS = [
