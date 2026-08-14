@@ -779,7 +779,8 @@
       "onboardingWizard": "Onboarding forçado no primeiro login — admins podem exigir mudança de password e/ou ativação de MFA para novos users",
       "userCreateUpdateFix": "Corrigido um bug em que criar ou editar um user podia devolver um erro de servidor mesmo com a alteração guardada corretamente",
       "userScopeCacheFix": "Corrigidas definições de permissões de user (ex: apagar conteúdos + alertas offline) que nem sempre refletiam corretamente quando alteradas em conjunto",
-      "deviceSsoDisableToggle": "O login SSO pode agora ser desativado por device a partir da página de detalhe do player"
+      "deviceSsoDisableToggle": "O login SSO pode agora ser desativado por device a partir da página de detalhe do player",
+      "deviceVersionRoleSplit": "Os devices só mostram a versão técnica completa quando acedidos por SSO por um admin/superadmin — os restantes veem um número de versão simples"
     }
   },
   "updates": {

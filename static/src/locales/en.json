@@ -779,7 +779,8 @@
       "onboardingWizard": "Forced first-login onboarding — admins can require a password change and/or MFA enrollment for new users",
       "userCreateUpdateFix": "Fixed a bug where creating or editing a user could return a server error even though the change saved correctly",
       "userScopeCacheFix": "Fixed user permission settings (e.g. content deletion + offline alerts) not always reflecting correctly when changed together",
-      "deviceSsoDisableToggle": "SSO login can now be disabled per-device from the player detail page"
+      "deviceSsoDisableToggle": "SSO login can now be disabled per-device from the player detail page",
+      "deviceVersionRoleSplit": "Devices now show the full technical build version only when accessed via SSO by an admin/superadmin — everyone else sees a simple version number"
     }
   },
   "updates": {
