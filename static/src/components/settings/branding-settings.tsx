@@ -27,7 +27,6 @@ const BrandingSettings: React.FC = () => {
   const [pushingAll, setPushingAll] = useState(false)
   const [pushAllTargetLogo, setPushAllTargetLogo] = useState(true)
   const [pushAllTargetStandby, setPushAllTargetStandby] = useState(false)
-  const [pushAllTargetTheme, setPushAllTargetTheme] = useState(false)
 
   const load = () => {
     system.getBranding()
@@ -134,12 +133,12 @@ const BrandingSettings: React.FC = () => {
   }
 
   const handlePushAll = async () => {
-    if (!pushAllSshPassword || (!pushAllTargetLogo && !pushAllTargetStandby && !pushAllTargetTheme)) return
+    if (!pushAllSshPassword || (!pushAllTargetLogo && !pushAllTargetStandby)) return
     setPushingAll(true)
     try {
       const res = await system.pushBrandingToAll(
         pushAllSshUser, pushAllSshPassword, pushAllSshPort,
-        pushAllTargetLogo, pushAllTargetStandby, pushAllTargetTheme,
+        pushAllTargetLogo, pushAllTargetStandby,
       )
       const failed = Object.values(res.results).filter((r) => !r.success)
       if (failed.length === 0) {
@@ -347,18 +346,6 @@ const BrandingSettings: React.FC = () => {
                       )}
                     </label>
                   </div>
-                  <div className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id="push-all-target-theme"
-                      checked={pushAllTargetTheme}
-                      onChange={(e) => setPushAllTargetTheme(e.target.checked)}
-                    />
-                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-all-target-theme">
-                      {t('branding.themeLabel')}
-                    </label>
-                  </div>
                 </div>
                 <div className="mb-2">
                   <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('branding.sshUser')}</label>
@@ -400,7 +387,7 @@ const BrandingSettings: React.FC = () => {
                   type="button"
                   className="fm-btn-primary"
                   onClick={handlePushAll}
-                  disabled={pushingAll || !pushAllSshPassword || (!pushAllTargetLogo && !pushAllTargetStandby && !pushAllTargetTheme)}
+                  disabled={pushingAll || !pushAllSshPassword || (!pushAllTargetLogo && !pushAllTargetStandby)}
                 >
                   {pushingAll ? t('common.loading') : t('branding.push')}
                 </button>

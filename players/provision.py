@@ -196,7 +196,28 @@ def _prepare_player_directories(ssh, home, ssh_user, device_type, sudo_password,
             for p in placeholder_paths
         )
         _ssh_run(ssh, placeholder_cmd, timeout=timeout)
+
+    _touch_device_label_placeholder(ssh, home, layout, timeout)
     return layout
+
+
+def _touch_device_label_placeholder(ssh, home, layout, timeout=10):
+    """Ensure the device-label JSON (players/branding.py's
+    push_device_label_to_player) exists at its host path before the
+    compose file's volumes: entry ever bind-mounts it into the
+    container — otherwise Docker creates an empty directory there
+    instead (the exact bug that broke media_player.py earlier: a bind
+    mount whose host side doesn't exist yet shadows the container's real
+    file with a directory rather than failing loudly). `[ -f ... ] ||`
+    makes this a no-op on repeat calls (migrate/rebuild), so a device's
+    already-pushed label survives being re-provisioned. Shared by
+    provision.py and migrate_image.py's two directory-prep call sites.
+    """
+    label_path = f'{home}/{layout["config_dir"]}/mupitech-device-label.json'
+    _ssh_run(
+        ssh, f'[ -f {_shell_quote(label_path)} ] || echo {_shell_quote("{}")} > {_shell_quote(label_path)}',
+        timeout=timeout,
+    )
 
 
 def _render_compose(ip_address, ssh_user, watchtower_token, mac_address='', device_type='pi4', registry_override=None):
@@ -965,21 +986,25 @@ touch "$FLAG"
             task.player = player
             task.save(update_fields=['player'])
 
-            # Step 13: push branding (logo/theme/translation always available
-            # via the bundled default; standby only if fleet-wide/group/
-            # location has one configured). Best-effort — a device that
-            # provisioned fine but isn't ready for a branding push yet
-            # shouldn't be reported as a failed enrollment.
+            # Step 13: push branding overrides. The blue palette/PT copy/
+            # default logo+standby are baked into the image itself now
+            # (see players/branding.py's module docstring) — nothing to
+            # push for those. What's left: a custom logo (only if this
+            # player/its group/location actually has one — the bundled
+            # MupiTech default is already correct with no push needed),
+            # the identification chip, and a custom standby if configured.
+            # Best-effort — a device that provisioned fine but isn't ready
+            # for a branding push yet shouldn't be reported as a failed
+            # enrollment.
             _update_step(task, 13, 'push_branding', 'running', 'Applying branding...')
             _append_log(task, '[Step 13] Pushing branding to the new device...')
             try:
                 from .branding import (
-                    BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
-                    push_theme_color_to_player, push_splash_translation_to_player, get_standby_path,
+                    BrandingPushError, push_device_label_to_player, push_splash_logo_to_player,
+                    push_standby_image_to_player, get_standby_path,
                 )
                 push_splash_logo_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
-                push_theme_color_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
-                push_splash_translation_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
+                push_device_label_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
                 if get_standby_path(player):
                     push_standby_image_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
                 _update_step(task, 13, 'push_branding', 'success', 'Branding applied')

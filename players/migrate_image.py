@@ -30,12 +30,11 @@ from django.conf import settings
 
 from .branding import (
     BrandingPushError,
+    push_device_label_to_player,
     push_splash_logo_to_player,
-    push_splash_translation_to_player,
     push_standby_image_to_player,
-    push_theme_color_to_player,
 )
-from .provision import _home_layout, _render_compose, _shell_quote, _ssh_run
+from .provision import _home_layout, _render_compose, _shell_quote, _ssh_run, _touch_device_label_placeholder
 
 logger = logging.getLogger(__name__)
 
@@ -283,18 +282,20 @@ def _push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout
     into the image itself (see players/branding.py) — so every time a
     container is recreated from a freshly pulled image (a migration, an
     "already on our image" update, or a routine Watchtower auto-update),
-    it reverts to Anthias's own defaults (English copy, purple theme,
-    "Anthias" branding) until this runs again. Called from both
-    migration branches below so the operator doesn't have to remember a
-    separate manual "push branding" step. Best-effort/non-fatal: one
-    push failing (most commonly the standby image — there's no bundled
-    default for it) doesn't block the others or fail the caller.
+    it reverts to the baked-in MupiTech default (see players/branding.py's
+    module docstring) until this runs again — no longer to Anthias's own
+    branding, since the blue palette/PT copy/default logo+standby are now
+    baked into the image itself, not patched on top of it. Called from
+    both migration branches below so the operator doesn't have to
+    remember a separate manual "push branding" step. Best-effort/
+    non-fatal: one push failing (most commonly the standby image —
+    there's no bundled fleet-wide override for it) doesn't block the
+    others or fail the caller.
     """
     pushed, failed = [], []
     for name, push_fn in (
         ('logo', push_splash_logo_to_player),
-        ('theme', push_theme_color_to_player),
-        ('translation', push_splash_translation_to_player),
+        ('device_label', push_device_label_to_player),
         ('standby', push_standby_image_to_player),
     ):
         try:
@@ -559,6 +560,7 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
             f'{home}/{layout["assets_dir"]}',
         }
         _ssh_run(ssh, f'mkdir -p {" ".join(sorted(dirs))}', timeout=timeout)
+        _touch_device_label_placeholder(ssh, home, layout, timeout)
 
         sftp = ssh.open_sftp()
         try:
@@ -681,6 +683,7 @@ def rebuild_player(player, ssh_user, ssh_password, ssh_port=22, timeout=30, pres
             f'{home}/{layout["assets_dir"]}',
         }
         _ssh_run(ssh, f'mkdir -p {" ".join(sorted(dirs))}', timeout=timeout)
+        _touch_device_label_placeholder(ssh, home, layout, timeout)
 
         sftp = ssh.open_sftp()
         try:

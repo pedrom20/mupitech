@@ -239,10 +239,10 @@ export const players = {
     return apiRequest<PlayerUpdateCheckResult>('GET', `/players/${id}/update-check/`)
   },
 
-  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean, saveCredentials = false): Promise<{ success: boolean }> {
+  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, saveCredentials = false): Promise<{ success: boolean }> {
     return apiRequest('POST', `/players/${id}/push-branding/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
-      push_logo: pushLogo, push_standby: pushStandby, push_theme: pushTheme,
+      push_logo: pushLogo, push_standby: pushStandby,
       save_credentials: saveCredentials,
     })
   },
@@ -378,13 +378,13 @@ export const groups = {
     return apiRequest('POST', `/groups/${id}/apply-rotation/`, { screen_rotation: screenRotation })
   },
 
-  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean): Promise<{
+  pushBranding(id: string, sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean): Promise<{
     success: boolean
     results: Record<string, { name: string; success: boolean; error?: string }>
   }> {
     return apiRequest('POST', `/groups/${id}/push-branding/`, {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
-      push_logo: pushLogo, push_standby: pushStandby, push_theme: pushTheme,
+      push_logo: pushLogo, push_standby: pushStandby,
     })
   },
 
@@ -813,13 +813,13 @@ export const system = {
     return apiRequest('DELETE', '/system/branding/standby/delete/')
   },
 
-  pushBrandingToAll(sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean, pushTheme: boolean): Promise<{
+  pushBrandingToAll(sshUser: string, sshPassword: string, sshPort: number, pushLogo: boolean, pushStandby: boolean): Promise<{
     success: boolean
     results: Record<string, { name: string; success: boolean; error?: string }>
   }> {
     return apiRequest('POST', '/system/branding/push-all/', {
       ssh_user: sshUser, ssh_password: sshPassword, ssh_port: sshPort,
-      push_logo: pushLogo, push_standby: pushStandby, push_theme: pushTheme,
+      push_logo: pushLogo, push_standby: pushStandby,
     })
   },
 }

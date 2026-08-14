@@ -20,6 +20,15 @@ services:
       - /home/$PI_USER/anthias_assets:/data/anthias_assets
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+      # Per-device identification chip data (location/group/name shown on
+      # the splash-page) — a host bind mount rather than something pushed
+      # into the container's writable layer, so it survives a container
+      # recreate (image update, Watchtower auto-update). The host file is
+      # guaranteed to exist before this is ever mounted (see
+      # players/provision.py's _touch_device_label_placeholder) — an
+      # absent host file would make Docker mount an empty directory here
+      # instead, breaking the endpoint the splash-page's JS reads.
+      - /home/$PI_USER/.anthias/mupitech-device-label.json:/usr/src/app/staticfiles/mupitech-device-label.json:ro
     # Pi 5 has two real HDMI/CEC adapters (dual HDMI output) — unlike
     # /dev/lirc0 on x86, these are expected to exist on every Pi 5, so
     # (unlike the IR passthrough below) they're declared unconditionally.

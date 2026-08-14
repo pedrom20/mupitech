@@ -389,9 +389,16 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='push-branding')
     def push_branding(self, request, pk=None):
-        """SSH into the device once and replace its Anthias branding
-        (splash-page logo, "no content" standby image and/or the purple
-        theme colors).
+        """SSH into the device once and push branding overrides: a custom
+        splash-page logo and/or "no content" standby image (overriding the
+        baked-in MupiTech defaults for this specific player/group/
+        location), plus its identification chip data (location/group/
+        name — cheap, always pushed alongside the logo).
+
+        The purple-to-blue theme colors and Portuguese copy used to be
+        pushed here too, but are now baked into the mupitech-player image
+        itself (see players/branding.py's module docstring) — nothing left
+        to push for those.
 
         ssh_user/ssh_password/ssh_port are optional if this device already
         has saved SSH credentials (see the ssh-credentials action) — those
@@ -405,21 +412,18 @@ class PlayerViewSet(viewsets.ModelViewSet):
         ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
         push_logo = request.data.get('push_logo', True)
         push_standby = request.data.get('push_standby', False)
-        push_theme = request.data.get('push_theme', False)
         save_credentials = request.data.get('save_credentials', False)
 
         from .branding import (
-            BrandingPushError, push_splash_logo_to_player,
-            push_standby_image_to_player, push_theme_color_to_player, push_splash_translation_to_player,
+            BrandingPushError, push_device_label_to_player, push_splash_logo_to_player,
+            push_standby_image_to_player,
         )
         try:
             if push_logo:
                 push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+                push_device_label_to_player(player, ssh_user, ssh_password, ssh_port)
             if push_standby:
                 push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port)
-            if push_theme:
-                push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port)
-                push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port)
         except BrandingPushError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -432,7 +436,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         from history.logging import log_action
         log_action(
             request, 'push_branding', 'player', target_id=player.id, target_name=player.name,
-            details={'logo': bool(push_logo), 'standby': bool(push_standby), 'theme': bool(push_theme)},
+            details={'logo': bool(push_logo), 'standby': bool(push_standby)},
         )
         return Response({'success': True})
 

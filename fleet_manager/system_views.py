@@ -665,8 +665,8 @@ def branding_push_all(request):
     own takes precedence, so devices with different logins can be pushed
     in one go."""
     from players.branding import (
-        BrandingPushError, push_splash_logo_to_player, push_standby_image_to_player,
-        push_theme_color_to_player, push_splash_translation_to_player, get_standby_path,
+        BrandingPushError, push_device_label_to_player, push_splash_logo_to_player,
+        push_standby_image_to_player, get_standby_path,
     )
     from players.models import Player
 
@@ -678,7 +678,6 @@ def branding_push_all(request):
         return Response({'error': 'ssh_port must be an integer'}, status=400)
     push_logo = request.data.get('push_logo', True)
     push_standby = request.data.get('push_standby', False)
-    push_theme = request.data.get('push_theme', False)
 
     results = {}
     for player in Player.objects.all():
@@ -695,11 +694,9 @@ def branding_push_all(request):
         try:
             if push_logo:
                 push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port)
+                push_device_label_to_player(player, ssh_user, ssh_password, ssh_port)
             if push_standby and get_standby_path(player):
                 push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port)
-            if push_theme:
-                push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port)
-                push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port)
             results[str(player.id)] = {'name': player.name, 'success': True}
         except BrandingPushError as exc:
             results[str(player.id)] = {'name': player.name, 'success': False, 'error': str(exc)}
@@ -707,6 +704,6 @@ def branding_push_all(request):
     from history.logging import log_action
     log_action(
         request, 'push_branding_all', 'system',
-        details={'logo': bool(push_logo), 'standby': bool(push_standby), 'theme': bool(push_theme), 'results': results},
+        details={'logo': bool(push_logo), 'standby': bool(push_standby), 'results': results},
     )
     return Response({'success': True, 'results': results})

@@ -192,7 +192,6 @@ const PlayerDetail: React.FC = () => {
   const [pushingLogo, setPushingLogo] = useState(false)
   const [pushTargetLogo, setPushTargetLogo] = useState(true)
   const [pushTargetStandby, setPushTargetStandby] = useState(false)
-  const [pushTargetTheme, setPushTargetTheme] = useState(false)
   const [brandingHasStandby, setBrandingHasStandby] = useState(false)
   const [saveSshCredentials, setSaveSshCredentials] = useState(false)
   const [uploadingDeviceLogo, setUploadingDeviceLogo] = useState(false)
@@ -738,10 +737,10 @@ const PlayerDetail: React.FC = () => {
 
   const handlePushBranding = async () => {
     const canUseSavedPassword = !!player?.has_ssh_credentials && !pushLogoSshPassword
-    if (!id || (!pushLogoSshPassword && !canUseSavedPassword) || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)) return
+    if (!id || (!pushLogoSshPassword && !canUseSavedPassword) || (!pushTargetLogo && !pushTargetStandby)) return
     setPushingLogo(true)
     try {
-      await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, pushTargetTheme, saveSshCredentials)
+      await playersApi.pushBranding(id, pushLogoSshUser, pushLogoSshPassword, pushLogoSshPort, pushTargetLogo, pushTargetStandby, saveSshCredentials)
       showToast('success', t('branding.pushed'))
       setShowSettingsModal(false)
       if (saveSshCredentials && player && pushLogoSshPassword) {
@@ -3603,18 +3602,6 @@ const PlayerDetail: React.FC = () => {
                       )}
                     </label>
                   </div>
-                  <div className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id="push-target-theme"
-                      checked={pushTargetTheme}
-                      onChange={e => setPushTargetTheme(e.target.checked)}
-                    />
-                    <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor="push-target-theme">
-                      {t('branding.themeLabel')}
-                    </label>
-                  </div>
                 </div>
                 {player?.has_ssh_credentials && (
                   <div className="alert alert-secondary py-2 px-2 d-flex justify-content-between align-items-center" style={{ fontSize: '0.78rem' }}>
@@ -3855,7 +3842,7 @@ const PlayerDetail: React.FC = () => {
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={handlePushBranding}
-                    disabled={pushingLogo || (!pushLogoSshPassword && !player?.has_ssh_credentials) || (!pushTargetLogo && !pushTargetStandby && !pushTargetTheme)}
+                    disabled={pushingLogo || (!pushLogoSshPassword && !player?.has_ssh_credentials) || (!pushTargetLogo && !pushTargetStandby)}
                   >
                     {pushingLogo ? (
                       <span className="spinner-border spinner-border-sm me-1" />

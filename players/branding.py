@@ -1,28 +1,39 @@
-"""Push fleet-wide custom branding assets to a device over SSH.
+"""Push per-fleet/group/location/player branding overrides to a device.
 
-Anthias reads two branding-relevant images as plain static files, both
-served directly by WhiteNoise's StaticFilesStorage — neither is baked
-into any compiled Qt resource:
-  - settings['splash_logo_url'] (default /static/img/logo-full-splash.svg)
-    — logo on the network/IP "splash" screen shown on first boot / no
-    server configured yet.
-  - STANDBY_SCREEN (anthias_viewer/constants.py, always
-    /static/img/standby.png) — shown whenever there is no content
-    scheduled to play (the "black screen" between/without assets).
+The MupiTech brand (blue palette, Portuguese copy, MupiTech logo/standby
+defaults) is baked directly into the mupitech-player image's source as
+of the fork's "gravar marca MupiTech na propria imagem" change — a
+freshly (re)provisioned device is already correctly branded with no push
+needed. This module now only covers two things that genuinely can't be
+baked into a single shared image at build time:
 
-Overwriting these files inside the running anthias-server container
-and restarting it is enough to rebrand them, no image rebuild needed.
+  - A CUSTOM logo/standby image, overriding the baked-in MupiTech
+    default for a specific fleet/group/location/player. Still pushed by
+    overwriting a file inside the running anthias-server container
+    (settings['splash_logo_url'], default /static/img/logo-full-splash.svg;
+    STANDBY_SCREEN in anthias_viewer/constants.py, always
+    /static/img/standby.png) — both served directly by WhiteNoise's
+    StaticFilesStorage. This still lives in the container's writable
+    layer, so a container recreate (image update, Watchtower
+    auto-update) reverts an override back to the baked-in MupiTech
+    default — never back to Anthias's own branding, which is the actual
+    failure mode this whole redesign was for.
+  - The per-device identification chip (location/group/name) — see
+    push_device_label_to_player below, which writes straight to a host
+    path the compose file bind-mounts in, so it DOES survive a container
+    recreate.
+
 See docs/anthias-version-analysis.md.
 """
 
 import base64
+import json as _json
 import os
-import re
 from urllib.parse import urlparse
 
 from django.conf import settings
 
-from .provision import _shell_quote, _ssh_run
+from .provision import _home_layout, _shell_quote, _ssh_run
 
 BRANDING_DIR = os.path.join(settings.MEDIA_ROOT, 'branding')
 
@@ -36,73 +47,6 @@ DEFAULT_LOGO_PATH = os.path.join(settings.BASE_DIR, 'static', 'img', 'logo.svg')
 STANDBY_FILENAME = 'standby-image.png'
 CONTAINER_STANDBY_PATH = '/usr/src/app/staticfiles/img/standby.png'
 REMOTE_TMP_STANDBY_PATH = '/tmp/mupitech-standby-image.png'
-
-CONTAINER_CSS_PATH = '/usr/src/app/staticfiles/dist/css/anthias.css'
-
-# The splash-page is a server-rendered Django template (not a collected
-# static file), so it lives under the app's source tree rather than
-# staticfiles/ — see src/anthias_server/app/templates/splash-page.html
-# in Screenly/Anthias, copied verbatim into /usr/src/app/ by the image's
-# `COPY . /usr/src/app/`.
-CONTAINER_SPLASH_TEMPLATE_PATH = '/usr/src/app/src/anthias_server/app/templates/splash-page.html'
-# Anthias's splash-page ships hardcoded English copy with no i18n of its
-# own. Translated here (and its two "Anthias" brand mentions swapped for
-# MupiTech, consistent with the logo/color rebrand) via the same in-place
-# sed used for the CSS colors above — the strings are unique substrings
-# of the template, so a plain substitution is reliable without needing
-# the device's real file contents.
-SPLASH_TRANSLATION_REPLACEMENTS = [
-    ('<html lang="en">', '<html lang="pt">'),
-    ('<title>Welcome to Anthias</title>', '<title>Bem-vindo ao MupiTech</title>'),
-    ('alt="Anthias"', 'alt="MupiTech"'),
-    ('Detecting network&hellip;', 'A detetar rede&hellip;'),
-    ('Ready to manage', 'Pronto a gerir'),
-    ('Open this on your phone or laptop', 'Abra isto no seu telemóvel ou computador'),
-    (
-        'Point a browser at one of the addresses below, or scan the QR code.',
-        # Non-breaking space between "código" and "QR." — without it, this
-        # sentence's last word wraps alone onto its own line at the card's
-        # width, an orphaned "QR." underneath the rest of the sentence.
-        'Aceda a um dos endereços abaixo no navegador, ou leia o código&nbsp;QR.',
-    ),
-    ('Scan to manage', 'Ler para gerir'),
-]
-# Official Anthias's $anthias-purple-1..5 (src/anthias_server/app/static/sass/_variables.scss)
-# and the splash-page's two radial-gradient glows, mapped to this project's
-# own blue palette (static/sass/_variables.scss). Sass's --style=compressed
-# output preserves color literals verbatim (no auto hex-shortening), so a
-# plain in-place sed on the already-compiled CSS is reliable — no rebuild,
-# no re-uploading the whole file.
-THEME_COLOR_REPLACEMENTS = [
-    ('#270035', '#04182B'),   # $anthias-purple-1 (--color-bg, splash gradient start)
-    ('#492955', '#0C3A5C'),   # $anthias-purple-2 (--color-active)
-    ('#52335D', '#005096'),   # $anthias-purple-3 (--color-bg-elevated)
-    ('#D4CCD7', '#CFE3F0'),   # $anthias-purple-4
-    ('#8819C7', '#0082C8'),   # $anthias-purple-5
-    ('#0f0019', '#04182B'),   # --color-bg-deep (splash background-color)
-    ('#503061', '#0d3f66'),   # --color-active-tint (gradient stop)
-    ('rgba(124, 48, 205,', 'rgba(0, 130, 200,'),  # splash radial glow 1
-    ('rgba(91, 32, 144,', 'rgba(12, 58, 92,'),    # splash radial glow 2
-]
-# Anthias's splash-page logo defaults to a small clamp()'d height
-# (.splash-logo in _styles.scss) — bumped ~20% so the MupiTech logo
-# reads clearly on a TV viewed from a distance. Matched against the
-# exact compressed (--style=compressed) output, confirmed by compiling
-# the source scss locally — dart-sass strips all whitespace inside the
-# clamp() argument list in compressed mode.
-SPLASH_LOGO_SIZE_REPLACEMENTS = [
-    # Two "from" states so this converges to the same final size whether
-    # a device is on the original CSS or already got the first bump from
-    # an earlier push — a sed search for the original value alone would
-    # silently no-op on a device that's already mid-way there (see
-    # _render_splash_page_for_player's docstring for the same class of
-    # bug on the HTML template, which this CSS file doesn't get the fix
-    # for — it's compiled output, not something we keep a pristine local
-    # copy of to always render fresh from).
-    ('height:clamp(2.5rem,6vh,4.5rem)', 'height:clamp(4.5rem,9vh,7.5rem)'),
-    ('height:clamp(3rem,7vh,5.5rem)', 'height:clamp(4.5rem,9vh,7.5rem)'),
-]
-
 
 class BrandingPushError(Exception):
     """Raised when pushing a branding asset to a device fails."""
@@ -343,229 +287,43 @@ def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, ti
     )
 
 
-def _sed_search_escape(value):
-    """Escape a plain string for safe use as a sed search pattern."""
-    return re.sub(r'([\\.*/\[\]^$])', r'\\\1', value)
 
+def push_device_label_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and write its identification chip data
+    (location/group/device name — shown as a small pill in the
+    bottom-right corner of the splash-page) directly to the host path
+    the compose file bind-mounts into the container.
 
-def _sed_replacement_escape(value):
-    """Escape a plain string for safe use as a sed replacement (sed gives
-    `&` and `/` special meaning there; search-only metacharacters like
-    `.`/`*` don't apply)."""
-    return re.sub(r'([\\&/])', r'\\\1', value)
+    Deliberately NOT pushed into the container's writable layer like
+    the logo/standby overrides above: this file needs to survive a
+    container recreate (image update, Watchtower auto-update), which a
+    host bind mount does and the writable layer doesn't. See
+    provision.py's _touch_device_label_placeholder (guarantees the host
+    file exists before it's ever bind-mounted — an absent host file
+    would make Docker mount an empty directory there instead) and the
+    mupitech-device-label.json volume entry in the
+    docker-compose-player-*.yml templates.
 
-
-def _sed_patch_container_file(player, ssh_user, ssh_password, ssh_port, timeout,
-                               container_path, replacements):
-    """SSH into `player`'s host and run an in-place sed on `container_path`
-    inside the running anthias-server container, then restart it."""
+    No container restart needed — splash-page.html's own inline script
+    fetches this fresh (cache: 'no-store') on every page load.
+    """
     import paramiko
 
     host = urlparse(player.url).hostname
     if not host:
         raise BrandingPushError(f"Could not determine host from player URL: {player.url}")
 
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        ssh.connect(host, port=ssh_port, username=ssh_user, password=ssh_password, timeout=timeout)
-    except Exception as exc:
-        raise BrandingPushError(f'SSH connection failed: {exc}') from exc
-
-    try:
-        out, _, _ = _ssh_run(
-            ssh,
-            "docker ps --format '{{.Names}}' --filter name=anthias-server",
-            timeout=timeout,
-        )
-        container = next((line for line in out.strip().splitlines() if line.strip()), '')
-        if not container:
-            raise BrandingPushError(
-                'Could not find a running anthias-server container on this device.'
-            )
-
-        sed_expr = ' '.join(
-            f"-e {_shell_quote(f's/{_sed_search_escape(old)}/{_sed_replacement_escape(new)}/g')}"
-            for old, new in replacements
-        )
-        _ssh_run(
-            ssh,
-            f'docker exec {_shell_quote(container)} sed -i {sed_expr} {container_path}',
-            timeout=timeout,
-        )
-        _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
-    except BrandingPushError:
-        raise
-    except Exception as exc:
-        raise BrandingPushError(str(exc)) from exc
-    finally:
-        ssh.close()
-
-
-def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and replace Anthias's purple theme colors
-    (splash-page background gradient, active-state accents) with this
-    project's blue palette, via an in-place sed on the already-compiled
-    anthias.css — no rebuild, no re-uploading the whole file.
-    """
-    _sed_patch_container_file(
-        player, ssh_user, ssh_password, ssh_port, timeout,
-        container_path=CONTAINER_CSS_PATH,
-        replacements=THEME_COLOR_REPLACEMENTS + SPLASH_LOGO_SIZE_REPLACEMENTS,
-    )
-
-
-_DEVICE_LABEL_START = '<!-- mupitech-device-label:start -->'
-_DEVICE_LABEL_END = '<!-- mupitech-device-label:end -->'
-# Anchored at the very end of <body> rather than inside .splash-card, so
-# `position:fixed` below places it against the actual screen corner —
-# independent of the card's own layout/flow, not sharing a line (and
-# baseline) with the "Pronto a gerir" status chip inside it.
-_DEVICE_LABEL_ANCHOR = '</body>'
-
-# Minimal Feather-style outline icons (MIT-licensed design, redrawn as
-# inline SVG so the label needs no extra font/asset — 14px, stroke
-# inherits the surrounding text color via currentColor).
-_ICON_LOCATION = (
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
-)
-_ICON_GROUP = (
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>'
-    '<path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
-)
-_ICON_DEVICE = (
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>'
-)
-
-# Visually matches .splash-status (see _styles.scss "Splash page" section)
-# via the same CSS custom properties, so it reads as part of the same
-# design system without needing to touch the compiled anthias.css.
-# position:fixed anchors it to the bottom-right of the actual screen,
-# not the card — kept out of the card's own layout entirely.
-_DEVICE_LABEL_STYLE = (
-    'position:fixed;bottom:24px;right:24px;z-index:1000;'
-    'display:inline-flex;align-items:center;gap:var(--space-2);'
-    'padding:var(--space-1) var(--space-3);'
-    'font-size:0.8125rem;font-weight:600;letter-spacing:0.02em;'
-    'color:var(--color-text-on-dark-muted);background:rgba(255,255,255,0.06);'
-    'border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-pill);'
-)
-_DEVICE_LABEL_ITEM_STYLE = 'display:inline-flex;align-items:center;gap:4px;'
-_DEVICE_LABEL_SEP_STYLE = 'opacity:0.4;'
-
-
-def _device_label_html(player):
-    """Build the "Location / Group / Device name" identification chip for
-    `player`, skipping any level that isn't set. Returns '' if there's
-    nothing to show (shouldn't normally happen — the device's own name
-    is always present)."""
-    import html as _html
-
-    parts = []
+    data = {}
     location = player.effective_location
     if location and location.name:
-        parts.append((_ICON_LOCATION, location.name))
+        data['location'] = location.name
     if player.group_id and player.group.name:
-        parts.append((_ICON_GROUP, player.group.name))
+        data['group'] = player.group.name
     if player.name:
-        parts.append((_ICON_DEVICE, player.name))
-    if not parts:
-        return ''
+        data['name'] = player.name
 
-    items = [
-        f'<span style="{_DEVICE_LABEL_ITEM_STYLE}">{icon}<span>{_html.escape(text)}</span></span>'
-        for icon, text in parts
-    ]
-    separator = f'<span style="{_DEVICE_LABEL_SEP_STYLE}" aria-hidden="true">/</span>'
-    inner = separator.join(items)
-    return (
-        f'{_DEVICE_LABEL_START}\n'
-        f'      <div class="splash-device-label" style="{_DEVICE_LABEL_STYLE}">{inner}</div>\n'
-        f'      {_DEVICE_LABEL_END}'
-    )
-
-
-def _inject_device_label(content, player):
-    """Replace any previously-injected device-label block in `content`
-    (server-rendered splash-page.html) with a freshly-rendered one for
-    `player`, fixed-positioned in the bottom-right corner of the screen.
-    Idempotent and safe to call on every push — a device's name/group/
-    location can change over time, so the old block is always stripped
-    first rather than left stale."""
-    import re as _re
-
-    content = _re.sub(
-        _re.escape(_DEVICE_LABEL_START) + r'.*?' + _re.escape(_DEVICE_LABEL_END),
-        '', content, flags=_re.DOTALL,
-    )
-    label_html = _device_label_html(player)
-    if not label_html or _DEVICE_LABEL_ANCHOR not in content:
-        return content
-    return content.replace(_DEVICE_LABEL_ANCHOR, f'{label_html}\n      {_DEVICE_LABEL_ANCHOR}', 1)
-
-
-def _write_container_file(ssh, container, container_path, content, timeout):
-    remote_tmp = f'/tmp/mupitech-write-{os.urandom(8).hex()}'
-    sftp = ssh.open_sftp()
-    try:
-        with sftp.file(remote_tmp, 'w') as f:
-            f.write(content.encode('utf-8'))
-    finally:
-        sftp.close()
-    _ssh_run(ssh, f'docker cp {remote_tmp} {_shell_quote(container)}:{container_path}', timeout=timeout)
-    _ssh_run(ssh, f'rm -f {remote_tmp}', timeout=timeout, check=False)
-
-
-# Our own pristine copy of upstream's splash-page.html (kept in sync
-# manually with src/anthias_server/app/templates/splash-page.html in the
-# mupitech-player fork) — the known-good starting point every push
-# renders from, rather than whatever's currently on the device.
-REFERENCE_SPLASH_TEMPLATE_PATH = os.path.join(
-    settings.BASE_DIR, 'players', 'reference_templates', 'splash-page.html',
-)
-
-
-def _render_splash_page_for_player(player):
-    """Render the splash-page.html `player` should have: our pristine
-    reference copy, translated to Portuguese (with "Anthias" mentions
-    swapped for MupiTech) and stamped with this player's location/group/
-    device-name identification chip.
-
-    Deliberately starts from REFERENCE_SPLASH_TEMPLATE_PATH rather than
-    reading + sed-patching whatever's currently on the device: a plain
-    find/replace against the device's *live* file only ever works once
-    per string — the second push (e.g. after a copy tweak like this
-    project's own translation text changing) can't find the original
-    English source text to match against, because it was already
-    translated away by the first push, and silently no-ops. Rendering
-    fresh every time makes every push idempotent and lets in-place copy
-    edits actually reach already-translated devices.
-    """
-    with open(REFERENCE_SPLASH_TEMPLATE_PATH, 'r', encoding='utf-8') as f:
-        content = f.read()
-    for old, new in SPLASH_TRANSLATION_REPLACEMENTS:
-        content = content.replace(old, new)
-    return _inject_device_label(content, player)
-
-
-def push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and replace its splash-page.html with a
-    freshly-rendered copy — Portuguese translation, MupiTech brand swap,
-    and this player's location/group/device-name identification chip —
-    see _render_splash_page_for_player for why this always renders from
-    scratch instead of patching the device's current file in place.
-    """
-    import paramiko
-
-    host = urlparse(player.url).hostname
-    if not host:
-        raise BrandingPushError(f"Could not determine host from player URL: {player.url}")
+    layout = _home_layout(player.device_type)
+    label_path = f'/home/{ssh_user}/{layout["config_dir"]}/mupitech-device-label.json'
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -575,22 +333,12 @@ def push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port=2
         raise BrandingPushError(f'SSH connection failed: {exc}') from exc
 
     try:
-        out, _, _ = _ssh_run(
-            ssh,
-            "docker ps --format '{{.Names}}' --filter name=anthias-server",
-            timeout=timeout,
-        )
-        container = next((line for line in out.strip().splitlines() if line.strip()), '')
-        if not container:
-            raise BrandingPushError(
-                'Could not find a running anthias-server container on this device.'
-            )
-
-        content = _render_splash_page_for_player(player)
-        _write_container_file(ssh, container, CONTAINER_SPLASH_TEMPLATE_PATH, content, timeout)
-        _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
-    except BrandingPushError:
-        raise
+        sftp = ssh.open_sftp()
+        try:
+            with sftp.file(label_path, 'w') as f:
+                f.write(_json.dumps(data))
+        finally:
+            sftp.close()
     except Exception as exc:
         raise BrandingPushError(str(exc)) from exc
     finally:
