@@ -91,7 +91,16 @@ THEME_COLOR_REPLACEMENTS = [
 # the source scss locally — dart-sass strips all whitespace inside the
 # clamp() argument list in compressed mode.
 SPLASH_LOGO_SIZE_REPLACEMENTS = [
-    ('height:clamp(2.5rem,6vh,4.5rem)', 'height:clamp(3rem,7vh,5.5rem)'),
+    # Two "from" states so this converges to the same final size whether
+    # a device is on the original CSS or already got the first bump from
+    # an earlier push — a sed search for the original value alone would
+    # silently no-op on a device that's already mid-way there (see
+    # _render_splash_page_for_player's docstring for the same class of
+    # bug on the HTML template, which this CSS file doesn't get the fix
+    # for — it's compiled output, not something we keep a pristine local
+    # copy of to always render fresh from).
+    ('height:clamp(2.5rem,6vh,4.5rem)', 'height:clamp(4.5rem,9vh,7.5rem)'),
+    ('height:clamp(3rem,7vh,5.5rem)', 'height:clamp(4.5rem,9vh,7.5rem)'),
 ]
 
 
@@ -408,7 +417,11 @@ def push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port=22, time
 
 _DEVICE_LABEL_START = '<!-- mupitech-device-label:start -->'
 _DEVICE_LABEL_END = '<!-- mupitech-device-label:end -->'
-_DEVICE_LABEL_ANCHOR = '<div id="splash-prompt" hidden>'
+# Anchored at the very end of <body> rather than inside .splash-card, so
+# `position:fixed` below places it against the actual screen corner —
+# independent of the card's own layout/flow, not sharing a line (and
+# baseline) with the "Pronto a gerir" status chip inside it.
+_DEVICE_LABEL_ANCHOR = '</body>'
 
 # Minimal Feather-style outline icons (MIT-licensed design, redrawn as
 # inline SVG so the label needs no extra font/asset — 14px, stroke
@@ -433,9 +446,12 @@ _ICON_DEVICE = (
 # Visually matches .splash-status (see _styles.scss "Splash page" section)
 # via the same CSS custom properties, so it reads as part of the same
 # design system without needing to touch the compiled anthias.css.
+# position:fixed anchors it to the bottom-right of the actual screen,
+# not the card — kept out of the card's own layout entirely.
 _DEVICE_LABEL_STYLE = (
+    'position:fixed;bottom:24px;right:24px;z-index:1000;'
     'display:inline-flex;align-items:center;gap:var(--space-2);'
-    'margin:0 0 var(--space-4) 0;padding:var(--space-1) var(--space-3);'
+    'padding:var(--space-1) var(--space-3);'
     'font-size:0.8125rem;font-weight:600;letter-spacing:0.02em;'
     'color:var(--color-text-on-dark-muted);background:rgba(255,255,255,0.06);'
     'border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-pill);'
@@ -478,10 +494,10 @@ def _device_label_html(player):
 def _inject_device_label(content, player):
     """Replace any previously-injected device-label block in `content`
     (server-rendered splash-page.html) with a freshly-rendered one for
-    `player`, inserted right before the addresses/QR prompt. Idempotent
-    and safe to call on every push — a device's name/group/location can
-    change over time, so the old block is always stripped first rather
-    than left stale."""
+    `player`, fixed-positioned in the bottom-right corner of the screen.
+    Idempotent and safe to call on every push — a device's name/group/
+    location can change over time, so the old block is always stripped
+    first rather than left stale."""
     import re as _re
 
     content = _re.sub(
@@ -492,24 +508,6 @@ def _inject_device_label(content, player):
     if not label_html or _DEVICE_LABEL_ANCHOR not in content:
         return content
     return content.replace(_DEVICE_LABEL_ANCHOR, f'{label_html}\n      {_DEVICE_LABEL_ANCHOR}', 1)
-
-
-def _read_container_file(ssh, container, container_path, timeout):
-    """Read a file from inside a running container via `docker cp` to a
-    host tmp path, then SFTP — the inverse of _push_file_to_player, needed
-    here because the device-label patch has to read-modify-write rather
-    than a plain textual sed substitution (it inserts a multi-line HTML
-    block, not a fixed find/replace)."""
-    remote_tmp = f'/tmp/mupitech-read-{os.urandom(8).hex()}'
-    _ssh_run(ssh, f'docker cp {_shell_quote(container)}:{container_path} {remote_tmp}', timeout=timeout)
-    sftp = ssh.open_sftp()
-    try:
-        with sftp.file(remote_tmp, 'r') as f:
-            content = f.read().decode('utf-8')
-    finally:
-        sftp.close()
-    _ssh_run(ssh, f'rm -f {remote_tmp}', timeout=timeout, check=False)
-    return content
 
 
 def _write_container_file(ssh, container, container_path, content, timeout):
@@ -524,13 +522,44 @@ def _write_container_file(ssh, container, container_path, content, timeout):
     _ssh_run(ssh, f'rm -f {remote_tmp}', timeout=timeout, check=False)
 
 
-def push_splash_device_label_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and stamp its splash-page with a small
-    "Location / Group / Device name" chip, so a device is identifiable at
-    a glance when several are laid out side by side (e.g. "Biblioteca /
-    Receção / Balcão 1") — read/modify/write rather than the sed-based
-    patches above, since this inserts new markup instead of substituting
-    fixed text.
+# Our own pristine copy of upstream's splash-page.html (kept in sync
+# manually with src/anthias_server/app/templates/splash-page.html in the
+# mupitech-player fork) — the known-good starting point every push
+# renders from, rather than whatever's currently on the device.
+REFERENCE_SPLASH_TEMPLATE_PATH = os.path.join(
+    settings.BASE_DIR, 'players', 'reference_templates', 'splash-page.html',
+)
+
+
+def _render_splash_page_for_player(player):
+    """Render the splash-page.html `player` should have: our pristine
+    reference copy, translated to Portuguese (with "Anthias" mentions
+    swapped for MupiTech) and stamped with this player's location/group/
+    device-name identification chip.
+
+    Deliberately starts from REFERENCE_SPLASH_TEMPLATE_PATH rather than
+    reading + sed-patching whatever's currently on the device: a plain
+    find/replace against the device's *live* file only ever works once
+    per string — the second push (e.g. after a copy tweak like this
+    project's own translation text changing) can't find the original
+    English source text to match against, because it was already
+    translated away by the first push, and silently no-ops. Rendering
+    fresh every time makes every push idempotent and lets in-place copy
+    edits actually reach already-translated devices.
+    """
+    with open(REFERENCE_SPLASH_TEMPLATE_PATH, 'r', encoding='utf-8') as f:
+        content = f.read()
+    for old, new in SPLASH_TRANSLATION_REPLACEMENTS:
+        content = content.replace(old, new)
+    return _inject_device_label(content, player)
+
+
+def push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+    """SSH into `player`'s host and replace its splash-page.html with a
+    freshly-rendered copy — Portuguese translation, MupiTech brand swap,
+    and this player's location/group/device-name identification chip —
+    see _render_splash_page_for_player for why this always renders from
+    scratch instead of patching the device's current file in place.
     """
     import paramiko
 
@@ -557,8 +586,7 @@ def push_splash_device_label_to_player(player, ssh_user, ssh_password, ssh_port=
                 'Could not find a running anthias-server container on this device.'
             )
 
-        content = _read_container_file(ssh, container, CONTAINER_SPLASH_TEMPLATE_PATH, timeout)
-        content = _inject_device_label(content, player)
+        content = _render_splash_page_for_player(player)
         _write_container_file(ssh, container, CONTAINER_SPLASH_TEMPLATE_PATH, content, timeout)
         _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
     except BrandingPushError:
@@ -567,15 +595,3 @@ def push_splash_device_label_to_player(player, ssh_user, ssh_password, ssh_port=
         raise BrandingPushError(str(exc)) from exc
     finally:
         ssh.close()
-
-
-def push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
-    """SSH into `player`'s host and translate the splash-page's hardcoded
-    English copy to Portuguese (and its "Anthias" brand mentions to
-    MupiTech), via an in-place sed on the server-rendered template.
-    """
-    _sed_patch_container_file(
-        player, ssh_user, ssh_password, ssh_port, timeout,
-        container_path=CONTAINER_SPLASH_TEMPLATE_PATH,
-        replacements=SPLASH_TRANSLATION_REPLACEMENTS,
-    )

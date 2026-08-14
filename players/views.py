@@ -409,7 +409,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         save_credentials = request.data.get('save_credentials', False)
 
         from .branding import (
-            BrandingPushError, push_splash_device_label_to_player, push_splash_logo_to_player,
+            BrandingPushError, push_splash_logo_to_player,
             push_standby_image_to_player, push_theme_color_to_player, push_splash_translation_to_player,
         )
         try:
@@ -420,7 +420,6 @@ class PlayerViewSet(viewsets.ModelViewSet):
             if push_theme:
                 push_theme_color_to_player(player, ssh_user, ssh_password, ssh_port)
                 push_splash_translation_to_player(player, ssh_user, ssh_password, ssh_port)
-                push_splash_device_label_to_player(player, ssh_user, ssh_password, ssh_port)
         except BrandingPushError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -514,6 +513,54 @@ class PlayerViewSet(viewsets.ModelViewSet):
             'success': True, 'action': result['action'],
             'previous_source': result['previous_source'], 'previous_image': result['previous_image'],
             'backup_path': result['backup_path'],
+            'content_restored': result.get('content_restored'),
+            'content_restore_failed': result.get('content_restore_failed'),
+            'content_restore_error': result.get('content_restore_error'),
+            'branding_pushed': result.get('branding_pushed'),
+            'branding_failed': result.get('branding_failed'),
+        })
+
+    @action(detail=True, methods=['post'], url_path='rebuild-image')
+    def rebuild_image(self, request, pk=None):
+        """Wipe and reinstall a device's Docker/Anthias layer from
+        scratch — every container, named volume and the host-side
+        config/assets directories all get deleted, then a fresh compose
+        file is rendered and started clean. A genuine factory reset for a
+        device stuck in a bad state, not a lighter update/migrate. x86
+        only for now — see players/migrate_image.py's rebuild_player."""
+        player = self.get_object()
+        ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
+        if not ssh_password:
+            return Response({'error': 'ssh_password is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
+        ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
+        save_credentials = request.data.get('save_credentials', False)
+        preserve_content = bool(request.data.get('preserve_content', False))
+
+        from .migrate_image import MigrationError, rebuild_player
+        try:
+            result = rebuild_player(
+                player, ssh_user, ssh_password, ssh_port, preserve_content=preserve_content,
+            )
+        except MigrationError as exc:
+            return Response(
+                {'error': str(exc), 'error_code': exc.code, 'error_params': exc.params},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if save_credentials:
+            player.ssh_username = ssh_user
+            player.set_ssh_password(ssh_password)
+            player.ssh_port = ssh_port
+            player.save(update_fields=['ssh_username', 'ssh_password_encrypted', 'ssh_port'])
+
+        from history.logging import log_action
+        log_action(
+            request, 'rebuild_image', 'player', target_id=player.id, target_name=player.name,
+            details={'content_restored': result.get('content_restored')},
+        )
+        return Response({
+            'success': True, 'action': result['action'], 'backup_path': result['backup_path'],
             'content_restored': result.get('content_restored'),
             'content_restore_failed': result.get('content_restore_failed'),
             'content_restore_error': result.get('content_restore_error'),

@@ -30,7 +30,6 @@ from django.conf import settings
 
 from .branding import (
     BrandingPushError,
-    push_splash_device_label_to_player,
     push_splash_logo_to_player,
     push_splash_translation_to_player,
     push_standby_image_to_player,
@@ -296,7 +295,6 @@ def _push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout
         ('logo', push_splash_logo_to_player),
         ('theme', push_theme_color_to_player),
         ('translation', push_splash_translation_to_player),
-        ('device_label', push_splash_device_label_to_player),
         ('standby', push_standby_image_to_player),
     ):
         try:
@@ -606,6 +604,121 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
                     result['content_restore_error'] = 'Device did not come back online in time to restore content.'
             except Exception:
                 logger.exception('Content restore failed after migrating %s.', player.name)
+                result['content_restore_error'] = 'Unexpected error while restoring content.'
+
+        return result
+    except MigrationError:
+        raise
+    except Exception as exc:
+        raise MigrationError(str(exc), code='unexpected', params={'detail': str(exc)}) from exc
+    finally:
+        ssh.close()
+
+
+def rebuild_player(player, ssh_user, ssh_password, ssh_port=22, timeout=30, preserve_content=False):
+    """Wipe and reinstall a device's Docker/Anthias layer from scratch: stop
+    and remove every container plus named volume for its compose project,
+    clear the host-side config/assets directories (a `docker compose
+    down -v` alone doesn't touch these — they're bind mounts, not
+    volumes), then render a fresh compose file and start clean.
+
+    A genuine factory reset for a device stuck in a bad state that
+    `migrate`'s lighter "just update" path can't fix — leftover
+    container config, a corrupted volume, a half-broken compose edit.
+    Deliberately scoped to the Docker/Anthias layer only: it doesn't
+    touch the underlying OS (Plymouth theme, system packages,
+    networking), so it only ever needs the device's normal SSH user
+    (docker group), never root. Always rebuilds onto the MupiTech
+    image — rebuilding onto "official Anthias" from scratch isn't a
+    real use case (that's what "Restore with image choice" is for).
+
+    Raises MigrationError (never touching the device) if the device type
+    isn't supported yet. Returns a dict describing what happened, same
+    shape as migrate_player_to_target_image's 'migrated' result.
+    """
+    ssh, host = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
+    try:
+        _detect_and_save_device_type(player, ssh, timeout)
+
+        if player.device_type not in _MIGRATABLE_DEVICE_TYPES:
+            raise MigrationError(
+                f'Rebuild is only supported for x86 devices right now '
+                f'(this device is "{player.device_type}").',
+                code='unsupported_device_type', params={'device_type': player.device_type},
+            )
+
+        container = _find_anthias_server_container(ssh, timeout)
+        working_dir, compose_path = _get_compose_context(ssh, container, timeout)
+
+        content_snapshot = snapshot_assets(player) if preserve_content else None
+
+        backup_path = f'{compose_path}.bak'
+        _ssh_run(ssh, f'cp {_shell_quote(compose_path)} {_shell_quote(backup_path)}', timeout=timeout, check=False)
+
+        # The actual wipe: stop everything and remove this project's own
+        # containers + named volumes (resin-data, redis-data — where
+        # Anthias's DB/media library actually lives), then clear the
+        # host-side bind-mount directories too, since `-v` only reaches
+        # Docker-managed volumes, not these.
+        _ssh_run(
+            ssh, f'cd {_shell_quote(working_dir)} && docker compose down -v --remove-orphans 2>&1',
+            timeout=120, check=False,
+        )
+
+        layout = _home_layout(player.device_type)
+        home = f'/home/{ssh_user}'
+        wipe_dirs = {f'{home}/{layout["config_dir"]}', f'{home}/{layout["assets_dir"]}'}
+        _ssh_run(ssh, f'rm -rf {" ".join(sorted(wipe_dirs))}', timeout=timeout, check=False)
+
+        compose_content = _render_compose(
+            host, ssh_user, 'anthias-player-update', player.mac_address or '',
+            device_type=player.device_type, registry_override=None,
+        )
+
+        dirs = {
+            f'{home}/{layout["project_dir"]}',
+            f'{home}/{layout["config_dir"]}',
+            f'{home}/{layout["assets_dir"]}',
+        }
+        _ssh_run(ssh, f'mkdir -p {" ".join(sorted(dirs))}', timeout=timeout)
+
+        sftp = ssh.open_sftp()
+        try:
+            with sftp.file(compose_path, 'w') as f:
+                f.write(compose_content)
+        finally:
+            sftp.close()
+
+        out, _, _ = _ssh_run(
+            ssh,
+            f'cd {_shell_quote(working_dir)} && docker compose pull && '
+            f'docker compose up -d --remove-orphans 2>&1',
+            timeout=300,
+        )
+        result = {'action': 'rebuilt', 'backup_path': backup_path, 'output': out[-2000:]}
+
+        # Give the freshly-recreated container a moment before pushing
+        # branding over SSH+docker exec — see _push_branding_best_effort.
+        time.sleep(5)
+        result.update(_push_branding_best_effort(player, ssh_user, ssh_password, ssh_port, timeout))
+
+        if preserve_content:
+            try:
+                if content_snapshot is None:
+                    result['content_restore_error'] = (
+                        "Could not read the device's asset list before rebuilding — nothing to restore."
+                    )
+                elif not content_snapshot:
+                    result['content_restored'] = 0
+                elif wait_for_player_ready(player):
+                    restored, failed = restore_assets(player, content_snapshot)
+                    result['content_restored'] = restored
+                    if failed:
+                        result['content_restore_failed'] = failed
+                else:
+                    result['content_restore_error'] = 'Device did not come back online in time to restore content.'
+            except Exception:
+                logger.exception('Content restore failed after rebuilding %s.', player.name)
                 result['content_restore_error'] = 'Unexpected error while restoring content.'
 
         return result
