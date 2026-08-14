@@ -81,13 +81,24 @@ def auth_login(request):
             from django.core.cache import cache
 
             method = 'duo' if has_duo else 'totp'
+            # Both verify endpoints only ever look at entry['user_id'] —
+            # neither checks 'method' — so the same challenge_id already
+            # works for either one. available_methods just tells the
+            # frontend what it's allowed to offer as a "use a different
+            # method" switch when a user has both enrolled.
+            available_methods = [m for m, has in (('duo', has_duo), ('totp', has_totp)) if has]
             challenge_id = secrets.token_urlsafe(32)
             cache.set(
                 f'mfa_challenge:{challenge_id}',
                 {'user_id': user.id, 'attempts': 0, 'method': method},
                 timeout=300,
             )
-            return Response({'mfa_required': True, 'challenge_id': challenge_id, 'method': method})
+            return Response({
+                'mfa_required': True,
+                'challenge_id': challenge_id,
+                'method': method,
+                'available_methods': available_methods,
+            })
         login(request, user)
         log_action(request, 'login', 'session', target_name=user.username)
         return Response({'success': True, 'username': user.username})

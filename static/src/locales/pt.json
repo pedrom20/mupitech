@@ -485,7 +485,9 @@
       "code": "Código",
       "verify": "Verificar",
       "back": "Voltar",
-      "invalidCode": "Código inválido"
+      "invalidCode": "Código inválido",
+      "useCodeInstead": "Usar antes um código de autenticação",
+      "useDuoInstead": "Usar antes o push do Duo"
     },
     "duo": {
       "title": "Verificação por push Duo",
@@ -780,7 +782,8 @@
       "userCreateUpdateFix": "Corrigido um bug em que criar ou editar um user podia devolver um erro de servidor mesmo com a alteração guardada corretamente",
       "userScopeCacheFix": "Corrigidas definições de permissões de user (ex: apagar conteúdos + alertas offline) que nem sempre refletiam corretamente quando alteradas em conjunto",
       "deviceSsoDisableToggle": "O login SSO pode agora ser desativado por device a partir da página de detalhe do player",
-      "deviceVersionRoleSplit": "Os devices só mostram a versão técnica completa quando acedidos por SSO por um admin/superadmin — os restantes veem um número de versão simples"
+      "deviceVersionRoleSplit": "Os devices só mostram a versão técnica completa quando acedidos por SSO por um admin/superadmin — os restantes veem um número de versão simples",
+      "mfaMethodSwitch": "O login passa a permitir trocar para o outro método de 2FA quando tem TOTP e push do Duo ativos"
     }
   },
   "updates": {

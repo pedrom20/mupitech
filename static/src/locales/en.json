@@ -485,7 +485,9 @@
       "code": "Code",
       "verify": "Verify",
       "back": "Back",
-      "invalidCode": "Invalid code"
+      "invalidCode": "Invalid code",
+      "useCodeInstead": "Use an authenticator code instead",
+      "useDuoInstead": "Use Duo push instead"
     },
     "duo": {
       "title": "Duo push verification",
@@ -780,7 +782,8 @@
       "userCreateUpdateFix": "Fixed a bug where creating or editing a user could return a server error even though the change saved correctly",
       "userScopeCacheFix": "Fixed user permission settings (e.g. content deletion + offline alerts) not always reflecting correctly when changed together",
       "deviceSsoDisableToggle": "SSO login can now be disabled per-device from the player detail page",
-      "deviceVersionRoleSplit": "Devices now show the full technical build version only when accessed via SSO by an admin/superadmin — everyone else sees a simple version number"
+      "deviceVersionRoleSplit": "Devices now show the full technical build version only when accessed via SSO by an admin/superadmin — everyone else sees a simple version number",
+      "mfaMethodSwitch": "Login now lets you switch to your other 2FA method if you have both TOTP and Duo push enabled"
     }
   },
   "updates": {

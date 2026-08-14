@@ -19,6 +19,7 @@ const Login: React.FC = () => {
   // mfa_required — no session exists yet at that point.
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [method, setMethod] = useState<'totp' | 'duo' | null>(null)
+  const [availableMethods, setAvailableMethods] = useState<('totp' | 'duo')[]>([])
   const [code, setCode] = useState('')
   const [duoStatus, setDuoStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
   const [duoError, setDuoError] = useState('')
@@ -31,6 +32,7 @@ const Login: React.FC = () => {
       if ('mfa_required' in result) {
         setChallengeId(result.challenge_id)
         setMethod(result.method)
+        setAvailableMethods(result.available_methods || [result.method])
       } else {
         refresh()
         navigate('/')
@@ -97,9 +99,21 @@ const Login: React.FC = () => {
   const backToCredentials = () => {
     setChallengeId(null)
     setMethod(null)
+    setAvailableMethods([])
     setCode('')
     setDuoStatus('pending')
     setDuoError('')
+  }
+
+  // Same challenge_id works against either verify endpoint (see
+  // auth_login's available_methods comment in fleet_manager/urls.py) —
+  // switching methods is just changing which UI branch renders, no new
+  // challenge or password re-entry needed.
+  const switchMethod = (next: 'totp' | 'duo') => {
+    setCode('')
+    setDuoStatus('pending')
+    setDuoError('')
+    setMethod(next)
   }
 
   return (
@@ -171,6 +185,15 @@ const Login: React.FC = () => {
                   {t('auth.duo.retry')}
                 </button>
               )}
+              {availableMethods.includes('totp') && (
+                <button
+                  type="button"
+                  className="btn btn-link w-100 mb-2 text-decoration-none"
+                  onClick={() => switchMethod('totp')}
+                >
+                  {t('auth.mfa.useCodeInstead')}
+                </button>
+              )}
               <button
                 type="button"
                 className="fm-btn-outline w-100"
@@ -199,6 +222,16 @@ const Login: React.FC = () => {
                 <FaShieldAlt />
                 {loading ? t('common.loading') : t('auth.mfa.verify')}
               </button>
+              {availableMethods.includes('duo') && (
+                <button
+                  type="button"
+                  className="btn btn-link w-100 mb-2 text-decoration-none"
+                  onClick={() => switchMethod('duo')}
+                  disabled={loading}
+                >
+                  {t('auth.mfa.useDuoInstead')}
+                </button>
+              )}
               <button
                 type="button"
                 className="fm-btn-outline w-100"

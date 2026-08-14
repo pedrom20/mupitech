@@ -907,11 +907,16 @@ export const auth = {
 
   /** First factor. Returns either {success, username} (no MFA enrolled —
    * a real session was already established) or {mfa_required, challenge_id,
-   * method} (second factor needed — verifyMfa()/verifyDuo() below must
-   * succeed before there's a session; method picks which one to call,
-   * 'duo' takes priority over 'totp' when a user has both enrolled). */
+   * method, available_methods} (second factor needed — verifyMfa()/
+   * verifyDuo() below must succeed before there's a session; method is
+   * the default to start with ('duo' takes priority over 'totp' when a
+   * user has both enrolled), available_methods lists every method the
+   * same challenge_id can be verified against — both verify endpoints
+   * accept it regardless of which one was originally picked, so the
+   * frontend can offer a "use a different method" switch). */
   login(username: string, password: string): Promise<
-    { success: true; username: string } | { mfa_required: true; challenge_id: string; method: 'totp' | 'duo' }
+    | { success: true; username: string }
+    | { mfa_required: true; challenge_id: string; method: 'totp' | 'duo'; available_methods: ('totp' | 'duo')[] }
   > {
     return apiRequest('POST', '/auth/login/', { username, password })
   },
