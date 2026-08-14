@@ -788,7 +788,8 @@
       "mfaMethodSwitch": "Login now lets you switch to your other 2FA method if you have both TOTP and Duo push enabled",
       "userModalTabs": "Wider user create/edit modal with a dedicated Access tab, and a stable modal height across tabs",
       "playerListEditFix": "The Edit button on the player list now opens the same full Settings modal as the player detail page, instead of an older, more limited form",
-      "playerCardMobileCollapse": "Player list cards are collapsible on mobile to save space, and group/location now share a single row"
+      "playerCardMobileCollapse": "Player list cards are collapsible on mobile to save space, and group/location now share a single row",
+      "playerDetailLocationChip": "The player detail page now shows location and group next to the device name, styled like the device's own splash screen"
     }
   },
   "updates": {

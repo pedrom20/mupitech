@@ -788,7 +788,8 @@
       "mfaMethodSwitch": "O login passa a permitir trocar para o outro método de 2FA quando tem TOTP e push do Duo ativos",
       "userModalTabs": "Modal de criar/editar user mais largo, com separador 'Acessos' dedicado e altura estável entre separadores",
       "playerListEditFix": "O botão Editar na lista de devices abre agora o mesmo modal Definições completo da página de detalhe, em vez de um formulário mais antigo e limitado",
-      "playerCardMobileCollapse": "Os cards na lista de devices são agora colapsáveis em mobile para poupar espaço, e grupo/localização passam a partilhar uma só linha"
+      "playerCardMobileCollapse": "Os cards na lista de devices são agora colapsáveis em mobile para poupar espaço, e grupo/localização passam a partilhar uma só linha",
+      "playerDetailLocationChip": "A página de detalhe do device mostra agora localização e grupo junto ao nome, ao estilo do próprio ecrã de splash do device"
     }
   },
   "updates": {

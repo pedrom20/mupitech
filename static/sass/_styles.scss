@@ -264,6 +264,28 @@ body {
     margin: 0.25rem 0 0 0;
   }
 
+  // Location / group pill under the device name on player-detail —
+  // mirrors mupitech-player's own splash-page.html device-label chip
+  // (icon + name, "/"-separated) so the same identity summary reads the
+  // same way in both places.
+  .player-location-chip {
+    color: $gray-600;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+
+    &__item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+
+      svg { opacity: 0.7; font-size: 0.85em; }
+    }
+
+    &__sep {
+      opacity: 0.4;
+    }
+  }
+
   .page-actions {
     display: flex;
     align-items: center;

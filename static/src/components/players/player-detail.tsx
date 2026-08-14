@@ -1721,6 +1721,7 @@ const PlayerDetail: React.FC = () => {
   }
 
   const group = player.group_detail || player.group
+  const playerLocation = player.effective_location_detail
   const activeAssets = assets.filter(a => a.is_active)
   const inactiveAssets = assets.filter(a => !a.is_active)
 
@@ -2003,18 +2004,26 @@ const PlayerDetail: React.FC = () => {
             >
               {player.is_online ? t('players.online') : t('players.offline')}
             </span>
-            {group && (
-              <span
-                className="fm-group-tag"
-                style={{
-                  backgroundColor: group.color ? `${group.color}20` : undefined,
-                  color: group.color || undefined,
-                }}
-              >
-                {group.name}
-              </span>
-            )}
           </h1>
+          {(playerLocation || group) && (
+            <div className="player-location-chip d-inline-flex align-items-center gap-2 mt-1">
+              {playerLocation && (
+                <span className="player-location-chip__item">
+                  <FaMapMarkerAlt />
+                  {playerLocation.name}
+                </span>
+              )}
+              {playerLocation && group && (
+                <span className="player-location-chip__sep" aria-hidden="true">/</span>
+              )}
+              {group && (
+                <span className="player-location-chip__item">
+                  <FaLayerGroup />
+                  {group.name}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="page-actions">
         </div>
