@@ -287,7 +287,7 @@ const PlayerDetail: React.FC = () => {
   // Player settings modal state — unified with the branding push modal
   // (splash logo/standby/theme) as tabs of the same dialog.
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [settingsActiveTab, setSettingsActiveTab] = useState<'general' | 'location' | 'branding' | 'image'>('general')
+  const [settingsActiveTab, setSettingsActiveTab] = useState<'general' | 'location' | 'branding' | 'image' | 'access'>('general')
   const [_deviceSettings, setDeviceSettings] = useState<Record<string, unknown> | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [settingsSaving, setSettingsSaving] = useState(false)
@@ -1341,7 +1341,7 @@ const PlayerDetail: React.FC = () => {
   }
 
   // Open player settings modal
-  const handleOpenSettings = async (tab: 'general' | 'location' | 'branding' | 'image' = 'general') => {
+  const handleOpenSettings = async (tab: 'general' | 'location' | 'branding' | 'image' | 'access' = 'general') => {
     if (!id) return
     setShowSettingsModal(true)
     setSettingsActiveTab(tab)
@@ -2049,34 +2049,6 @@ const PlayerDetail: React.FC = () => {
             >
               <FaSyncAlt />
             </button>
-            {isAdminRole(role) && (
-              <button
-                className="fm-btn-outline fm-btn-sm"
-                onClick={handleSsoLogin}
-                disabled={!player.is_online || player.sso_enabled === false}
-                title={player.sso_enabled === false ? t('players.ssoDisabledHint') : t('players.openLocalDashboard')}
-              >
-                <FaExternalLinkAlt />
-              </button>
-            )}
-            {isAdminRole(role) && (
-              <button
-                className="fm-btn-outline fm-btn-sm"
-                onClick={handleToggleSso}
-                title={player.sso_enabled === false ? t('players.ssoEnable') : t('players.ssoDisable')}
-              >
-                {player.sso_enabled === false ? <FaToggleOff /> : <FaToggleOn />}
-              </button>
-            )}
-            {isAdminRole(role) && (
-              <button
-                className="fm-btn-outline fm-btn-sm"
-                onClick={handleRevealCredentials}
-                title={t('players.reveal')}
-              >
-                <FaEye />
-              </button>
-            )}
             {isAdminRole(role) && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
               <button
                 className="fm-btn-outline fm-btn-sm"
@@ -2093,15 +2065,6 @@ const PlayerDetail: React.FC = () => {
                 title={t('terminal.title')}
               >
                 <FaTerminalIcon />
-              </button>
-            )}
-            {isAdminRole(role) && (
-              <button
-                className="fm-btn-outline fm-btn-sm"
-                onClick={handleOpenReplaceModal}
-                title={t('players.replaceDevice')}
-              >
-                <FaExchangeAlt />
               </button>
             )}
             <button
@@ -3260,6 +3223,18 @@ const PlayerDetail: React.FC = () => {
                     </button>
                   </li>
                 )}
+                {isAdminRole(role) && (
+                  <li className="nav-item">
+                    <button
+                      type="button"
+                      className={`nav-link ${settingsActiveTab === 'access' ? 'active' : ''}`}
+                      onClick={() => setSettingsActiveTab('access')}
+                    >
+                      <FaShieldAlt className="me-1" />
+                      {t('playerSettings.tabAccess')}
+                    </button>
+                  </li>
+                )}
               </ul>
               <div className="modal-body py-2" style={{ height: '560px', maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
                 {settingsLoading ? (
@@ -3821,7 +3796,7 @@ const PlayerDetail: React.FC = () => {
                   </div>
                 )}
                   </div>
-                ) : (
+                ) : settingsActiveTab === 'image' ? (
                   <div>
                     <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('migrateImage.desc')}</p>
 
@@ -3966,6 +3941,65 @@ const PlayerDetail: React.FC = () => {
                       </div>
                     )}
                   </div>
+                ) : (
+                  <div className="d-flex flex-column gap-3">
+                    <div>
+                      <h6 className="fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('players.reveal')}</h6>
+                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>{t('playerSettings.accessCredentialsHint')}</p>
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={handleRevealCredentials}
+                      >
+                        <FaEye className="me-1" />
+                        {t('players.reveal')}
+                      </button>
+                    </div>
+
+                    <hr className="my-0" />
+
+                    <div>
+                      <h6 className="fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('players.openLocalDashboard')}</h6>
+                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>{t('playerSettings.accessSsoHint')}</p>
+                      <div className="d-flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={handleSsoLogin}
+                          disabled={!player.is_online || player.sso_enabled === false}
+                        >
+                          <FaExternalLinkAlt className="me-1" />
+                          {t('players.openLocalDashboard')}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={handleToggleSso}
+                        >
+                          {player.sso_enabled === false ? <FaToggleOff className="me-1" /> : <FaToggleOn className="me-1" />}
+                          {player.sso_enabled === false ? t('players.ssoEnable') : t('players.ssoDisable')}
+                        </button>
+                      </div>
+                      {player.sso_enabled === false && (
+                        <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('players.ssoDisabledHint')}</div>
+                      )}
+                    </div>
+
+                    <hr className="my-0" />
+
+                    <div>
+                      <h6 className="fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('players.replaceDevice')}</h6>
+                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>{t('playerSettings.accessReplaceHint')}</p>
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={handleOpenReplaceModal}
+                      >
+                        <FaExchangeAlt className="me-1" />
+                        {t('players.replaceDevice')}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
               <div className="modal-footer py-2">
@@ -4008,7 +4042,7 @@ const PlayerDetail: React.FC = () => {
                     ) : null}
                     {t('branding.push')}
                   </button>
-                ) : (
+                ) : settingsActiveTab === 'image' ? (
                   <>
                     <button
                       type="button"
@@ -4039,7 +4073,7 @@ const PlayerDetail: React.FC = () => {
                       {migratingImage ? t('common.loading') : t('migrateImage.migrateButton')}
                     </button>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

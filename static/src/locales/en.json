@@ -600,6 +600,10 @@
     "tabLocation": "Location & Group",
     "tabBranding": "Branding",
     "tabImage": "System",
+    "tabAccess": "Access",
+    "accessCredentialsHint": "View this device's local dashboard login (admin-only, requires your password).",
+    "accessSsoHint": "Open the device's local dashboard with your Fleet Manager session, or turn that off for this device.",
+    "accessReplaceHint": "Swap this device for a replacement unit, keeping its name, group, location and schedule.",
     "locationHint": "Assign this device to a group and/or location. This is a Fleet Manager setting only — it works even while the device is offline.",
     "offlineError": "Couldn't reach the device to load its live settings. It may be offline. Its Location & Group can still be changed from the tab above.",
     "playerName": "Player Name",
@@ -789,7 +793,8 @@
       "userModalTabs": "Wider user create/edit modal with a dedicated Access tab, and a stable modal height across tabs",
       "playerListEditFix": "The Edit button on the player list now opens the same full Settings modal as the player detail page, instead of an older, more limited form",
       "playerCardMobileCollapse": "Player list cards are collapsible on mobile to save space, and group/location now share a single row",
-      "playerDetailLocationChip": "The player detail page now shows location and group next to the device name, styled like the device's own splash screen"
+      "playerDetailLocationChip": "The player detail page now shows location and group next to the device name, styled like the device's own splash screen",
+      "playerAccessTab": "Reveal credentials, SSO login, and device replacement moved into a new Access tab in the device's Settings modal, simplifying the toolbar"
     }
   },
   "updates": {
