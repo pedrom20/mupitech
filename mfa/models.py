@@ -57,7 +57,7 @@ class DuoEnrollment(models.Model):
     )
     duo_user_id = models.CharField(max_length=64)
     duo_username = models.CharField(max_length=150)
-    activation_code = models.CharField(max_length=64, blank=True, default='')
+    activation_code = models.CharField(max_length=255, blank=True, default='')
     confirmed = models.BooleanField(default=False)
     confirmed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
