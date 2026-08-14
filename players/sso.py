@@ -23,6 +23,8 @@ from urllib.parse import urlparse
 
 from django.core import signing
 
+from fleet_manager.permissions import _user_role
+
 logger = logging.getLogger(__name__)
 
 SSO_TOKEN_SALT = 'mupitech-sso-login'
@@ -42,7 +44,11 @@ def build_sso_login_url(player, requesting_user):
         return None
 
     token = signing.dumps(
-        {'player_id': str(player.id), 'requested_by': requesting_user.username},
+        {
+            'player_id': str(player.id),
+            'requested_by': requesting_user.username,
+            'role': _user_role(requesting_user),
+        },
         key=secret,
         salt=SSO_TOKEN_SALT,
         compress=True,
