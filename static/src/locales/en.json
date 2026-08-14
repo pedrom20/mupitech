@@ -145,7 +145,12 @@
     "ssoNotSetUp": "SSO not set up for this device yet",
     "ssoSetUpPrompt": "Provision this device with a login secret now? This is a one-time setup — SSO stays working after that without asking again.",
     "ssoSetUpButton": "Set up SSO",
-    "sshCredentialsTitle": "SSH credentials"
+    "sshCredentialsTitle": "SSH credentials",
+    "ssoEnable": "Enable SSO login for this device",
+    "ssoDisable": "Disable SSO login for this device",
+    "ssoDisabledHint": "SSO login is disabled for this device",
+    "ssoEnabledToast": "SSO login enabled for this device",
+    "ssoDisabledToast": "SSO login disabled for this device"
   },
   "groups": {
     "title": "Groups",
@@ -773,7 +778,8 @@
       "updateCheckReleaseFix": "Fixed the update checker — releases are now automatically published so it can detect new versions",
       "onboardingWizard": "Forced first-login onboarding — admins can require a password change and/or MFA enrollment for new users",
       "userCreateUpdateFix": "Fixed a bug where creating or editing a user could return a server error even though the change saved correctly",
-      "userScopeCacheFix": "Fixed user permission settings (e.g. content deletion + offline alerts) not always reflecting correctly when changed together"
+      "userScopeCacheFix": "Fixed user permission settings (e.g. content deletion + offline alerts) not always reflecting correctly when changed together",
+      "deviceSsoDisableToggle": "SSO login can now be disabled per-device from the player detail page"
     }
   },
   "updates": {

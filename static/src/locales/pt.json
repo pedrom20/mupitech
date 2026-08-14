@@ -145,7 +145,12 @@
     "ssoNotSetUp": "SSO ainda não configurado para este dispositivo",
     "ssoSetUpPrompt": "Configurar agora este dispositivo com um segredo de login? É uma configuração única — o SSO continua a funcionar depois disso sem voltar a pedir.",
     "ssoSetUpButton": "Configurar SSO",
-    "sshCredentialsTitle": "Credenciais SSH"
+    "sshCredentialsTitle": "Credenciais SSH",
+    "ssoEnable": "Ativar login SSO para este dispositivo",
+    "ssoDisable": "Desativar login SSO para este dispositivo",
+    "ssoDisabledHint": "O login SSO está desativado para este dispositivo",
+    "ssoEnabledToast": "Login SSO ativado para este dispositivo",
+    "ssoDisabledToast": "Login SSO desativado para este dispositivo"
   },
   "groups": {
     "title": "Grupos",
@@ -773,7 +778,8 @@
       "updateCheckReleaseFix": "Corrigida a verificação de atualizações — as releases passam a ser publicadas automaticamente para poderem ser detetadas",
       "onboardingWizard": "Onboarding forçado no primeiro login — admins podem exigir mudança de password e/ou ativação de MFA para novos users",
       "userCreateUpdateFix": "Corrigido um bug em que criar ou editar um user podia devolver um erro de servidor mesmo com a alteração guardada corretamente",
-      "userScopeCacheFix": "Corrigidas definições de permissões de user (ex: apagar conteúdos + alertas offline) que nem sempre refletiam corretamente quando alteradas em conjunto"
+      "userScopeCacheFix": "Corrigidas definições de permissões de user (ex: apagar conteúdos + alertas offline) que nem sempre refletiam corretamente quando alteradas em conjunto",
+      "deviceSsoDisableToggle": "O login SSO pode agora ser desativado por device a partir da página de detalhe do player"
     }
   },
   "updates": {

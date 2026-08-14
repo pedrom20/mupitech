@@ -43,6 +43,7 @@ export interface Player {
   ssh_username?: string
   ssh_port?: number
   has_ssh_credentials?: boolean
+  sso_enabled?: boolean
   created_at: string
 }
 

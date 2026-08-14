@@ -726,6 +726,18 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  const handleToggleSso = async () => {
+    if (!id || !player) return
+    const nextEnabled = !player.sso_enabled
+    try {
+      await playersApi.update(id, { sso_enabled: nextEnabled })
+      setPlayer({ ...player, sso_enabled: nextEnabled })
+      showToast('success', nextEnabled ? t('players.ssoEnabledToast') : t('players.ssoDisabledToast'))
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: error instanceof ApiError ? error.message : String(error) })
+    }
+  }
+
   const handleRevealCredentials = async () => {
     if (!id) return
     const { value: adminPassword } = await Swal.fire({
@@ -2020,10 +2032,19 @@ const PlayerDetail: React.FC = () => {
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={handleSsoLogin}
-                disabled={!player.is_online}
-                title={t('players.openLocalDashboard')}
+                disabled={!player.is_online || player.sso_enabled === false}
+                title={player.sso_enabled === false ? t('players.ssoDisabledHint') : t('players.openLocalDashboard')}
               >
                 <FaExternalLinkAlt />
+              </button>
+            )}
+            {isAdminRole(role) && (
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={handleToggleSso}
+                title={player.sso_enabled === false ? t('players.ssoEnable') : t('players.ssoDisable')}
+              >
+                {player.sso_enabled === false ? <FaToggleOff /> : <FaToggleOn />}
               </button>
             )}
             {isAdminRole(role) && (

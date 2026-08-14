@@ -106,6 +106,13 @@ class Player(models.Model):
                    'Stored encrypted; pushed to the device\'s anthias.conf via SSH, never '
                    'transmitted as part of a login request itself.',
     )
+    sso_enabled = models.BooleanField(
+        default=True,
+        help_text='Whether the "open local dashboard" SSO login button is allowed for this '
+                   'device. Off by request disables it even if a secret is already '
+                   'provisioned — the secret itself is left alone so re-enabling needs no '
+                   'new SSH push.',
+    )
     screen_rotation = models.IntegerField(
         default=0, choices=[(0, '0'), (90, '90'), (180, '180'), (270, '270')],
         help_text='Cached screen_rotation from this device\'s settings — synced whenever '

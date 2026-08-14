@@ -701,6 +701,10 @@ class PlayerViewSet(viewsets.ModelViewSet):
         from .sso import build_sso_login_url
 
         player = self.get_object()
+        if not player.sso_enabled:
+            return Response(
+                {'error': 'SSO login has been disabled for this device.'}, status=403,
+            )
         url = build_sso_login_url(player, request.user)
         if not url:
             return Response(
