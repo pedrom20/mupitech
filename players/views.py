@@ -1269,10 +1269,18 @@ def register_player(request):
     if mac_address:
         player = Player.objects.filter(mac_address=mac_address).first()
         if player:
-            # Player found by MAC — update URL if IP changed
+            # Always clear out any OTHER row already sitting at this
+            # URL (checking both the normalized form and its trailing-
+            # slash variant) — not just when this player's own url is
+            # changing. A stale duplicate at the same address (e.g. a
+            # row predating url normalization, or created via a path
+            # that bypassed Player.save()'s strip) has a url that never
+            # "changes" from this MAC-matched player's point of view,
+            # so the old change-gated cleanup never ran for it.
+            Player.objects.filter(
+                url__in=[url, f'{url}/'],
+            ).exclude(pk=player.pk).delete()
             if player.url != url:
-                # Remove ghost player that might hold the new URL
-                Player.objects.filter(url=url).exclude(pk=player.pk).delete()
                 player.url = url
                 update_fields.append('url')
             player.is_online = True
@@ -1299,10 +1307,14 @@ def register_player(request):
             defaults['tailscale_ip'] = tailscale_ip
             defaults['tailscale_enabled'] = True
         try:
-            player, created = Player.objects.get_or_create(
-                url=url,
-                defaults=defaults,
-            )
+            # Check both the normalized url and its trailing-slash
+            # variant before creating — same reasoning as the MAC
+            # branch above: an existing row may not be normalized yet.
+            player = Player.objects.filter(url__in=[url, f'{url}/']).first()
+            created = False
+            if player is None:
+                player = Player.objects.create(url=url, **defaults)
+                created = True
             if not created:
                 player.is_online = True
                 player.last_seen = now
