@@ -770,7 +770,10 @@
       "accountPage": "Nova página pessoal \"O Meu Perfil\" para as definições de segurança da conta, fora dos Settings partilhados",
       "auditNavMove": "Registo de Auditoria saiu da navegação principal — agora só acessível via Settings",
       "duplicateDeviceFix": "Corrigido um bug de registo duplicado de devices causado por uma entrada antiga com um URL igual exceto na barra final",
-      "updateCheckReleaseFix": "Corrigida a verificação de atualizações — as releases passam a ser publicadas automaticamente para poderem ser detetadas"
+      "updateCheckReleaseFix": "Corrigida a verificação de atualizações — as releases passam a ser publicadas automaticamente para poderem ser detetadas",
+      "onboardingWizard": "Onboarding forçado no primeiro login — admins podem exigir mudança de password e/ou ativação de MFA para novos users",
+      "userCreateUpdateFix": "Corrigido um bug em que criar ou editar um user podia devolver um erro de servidor mesmo com a alteração guardada corretamente",
+      "userScopeCacheFix": "Corrigidas definições de permissões de user (ex: apagar conteúdos + alertas offline) que nem sempre refletiam corretamente quando alteradas em conjunto"
     }
   },
   "updates": {

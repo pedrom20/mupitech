@@ -770,7 +770,10 @@
       "accountPage": "New personal \"My Profile\" page for account security settings, moved out of shared Settings",
       "auditNavMove": "Audit Log moved out of the top navigation — now only accessible via Settings",
       "duplicateDeviceFix": "Fixed a duplicate device registration bug caused by a stale entry sharing a URL with only a trailing slash difference",
-      "updateCheckReleaseFix": "Fixed the update checker — releases are now automatically published so it can detect new versions"
+      "updateCheckReleaseFix": "Fixed the update checker — releases are now automatically published so it can detect new versions",
+      "onboardingWizard": "Forced first-login onboarding — admins can require a password change and/or MFA enrollment for new users",
+      "userCreateUpdateFix": "Fixed a bug where creating or editing a user could return a server error even though the change saved correctly",
+      "userScopeCacheFix": "Fixed user permission settings (e.g. content deletion + offline alerts) not always reflecting correctly when changed together"
     }
   },
   "updates": {

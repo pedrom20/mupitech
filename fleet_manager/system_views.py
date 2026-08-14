@@ -28,11 +28,15 @@ TS_FM_IP_KEY = 'system:tailscale_fm_ip'
 
 
 def _parse_version(version_str):
-    """Parse version string like '1.2.3' into tuple (1, 2, 3) for comparison."""
-    match = re.match(r'v?(\d+)\.(\d+)\.(\d+)', str(version_str))
+    """Parse a version string into a 4-tuple for comparison: (major, minor,
+    feature, patch) — e.g. '1.2.3.4' -> (1, 2, 3, 4). The trailing patch
+    segment is optional so older 3-part tags (e.g. '1.0.2') still compare
+    correctly against newer 4-part ones (patch defaults to 0)."""
+    match = re.match(r'v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?', str(version_str))
     if match:
-        return tuple(int(x) for x in match.groups())
-    return (0, 0, 0)
+        major, minor, feature, patch = match.groups()
+        return (int(major), int(minor), int(feature), int(patch or 0))
+    return (0, 0, 0, 0)
 
 
 def _fetch_latest_version():
