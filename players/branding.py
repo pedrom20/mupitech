@@ -48,6 +48,7 @@ STANDBY_FILENAME = 'standby-image.png'
 CONTAINER_STANDBY_PATH = '/usr/src/app/staticfiles/img/standby.png'
 REMOTE_TMP_STANDBY_PATH = '/tmp/mupitech-standby-image.png'
 
+
 class BrandingPushError(Exception):
     """Raised when pushing a branding asset to a device fails."""
 
@@ -285,7 +286,6 @@ def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, ti
         remote_tmp_path=REMOTE_TMP_STANDBY_PATH,
         container_path=CONTAINER_STANDBY_PATH,
     )
-
 
 
 def push_device_label_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
