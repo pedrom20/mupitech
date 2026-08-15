@@ -194,9 +194,9 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
       <nav className="fm-navbar">
         <div className="container-fluid d-flex align-items-center px-3 h-100">
           <NavLink to="/" className="navbar-brand" onClick={() => { closeMenu(); registerLogoTap() }}>
-            <img src="/static/img/logo.svg" alt="MupiTech Fleet Manager" className="logo-default" />
-            <img src="/static/img/logo-retro.svg" alt="MupiTech Fleet Manager" className="logo-retro" />
-            <img src="/static/img/logo-dos.svg" alt="MupiTech Fleet Manager" className="logo-dos" />
+            <img src="/static/img/logo.svg" alt="MupiTech — Gestor de Mupis Digitais" className="logo-default" />
+            <img src="/static/img/logo-retro.svg" alt="MupiTech — Gestor de Mupis Digitais" className="logo-retro" />
+            <img src="/static/img/logo-dos.svg" alt="MupiTech — Gestor de Mupis Digitais" className="logo-dos" />
           </NavLink>
           {partnerLogoUrl && (
             <span className="navbar-partner-logo">

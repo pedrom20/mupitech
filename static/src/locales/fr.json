@@ -299,7 +299,7 @@
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
     "invalidCredentials": "Nom d'utilisateur ou mot de passe incorrect",
-    "brandSuffix": "Fleet Manager",
+    "brandSuffix": "Gestor de Mupis Digitais",
     "mfa": {
       "title": "Vérification en deux étapes",
       "description": "Saisissez le code à 6 chiffres généré par votre application d'authentification.",

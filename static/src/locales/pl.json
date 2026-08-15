@@ -287,7 +287,7 @@
     "username": "Nazwa użytkownika",
     "password": "Hasło",
     "invalidCredentials": "Nieprawidłowa nazwa użytkownika lub hasło",
-    "brandSuffix": "Fleet Manager",
+    "brandSuffix": "Gestor de Mupis Digitais",
     "mfa": {
       "title": "Weryfikacja dwuetapowa",
       "description": "Wprowadź 6-cyfrowy kod wygenerowany przez aplikację uwierzytelniającą.",

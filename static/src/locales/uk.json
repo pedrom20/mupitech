@@ -316,7 +316,7 @@
     "username": "Ім'я користувача",
     "password": "Пароль",
     "invalidCredentials": "Невірне ім'я користувача або пароль",
-    "brandSuffix": "Fleet Manager",
+    "brandSuffix": "Gestor de Mupis Digitais",
     "mfa": {
       "title": "Двофакторна перевірка",
       "description": "Введіть 6-значний код, згенерований у вашому застосунку автентифікації.",

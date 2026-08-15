@@ -216,12 +216,12 @@ def send_test_email(to_email):
 
     subject = '[MupiTech] Email de teste'
     text_body = (
-        'Este é um email de teste das definições de alertas do MupiTech Fleet Manager. '
+        'Este é um email de teste das definições de alertas do MupiTech Gestor de Mupis Digitais. '
         'Se recebeu este email, o SMTP está configurado corretamente.'
     )
     intro_html = (
         '<p style="margin:0;font-size:14px;color:#4b5563;">'
-        'Este é um email de teste das definições de alertas do MupiTech Fleet Manager. '
+        'Este é um email de teste das definições de alertas do MupiTech Gestor de Mupis Digitais. '
         'Se recebeu este email, o SMTP está configurado corretamente.</p>'
     )
     html_body = branded_email_html(subject, intro_html, '')

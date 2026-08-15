@@ -71,7 +71,7 @@ def branded_email_html(title, intro_html, body_html):
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
 <td><img src="{logo}" alt="MupiTech" height="36" style="display:block;"/></td>
 {partner_html}
-<td style="padding-left:12px;"><span style="color:#ffffff;font-size:16px;font-weight:600;">MupiTech <span style="color:{BRAND_YELLOW};">Fleet Manager</span></span></td>
+<td style="padding-left:12px;"><span style="color:#ffffff;font-size:16px;font-weight:600;">MupiTech <span style="color:{BRAND_YELLOW};">Gestor de Mupis Digitais</span></span></td>
 </tr></table>
 </td></tr>
 <tr><td style="padding:24px;">
@@ -80,7 +80,7 @@ def branded_email_html(title, intro_html, body_html):
 {body_html}
 </td></tr>
 <tr><td style="padding:16px 24px;background:#f8f9fb;border-top:1px solid #e2e5ea;">
-<p style="margin:0;font-size:12px;color:#8a8f98;">Este é um email automático do MupiTech Fleet Manager. Pode ajustar estas notificações em Definições &gt; Alertas.</p>
+<p style="margin:0;font-size:12px;color:#8a8f98;">Este é um email automático do MupiTech Gestor de Mupis Digitais. Pode ajustar estas notificações em Definições &gt; Alertas.</p>
 </td></tr>
 </table>
 </td></tr>
