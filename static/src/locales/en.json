@@ -684,6 +684,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "brandedAlertEmails": "Alert emails (the SMTP test and the real offline-device alert) now use a branded HTML template with the MupiTech logo (or a partner logo, if configured) and Portuguese text, instead of plain English text",
       "dualMfaLogin": "New: dual MFA — require two MFA challenges from different providers to log in, either by role (Settings > MFA Providers) or self-service opt-in (Settings > Security)",
       "lastSuperadminGuard": "The last superadmin can no longer be demoted (by themselves or anyone else), preventing a Fleet Manager with nobody left holding full access",
       "offlineAlertPreview": "New button under Settings > Alerts to preview the real offline-device alert template, not just generic test text",

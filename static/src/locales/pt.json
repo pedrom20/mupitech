@@ -684,6 +684,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "brandedAlertEmails": "Os emails de alerta (SMTP de teste e alerta real de devices offline) passam a ter um template visual com o logótipo da MupiTech (ou de parceiro, se configurado) e texto em português, em vez de texto simples em inglês",
       "dualMfaLogin": "Novo: MFA duplo — pode exigir dois desafios de MFA de providers diferentes para fazer login, por role (Definições > Providers MFA) ou por escolha própria (Definições > Segurança)",
       "lastSuperadminGuard": "Já não é possível despromover o último superadmin (nem a si próprio, nem a outro), evitando ficar sem ninguém com acesso total",
       "offlineAlertPreview": "Novo botão em Definições > Alertas para testar o template real do alerta de devices offline, não só um texto genérico",
