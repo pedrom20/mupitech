@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.1.3.5'
+export const APP_VERSION = '1.1.4.0'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.1.4.0',
+    date: '2026-08-15',
+    changeKeys: [
+      'profileSelfEdit',
+      'deviceLoginWithFmAccount',
+      'playerLocationChipPill',
+    ],
+  },
   {
     version: '1.1.3.5',
     date: '2026-08-15',

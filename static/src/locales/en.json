@@ -794,7 +794,10 @@
       "playerListEditFix": "The Edit button on the player list now opens the same full Settings modal as the player detail page, instead of an older, more limited form",
       "playerCardMobileCollapse": "Player list cards are collapsible on mobile to save space, and group/location now share a single row",
       "playerDetailLocationChip": "The player detail page now shows location and group next to the device name, styled like the device's own splash screen",
-      "playerAccessTab": "Reveal credentials, SSO login, and device replacement moved into a new Access tab in the device's Settings modal, simplifying the toolbar"
+      "playerAccessTab": "Reveal credentials, SSO login, and device replacement moved into a new Access tab in the device's Settings modal, simplifying the toolbar",
+      "profileSelfEdit": "\"My Profile\" now lets you edit your own name, email, and (admin/superadmin) offline-alert email preference",
+      "deviceLoginWithFmAccount": "Devices can now offer a \"Fleet Manager account\" sign-in option alongside the device's own local credentials",
+      "playerLocationChipPill": "The location/group chip on the device detail page now has a pill background for visual consistency"
     }
   },
   "updates": {

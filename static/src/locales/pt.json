@@ -794,7 +794,10 @@
       "playerListEditFix": "O botão Editar na lista de devices abre agora o mesmo modal Definições completo da página de detalhe, em vez de um formulário mais antigo e limitado",
       "playerCardMobileCollapse": "Os cards na lista de devices são agora colapsáveis em mobile para poupar espaço, e grupo/localização passam a partilhar uma só linha",
       "playerDetailLocationChip": "A página de detalhe do device mostra agora localização e grupo junto ao nome, ao estilo do próprio ecrã de splash do device",
-      "playerAccessTab": "Ver credenciais, login SSO e troca de device passam para um novo separador Acessos no modal Definições do device, simplificando a barra de ações"
+      "playerAccessTab": "Ver credenciais, login SSO e troca de device passam para um novo separador Acessos no modal Definições do device, simplificando a barra de ações",
+      "profileSelfEdit": "'O Meu Perfil' passa a permitir editar o seu nome, email e (admin/superadmin) a preferência de email de alerta offline",
+      "deviceLoginWithFmAccount": "Os devices podem agora oferecer uma opção de login 'Conta Fleet Manager' junto das credenciais locais do próprio device",
+      "playerLocationChipPill": "O chip de localização/grupo na página de detalhe do device tem agora fundo em pill, para consistência visual"
     }
   },
   "updates": {
