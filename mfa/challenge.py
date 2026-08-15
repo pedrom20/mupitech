@@ -76,13 +76,26 @@ def register_factor_success(request, challenge_id, entry, provider_key, log_labe
         )
 
     cache.delete(cache_key)
-    login(request, user)
     _mark_last_used(user, provider_key)
     # Two-factor logins log the full sequence (e.g. ['duo', 'totp']); a
     # single-factor login logs just its provider label (which, unlike
     # provider_key, still distinguishes e.g. 'privacyidea-push' from a
     # plain 'privacyidea' code — see auth_privacyidea_push_verify's call).
     mfa_detail = passed if entry.get('passed_methods') else label
+
+    if entry.get('device_login'):
+        # A device relaying typed FM credentials (see
+        # fleet_manager/urls.py::auth_device_login) has no use for an FM
+        # session — it's establishing its *own*, separate local session
+        # once it trusts these credentials. Skip login() entirely and
+        # hand back the role the device needs to stash, same shape
+        # auth_device_login's own password-only success path returns.
+        from fleet_manager.permissions import _user_role
+        log_action(request, 'login', 'session', target_name=user.username,
+                   details={'mfa': mfa_detail, 'via': 'device_login'})
+        return Response({'success': True, 'username': user.username, 'role': _user_role(user)})
+
+    login(request, user)
     log_action(request, 'login', 'session', target_name=user.username, details={'mfa': mfa_detail})
     return Response({'success': True, 'username': user.username})
 

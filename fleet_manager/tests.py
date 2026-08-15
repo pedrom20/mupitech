@@ -232,7 +232,7 @@ class OfflineAlertEmailTests(TestCase):
         self.assertEqual(mimetype, 'text/html')
         self.assertIn('Loja Centro', html)
         self.assertIn('MupiTech', html)
-        self.assertIn('data:image/png;base64,', html)  # logo actually embedded, not a broken/missing src
+        self.assertIn('data:image/svg+xml;base64,', html)  # logo actually embedded, not a broken/missing src
 
     def test_device_name_is_html_escaped_in_table(self):
         from fleet_manager import alerts
@@ -271,3 +271,87 @@ class OfflineAlertEmailTests(TestCase):
         html = message.alternatives[0][0]
         self.assertIn('Nenhum dispositivo está offline', html)
         self.assertIn('Exemplo — Receção', html)
+
+
+class DeviceLoginMFATests(TestCase):
+    """A device relaying FM credentials typed into its own login page
+    (fleet_manager/urls.py::auth_device_login) used to hard-block any
+    MFA-enrolled account with a 409. It now issues the same kind of
+    challenge auth_login does, and the *same* verify endpoints
+    (auth_mfa_verify / auth_duo_verify / ...) complete it — special-
+    cased via the cache entry's 'device_login' flag (mfa/challenge.py)
+    to hand back a role instead of establishing an FM session, which
+    is what the device relay path actually needs."""
+
+    def setUp(self):
+        Group.objects.get_or_create(name='admin')
+        Group.objects.get_or_create(name='editor')
+        Group.objects.get_or_create(name='viewer')
+        Group.objects.get_or_create(name='superadmin')
+        self.client = APIClient()
+
+        from players.models import Player
+        self.player = Player.objects.create(name='device1', url='http://10.0.0.5')
+        self.player.set_sso_secret('a-test-sso-secret')
+        self.player.save(update_fields=['sso_secret_encrypted'])
+
+        self.user = User.objects.create_user(username='opuser', password='pw123456')
+        self.totp_secret = _enroll_totp(self.user)
+
+    def _proof(self):
+        from django.core import signing
+        from players.sso import DEVICE_AUTH_PROOF_SALT
+        return signing.dumps(
+            {'player_id': str(self.player.id)},
+            key=self.player.get_sso_secret(),
+            salt=DEVICE_AUTH_PROOF_SALT,
+            compress=True,
+        )
+
+    def _device_login(self, **overrides):
+        payload = {
+            'player_id': str(self.player.id),
+            'proof': self._proof(),
+            'username': 'opuser',
+            'password': 'pw123456',
+        }
+        payload.update(overrides)
+        return self.client.post('/api/auth/device-login/', payload, format='json')
+
+    def test_mfa_enrolled_user_gets_challenge_not_409(self):
+        response = self._device_login()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data.get('mfa_required'))
+        self.assertEqual(response.data['method'], 'totp')
+
+    def test_verify_completes_device_login_without_fm_session(self):
+        challenge = self._device_login().data
+        code = pyotp.TOTP(self.totp_secret).now()
+        verify = self.client.post(
+            '/api/auth/mfa/verify/',
+            {'challenge_id': challenge['challenge_id'], 'code': code},
+            format='json',
+        )
+        self.assertEqual(verify.status_code, 200)
+        self.assertTrue(verify.data.get('success'))
+        self.assertEqual(verify.data.get('role'), 'viewer')
+        # No FM session should have been established for this client —
+        # a device-login challenge is the device's own auth, not the FM's.
+        me = self.client.get('/api/users/me/')
+        self.assertEqual(me.data.get('authenticated'), False)
+
+    def test_wrong_code_does_not_complete_device_login(self):
+        challenge = self._device_login().data
+        verify = self.client.post(
+            '/api/auth/mfa/verify/',
+            {'challenge_id': challenge['challenge_id'], 'code': '000000'},
+            format='json',
+        )
+        self.assertEqual(verify.status_code, 401)
+
+    def test_no_mfa_enrolled_still_returns_plain_success(self):
+        plain_user = User.objects.create_user(username='plain', password='pw123456')
+        response = self._device_login(username='plain', password='pw123456')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data.get('success'))
+        self.assertNotIn('mfa_required', response.data)

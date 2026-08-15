@@ -326,15 +326,20 @@ def auth_device_login(request):
     provisions (proves the caller really is that device, not just
     anyone on the LAN guessing passwords against this endpoint).
 
-    No MFA support here — a device without a browser-based challenge
-    flow can't complete TOTP/Duo verification, so an MFA-enrolled user
-    is told to use the FM-initiated SSO button instead.
+    An MFA-enrolled user gets the same {mfa_required, challenge_id, ...}
+    shape auth_login returns — the device's own login page relays this
+    into its own challenge/verify screen, then calls the *same* verify
+    endpoints below (auth_mfa_verify / auth_duo_verify / etc.) a browser
+    would. Those endpoints special-case a challenge created here (see
+    the 'device_login' cache flag) to skip establishing an FM session
+    and return the role instead — see mfa/challenge.py.
     """
     from django.core import signing
     from django.core.cache import cache
 
     from history.logging import log_action
-    from mfa.providers import enrolled_methods
+    from mfa.policy import dual_mfa_required
+    from mfa.providers import enrolled_methods, push_methods
     from players.models import Player
     from players.sso import DEVICE_AUTH_PROOF_MAX_AGE, DEVICE_AUTH_PROOF_SALT
 
@@ -373,8 +378,31 @@ def auth_device_login(request):
                    details={'via': 'device_login', 'player': player.name})
         return Response({'detail': 'Invalid credentials.'}, status=401)
 
-    if enrolled_methods(user):
-        return Response({'detail': 'mfa_required'}, status=409)
+    methods = enrolled_methods(user)
+    if methods:
+        import secrets
+
+        dual_required = dual_mfa_required(user) and len(methods) >= 2
+        method = methods[0]
+        challenge_id = secrets.token_urlsafe(32)
+        cache.set(
+            f'mfa_challenge:{challenge_id}',
+            {
+                'user_id': user.id, 'attempts': 0, 'method': method,
+                'dual_required': dual_required, 'passed_methods': [],
+                'device_login': True,
+            },
+            timeout=300,
+        )
+        return Response({
+            'mfa_required': True,
+            'stage': 1,
+            'challenge_id': challenge_id,
+            'method': method,
+            'available_methods': methods,
+            'push_methods': push_methods(user),
+            'dual_required': dual_required,
+        })
 
     cache.delete(attempts_key)
     log_action(request, 'login', 'session', target_name=user.username,
