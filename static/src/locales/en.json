@@ -678,6 +678,9 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "privacyIdeaProvider": "New optional MFA provider: privacyIDEA — enroll a TOTP token against a self-hosted privacyIDEA server via QR code, same as the built-in authenticator option",
+      "authpointProviderStub": "Groundwork laid for a future WatchGuard AuthPoint push-MFA option (not yet connected to a live AuthPoint account)",
+      "ldapLoginPrep": "Groundwork laid for AD/LDAP login — admins can point the Fleet Manager at a directory server via environment variables; new LDAP users start as viewers until promoted",
       "customAnthiasImage": "Own Anthias player image (x86, Pi4, Pi5) with CEC, IR, screenshot capture and self-update built in, replacing the unmaintained third-party fork",
       "migrateToMupitechImage": "New \"Migrate to MupiTech image\" action for x86 devices",
       "officialSchedulingModel": "Adopted Anthias's own simpler recurring-schedule model for content, built into each asset's editor",
