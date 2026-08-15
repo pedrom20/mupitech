@@ -92,7 +92,7 @@ Guarda o username/password do admin — vais precisar deles no passo 4.
 ## 3.5. Ativar push (opcional, sem Firebase)
 
 Só é preciso se quiseres a opção de aprovação por push na app
-privacyIDEA Authenticator, além do código de 6 dígitos. Duas políticas
+privacyIDEA Authenticator, além do código de 6 dígitos. Três políticas
 de enrolamento, testadas a sério contra um servidor real — troca
 `<URL-desta-VM>` pelo URL público desta instância (o mesmo que vais
 pôr em "Server URL" no passo 4):
@@ -113,6 +113,18 @@ curl -sk https://localhost/policy/push_registration_url -H "Authorization: $TOKE
 curl -sk https://localhost/policy/push_poll_only -H "Authorization: $TOKEN" \
   -d name=push_poll_only -d scope=enrollment \
   -d "action=push_firebase_configuration=poll only" -d active=1
+
+# Se o servidor usa certificado self-signed (o caso por omissão do
+# privacyidea-apache2), a app do telemóvel recusa-se a confiar nele
+# ao enviar a chave pública no 2º passo do enrolamento — falha com
+# "sending public key... failed" / SSL handshake. Isto diz à app para
+# não exigir um certificado válido (mesmo princípio do
+# PRIVACYIDEA_VERIFY_SSL=false do lado do Fleet Manager). Com um
+# certificado real (Let's Encrypt, CA interna confiada pelo telemóvel)
+# esta política deixa de ser necessária.
+curl -sk https://localhost/policy/push_ssl_verify -H "Authorization: $TOKEN" \
+  -d name=push_ssl_verify -d scope=enrollment \
+  -d "action=push_ssl_verify=0" -d active=1
 ```
 
 A troca é que deixa de ser um push instantâneo — a app só mostra o
@@ -152,6 +164,13 @@ e reiniciar o container `web`. Sem isto, todas as chamadas ao
 privacyIDEA falham com `SSLCertVerificationError` e o Fleet Manager
 mostra "Couldn't reach privacyIDEA".
 
+Isto cobre só o lado servidor-a-servidor (Fleet Manager → privacyIDEA).
+Para enrolamento **push**, o telemóvel também fala diretamente com o
+privacyIDEA (2º passo do enrolamento — envia a chave pública) e recusa
+o mesmo certificado self-signed com um erro tipo "sending public
+key... failed" / SSL handshake — para esse lado é a política
+`push_ssl_verify=0` do passo 3.5 acima que resolve, não a env var.
+
 ## 5. Verificar que está mesmo a funcionar
 
 Já dentro do Fleet Manager, como um utilizador qualquer: Account →
@@ -163,8 +182,11 @@ automática → faz logout/login e confirma que o passo de MFA aparece
 (um pedido de push no telemóvel, ou o pedido de código, consoante o
 que escolheste).
 
-O fluxo de enrolamento e o polling de estado foram testados a sério
-contra um servidor real; o passo em que a app aprova mesmo um pedido
+O fluxo de enrolamento por push (QR, envio da chave pública, polling
+do estado até `active`) foi confirmado a funcionar de ponta a ponta
+com a app privacyIDEA Authenticator real, incluindo o ajuste da
+política `push_ssl_verify=0` acima. O que falta confirmar é o passo em
+que a app aprova mesmo um pedido
 de login (trigger_and_wait_push em mfa/privacyidea.py) foi construído
 a partir da documentação oficial da API mas nunca testado com um
 telemóvel real — vale a pena confirmar esse último passo.
