@@ -2367,7 +2367,7 @@ const PlayerDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {info.ip_addresses && info.ip_addresses.length > 0 && (
+                  {isAdminRole(role) && info.ip_addresses && info.ip_addresses.length > 0 && (
                     <div className="col-sm-6">
                       <div className="d-flex align-items-center gap-2">
                         <FaNetworkWired className="text-purple" style={{ fontSize: '14px', flexShrink: 0 }} />
@@ -2379,7 +2379,7 @@ const PlayerDetail: React.FC = () => {
                     </div>
                   )}
 
-                  {(player.mac_address || info.mac_address) && (
+                  {isAdminRole(role) && (player.mac_address || info.mac_address) && (
                     <div className="col-sm-6">
                       <div className="d-flex align-items-center gap-2">
                         <FaNetworkWired className="text-purple" style={{ fontSize: '14px', flexShrink: 0 }} />
@@ -2389,7 +2389,7 @@ const PlayerDetail: React.FC = () => {
                     </div>
                   )}
 
-                  {player.tailscale_ip && (
+                  {isAdminRole(role) && player.tailscale_ip && (
                     <div className="col-sm-6">
                       <div className="d-flex align-items-center gap-2">
                         <FaShieldAlt className="text-purple" style={{ fontSize: '14px', flexShrink: 0 }} />
