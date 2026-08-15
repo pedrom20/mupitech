@@ -785,6 +785,13 @@ export const system = {
     return apiRequest('POST', '/system/alerts/test/', toEmail ? { to_email: toEmail } : {})
   },
 
+  /** Same as sendTestAlertEmail above, but sends the real offline-alert
+   * subject/body template (current offline devices, or a made-up
+   * sample if none) instead of generic placeholder text. */
+  sendTestOfflineAlertEmail(toEmail?: string): Promise<{ success: boolean; error?: string }> {
+    return apiRequest('POST', '/system/alerts/test-offline/', toEmail ? { to_email: toEmail } : {})
+  },
+
   getRegistryMirror(): Promise<RegistryMirrorSettings> {
     return apiRequest<RegistryMirrorSettings>('GET', '/system/registry/')
   },
@@ -906,22 +913,32 @@ export const auth = {
   },
 
   /** First factor. Returns either {success, username} (no MFA enrolled —
-   * a real session was already established) or {mfa_required, challenge_id,
-   * method, available_methods} (second factor needed — one of the
-   * verify*() calls below must succeed before there's a session; method
-   * is the default to start with (push methods take priority — see
-   * mfa/providers.py::PROVIDER_PRIORITY), available_methods lists every
-   * method the same challenge_id can be verified against — every verify
-   * endpoint accepts it regardless of which one was originally picked,
-   * so the frontend can offer a "use a different method" switch). */
+   * a real session was already established) or an MfaChallenge (second
+   * factor needed — one of the verify*() calls below must succeed
+   * before there's a session; method is the default to start with
+   * (push methods take priority — see mfa/providers.py::PROVIDER_PRIORITY),
+   * available_methods lists every method the same challenge_id can be
+   * verified against — every verify endpoint accepts it regardless of
+   * which one was originally picked, so the frontend can offer a "use a
+   * different method" switch). dual_required means a *second*,
+   * different-provider challenge follows a successful first one — see
+   * MfaChallenge's own doc below. */
   login(username: string, password: string): Promise<
     | { success: true; username: string }
-    | { mfa_required: true; challenge_id: string; method: MFAMethod; available_methods: MFAMethod[]; push_methods: MFAMethod[] }
+    | MfaChallenge
   > {
     return apiRequest('POST', '/auth/login/', { username, password })
   },
 
-  verifyMfa(challengeId: string, code: string): Promise<{ success: boolean; username: string }> {
+  /** Every verify*() call below shares this same return shape: either
+   * the login is done ({success, username} — dual-MFA's second factor
+   * or a single-factor login), or another MfaChallenge with stage: 2 —
+   * dual-MFA's first factor just passed, and a second, different-
+   * provider challenge must now be completed against the *same*
+   * challenge_id before a session exists. login.tsx's submit handlers
+   * check `'mfa_required' in result` on every verify response, not just
+   * the initial login() call, to drive this loop. */
+  verifyMfa(challengeId: string, code: string): Promise<{ success: true; username: string } | MfaChallenge> {
     return apiRequest('POST', '/auth/mfa/verify/', { challenge_id: challengeId, code })
   },
 
@@ -930,20 +947,31 @@ export const auth = {
    * fleet_manager/urls.py::auth_duo_verify. A 401 with
    * detail: 'timeout' means the challenge is still good, safe to call
    * again (sends a fresh push); any other failure means log in again. */
-  verifyDuo(challengeId: string): Promise<{ success: boolean; username: string }> {
+  verifyDuo(challengeId: string): Promise<{ success: true; username: string } | MfaChallenge> {
     return apiRequest('POST', '/auth/mfa/duo-verify/', { challenge_id: challengeId })
   },
 
-  verifyPrivacyIDEA(challengeId: string, code: string): Promise<{ success: boolean; username: string }> {
+  verifyPrivacyIDEA(challengeId: string, code: string): Promise<{ success: true; username: string } | MfaChallenge> {
     return apiRequest('POST', '/auth/mfa/privacyidea-verify/', { challenge_id: challengeId, code })
   },
 
   /** Same push/block/retry-on-timeout shape as verifyDuo() above, for a
    * privacyIDEA push token instead of Duo — see
    * fleet_manager/urls.py::auth_privacyidea_push_verify. */
-  verifyPrivacyIDEAPush(challengeId: string): Promise<{ success: boolean; username: string }> {
+  verifyPrivacyIDEAPush(challengeId: string): Promise<{ success: true; username: string } | MfaChallenge> {
     return apiRequest('POST', '/auth/mfa/privacyidea-push-verify/', { challenge_id: challengeId })
   },
+}
+
+export interface MfaChallenge {
+  mfa_required: true
+  stage: 1 | 2
+  challenge_id: string
+  method: MFAMethod
+  available_methods: MFAMethod[]
+  push_methods: MFAMethod[]
+  dual_required?: boolean
+  first_method_passed?: MFAMethod
 }
 
 export const mfa = {
@@ -961,6 +989,32 @@ export const mfa = {
 
   disable(password: string): Promise<{ success: boolean }> {
     return apiRequest('POST', '/mfa/disable/', { password })
+  },
+}
+
+export const dualMfa = {
+  /** self_opt_in/role_required combine (either true is enough — see
+   * mfa/policy.py::dual_mfa_required) to decide whether this user must
+   * pass two challenges to log in; eligible is whether they currently
+   * have 2+ confirmed providers for that to actually take effect.
+   * require_dual_roles is only present for admin/superadmin callers —
+   * the same call also drives the admin policy editor. */
+  status(): Promise<{
+    self_opt_in: boolean
+    role_required: boolean
+    eligible: boolean
+    require_dual_roles?: string[]
+  }> {
+    return apiRequest('GET', '/mfa/dual/status/')
+  },
+
+  selfToggle(enabled: boolean): Promise<{ success: boolean; self_opt_in: boolean }> {
+    return apiRequest('POST', '/mfa/dual/self-toggle/', { enabled })
+  },
+
+  /** Admin-only. */
+  savePolicy(requireDualRoles: string[]): Promise<{ require_dual_roles: string[] }> {
+    return apiRequest('POST', '/mfa/dual/policy/', { require_dual_roles: requireDualRoles })
   },
 }
 

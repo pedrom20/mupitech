@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaSave, FaCheckCircle, FaTimesCircle } from 'react-icons/fa'
+import { FaSave, FaCheckCircle, FaTimesCircle, FaUserShield } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { mfaProviders } from '@/services/api'
+import { mfaProviders, dualMfa } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import { MFA_METHOD_ICON } from '@/utils/mfaIcons'
 import type { MFAProviderConfigStatus } from '@/types'
@@ -14,10 +14,16 @@ const AuthPointIcon = MFA_METHOD_ICON.authpoint
 const SECRET_PLACEHOLDER_SET = '••••••••'
 const SECRET_PLACEHOLDER_UNSET = ''
 
+const DUAL_MFA_ROLES = ['viewer', 'editor', 'admin', 'superadmin'] as const
+
 const MFAProviderSettings: React.FC = () => {
   const { t } = useTranslation()
   const [status, setStatus] = useState<MFAProviderConfigStatus | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const [dualRoles, setDualRoles] = useState<string[]>([])
+  const [dualLoading, setDualLoading] = useState(true)
+  const [dualSaving, setDualSaving] = useState(false)
 
   const [duoIkey, setDuoIkey] = useState('')
   const [duoSkey, setDuoSkey] = useState('')
@@ -49,7 +55,28 @@ const MFAProviderSettings: React.FC = () => {
     }).catch(() => {}).finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  const loadDualPolicy = () => {
+    setDualLoading(true)
+    dualMfa.status().then((res) => {
+      setDualRoles(res.require_dual_roles || [])
+    }).catch(() => {}).finally(() => setDualLoading(false))
+  }
+
+  useEffect(() => { load(); loadDualPolicy() }, [])
+
+  const toggleDualRole = (role: string) => {
+    setDualRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]))
+  }
+
+  const handleSaveDualPolicy = () => {
+    setDualSaving(true)
+    dualMfa.savePolicy(dualRoles).then((res) => {
+      setDualRoles(res.require_dual_roles)
+      showToast('success', t('common.success'))
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }).finally(() => setDualSaving(false))
+  }
 
   const handleSaveDuo = () => {
     setDuoSaving(true)
@@ -96,6 +123,47 @@ const MFAProviderSettings: React.FC = () => {
 
   return (
     <div className="row g-3">
+      {/* Dual MFA policy */}
+      <div className="col-12">
+        <div className="fm-card fm-card-accent">
+          <div className="fm-card-header py-2">
+            <h5 className="card-title mb-0">
+              <FaUserShield className="me-2" />
+              {t('mfaProviders.dualPolicyTitle')}
+            </h5>
+          </div>
+          <div className="fm-card-body py-3">
+            <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>{t('mfaProviders.dualPolicyDescription')}</p>
+            {dualLoading ? (
+              <p className="form-text mb-0">{t('common.loading')}</p>
+            ) : (
+              <>
+                <div className="mb-3 d-flex flex-wrap gap-3">
+                  {DUAL_MFA_ROLES.map((role) => (
+                    <div className="form-check" key={role}>
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id={`dual-role-${role}`}
+                        checked={dualRoles.includes(role)}
+                        onChange={() => toggleDualRole(role)}
+                      />
+                      <label className="form-check-label" htmlFor={`dual-role-${role}`} style={{ fontSize: '0.85rem' }}>
+                        {t(`users.role_${role}`)}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <button className="fm-btn-primary btn-sm" onClick={handleSaveDualPolicy} disabled={dualSaving}>
+                  <FaSave />
+                  {dualSaving ? t('common.loading') : t('common.save')}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Duo */}
       <div className="col-lg-6">
         <div className="fm-card fm-card-accent h-100">

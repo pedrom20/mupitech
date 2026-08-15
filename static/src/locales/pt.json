@@ -487,6 +487,7 @@
       "back": "Voltar",
       "invalidCode": "Código inválido",
       "switchTo": "Usar antes {{method}}",
+      "stepIndicator": "Passo {{stage}} de {{total}}",
       "methodName": {
         "totp": "um código de autenticação",
         "duo": "o push do Duo",
@@ -683,6 +684,9 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "dualMfaLogin": "Novo: MFA duplo — pode exigir dois desafios de MFA de providers diferentes para fazer login, por role (Definições > Providers MFA) ou por escolha própria (Definições > Segurança)",
+      "lastSuperadminGuard": "Já não é possível despromover o último superadmin (nem a si próprio, nem a outro), evitando ficar sem ninguém com acesso total",
+      "offlineAlertPreview": "Novo botão em Definições > Alertas para testar o template real do alerta de devices offline, não só um texto genérico",
       "ssoTogglePatchFix": "Corrigido o ativar/desativar SSO de um device, que falhava com erro de validação",
       "phonehomeAuthEnabledFix": "Corrigido o phone-home que falhava num device com login local ativado",
       "provisionWizardPlatform": "O wizard de \"Instalar Novo\" device pergunta agora a plataforma (Raspberry Pi 4/5 ou PC x86) antes de mostrar as instruções de preparação, em vez de assumir sempre Raspberry Pi",
@@ -1006,6 +1010,8 @@
     "fromEmail": "Endereço de origem",
     "useTls": "Usar TLS",
     "sendTest": "Enviar email de teste",
+    "sendTestOffline": "Enviar exemplo de alerta real",
+    "sendTestOfflineHint": "Usa o template real do alerta de devices offline (com os devices offline atuais, ou um exemplo se nenhum estiver offline), em vez do texto genérico do teste acima.",
     "testSent": "Email de teste enviado — verifique a sua caixa de entrada.",
     "testFailed": "Não foi possível enviar o email de teste. Verifique as definições SMTP."
   },
@@ -1032,7 +1038,9 @@
     "duoDescription": "2FA por push via uma conta Duo Security. Credenciais de uma aplicação \"Auth API\" criada no painel de admin do Duo — as env vars continuam a funcionar se estiverem definidas, mas os valores aqui têm prioridade.",
     "privacyideaDescription": "2FA por TOTP via um servidor privacyIDEA autoalojado. Precisa de uma conta admin e de um realm criados antes nesse servidor — as env vars continuam a funcionar se estiverem definidas, mas os valores aqui têm prioridade.",
     "piResolverHint": "Só é preciso se for o resolver \"internal\" do próprio privacyIDEA (pi-manage resolver create_internal) — cada utilizador é criado lá automaticamente no primeiro enrolamento. Deixa em branco para um resolver LDAP/SQL externo que já tenha esses utilizadores.",
-    "authpointDescription": "2FA por push do WatchGuard AuthPoint — podes guardar as credenciais aqui para mais tarde, mas este provider ainda não está ligado a uma integração real, por isso não aparece como opção de login mesmo depois de preenchido."
+    "authpointDescription": "2FA por push do WatchGuard AuthPoint — podes guardar as credenciais aqui para mais tarde, mas este provider ainda não está ligado a uma integração real, por isso não aparece como opção de login mesmo depois de preenchido.",
+    "dualPolicyTitle": "MFA duplo (dois providers)",
+    "dualPolicyDescription": "Utilizadores com uma das roles selecionadas têm de passar dois desafios de MFA de providers diferentes (ex: Duo + código de autenticação) para fazer login, em vez de apenas um. Só se aplica a quem já tenha 2+ métodos confirmados — com apenas 1, o login continua a usar só esse."
   },
   "brandingLibrary": {
     "titleLogo": "Escolher um logótipo",
@@ -1317,7 +1325,12 @@
     "piTypeTotp": "Código de 6 dígitos",
     "piTypePush": "Aprovação por push",
     "piScanQrHintPush": "Digitalize este código QR com a app privacyIDEA Authenticator para terminar o registo.",
-    "piWaitingForApp": "A aguardar que termine o registo na app privacyIDEA Authenticator…"
+    "piWaitingForApp": "A aguardar que termine o registo na app privacyIDEA Authenticator…",
+    "dualMfaTitle": "MFA duplo",
+    "dualMfaDescription": "Exigir dois desafios de MFA de providers diferentes (ex: código + push) para fazer login, em vez de apenas um.",
+    "dualMfaNotEligible": "Precisa de pelo menos 2 métodos MFA confirmados para ativar",
+    "dualMfaRoleRequired": "Já é exigido pela política do sistema para a sua role",
+    "dualMfaToggleError": "Não foi possível atualizar a preferência de MFA duplo."
   },
   "account": {
     "title": "O Meu Perfil",

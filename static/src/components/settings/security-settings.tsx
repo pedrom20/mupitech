@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaShieldAlt, FaCheckCircle, FaMobileAlt, FaKey } from 'react-icons/fa'
+import { FaShieldAlt, FaCheckCircle, FaMobileAlt, FaKey, FaUserShield } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { mfa, duo, privacyidea, ApiError } from '@/services/api'
+import { mfa, duo, privacyidea, dualMfa, ApiError } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import CodeInput from '@/components/shared/code-input'
 
@@ -44,6 +44,20 @@ const SecuritySettings: React.FC = () => {
   const [piBusy, setPiBusy] = useState(false)
   const piPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  const [dualSelfOptIn, setDualSelfOptIn] = useState(false)
+  const [dualRoleRequired, setDualRoleRequired] = useState(false)
+  const [dualEligible, setDualEligible] = useState(false)
+  const [dualLoading, setDualLoading] = useState(true)
+  const [dualBusy, setDualBusy] = useState(false)
+
+  const loadDualStatus = () => {
+    dualMfa.status().then((res) => {
+      setDualSelfOptIn(res.self_opt_in)
+      setDualRoleRequired(res.role_required)
+      setDualEligible(res.eligible)
+    }).catch(() => {}).finally(() => setDualLoading(false))
+  }
+
   const loadStatus = () => {
     mfa.status().then((res) => {
       setConfirmedAt(res.confirmed_at)
@@ -77,9 +91,24 @@ const SecuritySettings: React.FC = () => {
     loadStatus()
     loadDuoStatus()
     loadPIStatus()
+    loadDualStatus()
     return () => { stopDuoPolling(); stopPIPolling() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const handleDualToggle = (enabled: boolean) => {
+    setDualBusy(true)
+    dualMfa.selfToggle(enabled).then((res) => {
+      setDualSelfOptIn(res.self_opt_in)
+      showToast('success', t('common.success'))
+    }).catch((error) => {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('security.dualMfaToggleError'),
+      })
+    }).finally(() => setDualBusy(false))
+  }
 
   const handleEnroll = () => {
     setBusy(true)
@@ -103,6 +132,7 @@ const SecuritySettings: React.FC = () => {
     mfa.confirm(submittedCode).then(() => {
       showToast('success', t('security.enabledSuccess'))
       loadStatus()
+      loadDualStatus()
     }).catch((error) => {
       Swal.fire({
         icon: 'error',
@@ -142,6 +172,7 @@ const SecuritySettings: React.FC = () => {
       showToast('success', t('security.disabledSuccess'))
       setPassword('')
       loadStatus()
+      loadDualStatus()
     }).catch((error) => {
       Swal.fire({
         icon: 'error',
@@ -157,6 +188,7 @@ const SecuritySettings: React.FC = () => {
         stopDuoPolling()
         showToast('success', t('security.enabledSuccess'))
         loadDuoStatus()
+        loadDualStatus()
       }
     }).catch(() => {
       // Transient errors (network blip) just get retried on the next tick.
@@ -201,6 +233,7 @@ const SecuritySettings: React.FC = () => {
       showToast('success', t('security.disabledSuccess'))
       setDuoPassword('')
       loadDuoStatus()
+      loadDualStatus()
     }).catch((error) => {
       Swal.fire({
         icon: 'error',
@@ -216,6 +249,7 @@ const SecuritySettings: React.FC = () => {
         stopPIPolling()
         showToast('success', t('security.enabledSuccess'))
         loadPIStatus()
+        loadDualStatus()
       }
     }).catch(() => {
       // Transient errors (network blip) just get retried on the next tick.
@@ -247,6 +281,7 @@ const SecuritySettings: React.FC = () => {
     privacyidea.confirm(submittedCode).then(() => {
       showToast('success', t('security.enabledSuccess'))
       loadPIStatus()
+      loadDualStatus()
     }).catch((error) => {
       Swal.fire({
         icon: 'error',
@@ -287,6 +322,7 @@ const SecuritySettings: React.FC = () => {
       showToast('success', t('security.disabledSuccess'))
       setPiPassword('')
       loadPIStatus()
+      loadDualStatus()
     }).catch((error) => {
       Swal.fire({
         icon: 'error',
@@ -632,6 +668,43 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       )}
+
+      <div className="col-lg-6">
+        <div className="fm-card fm-card-accent h-100">
+          <div className="fm-card-header py-2">
+            <h5 className="card-title mb-0">
+              <FaUserShield className="me-2" />
+              {t('security.dualMfaTitle')}
+            </h5>
+          </div>
+          <div className="fm-card-body py-3">
+            <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>{t('security.dualMfaDescription')}</p>
+
+            {dualLoading ? (
+              <p className="form-text mb-0">{t('common.loading')}</p>
+            ) : dualRoleRequired ? (
+              <span className="badge bg-info-subtle text-info-emphasis">{t('security.dualMfaRoleRequired')}</span>
+            ) : !dualEligible ? (
+              <span className="badge bg-light text-muted border">{t('security.dualMfaNotEligible')}</span>
+            ) : (
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="dual-mfa-self-toggle"
+                  checked={dualSelfOptIn}
+                  disabled={dualBusy}
+                  onChange={(e) => handleDualToggle(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="dual-mfa-self-toggle">
+                  {dualSelfOptIn ? t('security.statusEnabled') : t('security.statusDisabled')}
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

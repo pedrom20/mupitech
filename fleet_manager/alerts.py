@@ -92,6 +92,29 @@ def get_alert_recipients():
     return recipients
 
 
+def _offline_alert_message(offline_players, conf, to):
+    """Builds the exact EmailMessage send_offline_alert_emails() sends —
+    factored out so send_test_offline_alert_email() below can reuse the
+    real subject/body template instead of send_test_email()'s generic
+    placeholder text, just redirected to one address instead of every
+    opted-in admin."""
+    from django.core.mail import EmailMessage
+
+    lines = [f'{len(offline_players)} device(s) have been offline for longer than expected:', '']
+    for player in offline_players:
+        last_seen = player.last_seen.strftime('%Y-%m-%d %H:%M') if player.last_seen else 'never'
+        lines.append(f'- {player.name} (last seen: {last_seen})')
+    body = '\n'.join(lines)
+
+    return EmailMessage(
+        subject=f'[MupiTech] {len(offline_players)} device(s) offline',
+        body=body,
+        from_email=conf['from_email'] or conf['smtp_username'],
+        to=to,
+        connection=get_alert_connection(),
+    )
+
+
 def send_offline_alert_emails(offline_players):
     """Send one summary email (not one per device) to every opted-in admin."""
     if not offline_players:
@@ -103,31 +126,61 @@ def send_offline_alert_emails(offline_players):
         logger.info('Offline alert: no opted-in admin recipients, skipping email.')
         return
 
-    connection = get_alert_connection()
-    if connection is None:
+    if get_alert_connection() is None:
         logger.warning('Offline alert: SMTP not configured, skipping email.')
         return
 
-    from django.core.mail import EmailMessage
-
-    lines = [f'{len(offline_players)} device(s) have been offline for longer than expected:', '']
-    for player in offline_players:
-        last_seen = player.last_seen.strftime('%Y-%m-%d %H:%M') if player.last_seen else 'never'
-        lines.append(f'- {player.name} (last seen: {last_seen})')
-    body = '\n'.join(lines)
-
-    message = EmailMessage(
-        subject=f'[MupiTech] {len(offline_players)} device(s) offline',
-        body=body,
-        from_email=conf['from_email'] or conf['smtp_username'],
-        to=recipients,
-        connection=connection,
-    )
+    message = _offline_alert_message(offline_players, conf, recipients)
     try:
         message.send()
         logger.info('Offline alert email sent to %d recipient(s) for %d device(s).', len(recipients), len(offline_players))
     except Exception:
         logger.exception('Failed to send offline alert email.')
+
+
+class _SamplePlayer:
+    """Stand-in for players.models.Player — just enough attributes for
+    _offline_alert_message()'s template (name, last_seen) — used only
+    when send_test_offline_alert_email() has no real offline device to
+    show, so the preview isn't just an empty list."""
+    def __init__(self, name, last_seen):
+        self.name = name
+        self.last_seen = last_seen
+
+
+def send_test_offline_alert_email(to_email):
+    """Same email a real offline-alert run would send (see
+    send_offline_alert_emails above), but redirected to a single address
+    instead of every opted-in admin — lets an operator preview the exact
+    subject/body template, not just confirm SMTP works (that's what
+    send_test_email() below is for). Uses currently-offline devices if
+    there are any, otherwise two made-up rows so the preview still shows
+    the real list format."""
+    from django.utils import timezone
+
+    from players.models import Player
+
+    conf = get_alert_settings()
+    if get_alert_connection() is None:
+        raise ValueError('SMTP host is not configured.')
+
+    offline_players = list(Player.objects.filter(is_online=False))
+    is_sample = not offline_players
+    if is_sample:
+        now = timezone.now()
+        offline_players = [
+            _SamplePlayer('Exemplo — Recessão', now),
+            _SamplePlayer('Exemplo — Balcão 1', None),
+        ]
+
+    message = _offline_alert_message(offline_players, conf, [to_email])
+    if is_sample:
+        message.subject = f'[MupiTech] (exemplo) {message.subject}'
+        message.body = (
+            'Nenhum device está offline neste momento — isto é um exemplo com dados '
+            'fictícios para mostrar o formato real do email.\n\n' + message.body
+        )
+    message.send()
 
 
 def send_test_email(to_email):

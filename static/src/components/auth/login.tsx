@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { FaSignInAlt, FaArrowLeft, FaShieldAlt } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { AuthContext } from '@/components/app'
-import { auth, ApiError } from '@/services/api'
+import { auth, ApiError, type MfaChallenge } from '@/services/api'
 import CodeInput from '@/components/shared/code-input'
 import { MFA_METHOD_ICON } from '@/utils/mfaIcons'
 import type { MFAMethod } from '@/types'
@@ -18,29 +18,51 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
   // Second factor: only entered once the first factor comes back with
-  // mfa_required — no session exists yet at that point.
+  // mfa_required — no session exists yet at that point. A dual-MFA
+  // login goes through this same state twice: the first factor's own
+  // verify call comes back with another mfa_required (stage: 2) instead
+  // of {success}, which resets challengeId/method/etc to the *second*
+  // challenge rather than navigating away — see handleChallengeResult.
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [method, setMethod] = useState<MFAMethod | null>(null)
   const [availableMethods, setAvailableMethods] = useState<MFAMethod[]>([])
   const [pushMethods, setPushMethods] = useState<MFAMethod[]>([])
+  const [stage, setStage] = useState<1 | 2>(1)
+  const [dualRequired, setDualRequired] = useState(false)
   const [code, setCode] = useState('')
   const [pushStatus, setPushStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
   const [pushError, setPushError] = useState('')
+
+  // Shared by the credentials submit and every verify*() call below:
+  // any of them can return either {success} (done) or a fresh
+  // MfaChallenge (one more factor needed — either the very first one,
+  // or dual-MFA's second, different-provider one). Returns true if a
+  // challenge is now pending (caller should stop, e.g. not clear
+  // pushStatus back to an unrelated state).
+  const handleChallengeResult = (result: { success: true; username: string } | MfaChallenge): boolean => {
+    if ('mfa_required' in result) {
+      setChallengeId(result.challenge_id)
+      setMethod(result.method)
+      setAvailableMethods(result.available_methods || [result.method])
+      setPushMethods(result.push_methods || [])
+      setStage(result.stage || 1)
+      if (result.dual_required !== undefined) setDualRequired(result.dual_required)
+      setCode('')
+      setPushStatus('pending')
+      setPushError('')
+      return true
+    }
+    refresh()
+    navigate('/')
+    return false
+  }
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
       const result = await auth.login(username, password)
-      if ('mfa_required' in result) {
-        setChallengeId(result.challenge_id)
-        setMethod(result.method)
-        setAvailableMethods(result.available_methods || [result.method])
-        setPushMethods(result.push_methods || [])
-      } else {
-        refresh()
-        navigate('/')
-      }
+      handleChallengeResult(result)
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -56,13 +78,10 @@ const Login: React.FC = () => {
     if (!challengeId || submittedCode.length !== 6) return
     setLoading(true)
     try {
-      if (method === 'privacyidea') {
-        await auth.verifyPrivacyIDEA(challengeId, submittedCode)
-      } else {
-        await auth.verifyMfa(challengeId, submittedCode)
-      }
-      refresh()
-      navigate('/')
+      const result = method === 'privacyidea'
+        ? await auth.verifyPrivacyIDEA(challengeId, submittedCode)
+        : await auth.verifyMfa(challengeId, submittedCode)
+      handleChallengeResult(result)
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -84,7 +103,7 @@ const Login: React.FC = () => {
   // is push-kind for this user right now — 'authpoint' never actually
   // reaches here (mfa.authpoint.authpoint_configured() is always False,
   // so it can never appear in push_methods), listed for exhaustiveness.
-  const verifyPush = (challenge: string, m: MFAMethod): Promise<unknown> => {
+  const verifyPush = (challenge: string, m: MFAMethod) => {
     if (m === 'privacyidea') return auth.verifyPrivacyIDEAPush(challenge)
     return auth.verifyDuo(challenge)
   }
@@ -93,9 +112,8 @@ const Login: React.FC = () => {
     setPushStatus('pending')
     setPushError('')
     try {
-      await verifyPush(challenge, m)
-      refresh()
-      navigate('/')
+      const result = await verifyPush(challenge, m)
+      handleChallengeResult(result)
     } catch (error) {
       if (error instanceof ApiError && error.message === 'timeout') {
         setPushStatus('timeout')
@@ -118,6 +136,8 @@ const Login: React.FC = () => {
     setMethod(null)
     setAvailableMethods([])
     setPushMethods([])
+    setStage(1)
+    setDualRequired(false)
     setCode('')
     setPushStatus('pending')
     setPushError('')
@@ -181,6 +201,13 @@ const Login: React.FC = () => {
             const PushIcon = MFA_METHOD_ICON[method]
             return (
             <div>
+              {dualRequired && (
+                <p className="text-center mb-2">
+                  <span className="badge bg-info-subtle text-info-emphasis">
+                    {t('auth.mfa.stepIndicator', { stage, total: 2 })}
+                  </span>
+                </p>
+              )}
               <div className="text-center mb-4">
                 <PushIcon size={28} className="mb-2" />
                 <p className="mb-0 fw-semibold">{t('auth.push.title')}</p>
@@ -235,6 +262,13 @@ const Login: React.FC = () => {
             const CodeIcon = method ? MFA_METHOD_ICON[method] : FaShieldAlt
             return (
             <form onSubmit={handleMfaSubmit}>
+              {dualRequired && (
+                <p className="text-center mb-2">
+                  <span className="badge bg-info-subtle text-info-emphasis">
+                    {t('auth.mfa.stepIndicator', { stage, total: 2 })}
+                  </span>
+                </p>
+              )}
               <div className="text-center mb-3">
                 <CodeIcon size={28} className="mb-2" />
                 <p className="mb-0 fw-semibold">{t('auth.mfa.title')}</p>

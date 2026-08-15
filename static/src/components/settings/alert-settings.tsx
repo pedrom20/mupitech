@@ -20,6 +20,7 @@ const AlertSettings: React.FC = () => {
   const [fromEmail, setFromEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  const [testingOffline, setTestingOffline] = useState(false)
 
   useEffect(() => {
     system.getAlertSettings().then((res) => {
@@ -68,6 +69,19 @@ const AlertSettings: React.FC = () => {
     }).catch((err) => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
     }).finally(() => setTesting(false))
+  }
+
+  const handleTestOfflineEmail = () => {
+    setTestingOffline(true)
+    system.sendTestOfflineAlertEmail().then((res) => {
+      if (res.success) {
+        showToast('success', t('alerts.testSent'))
+      } else {
+        Swal.fire({ icon: 'error', title: t('common.error'), text: res.error || t('alerts.testFailed') })
+      }
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }).finally(() => setTestingOffline(false))
   }
 
   return (
@@ -174,7 +188,12 @@ const AlertSettings: React.FC = () => {
                 <FaPaperPlane />
                 {testing ? t('common.loading') : t('alerts.sendTest')}
               </button>
+              <button className="fm-btn-outline btn-sm" onClick={handleTestOfflineEmail} disabled={testingOffline || !smtpHost}>
+                <FaPaperPlane />
+                {testingOffline ? t('common.loading') : t('alerts.sendTestOffline')}
+              </button>
             </div>
+            <div className="form-text mt-1" style={{ fontSize: '0.75rem' }}>{t('alerts.sendTestOfflineHint')}</div>
           </div>
         </div>
       </div>

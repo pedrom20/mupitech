@@ -487,6 +487,7 @@
       "back": "Back",
       "invalidCode": "Invalid code",
       "switchTo": "Use {{method}} instead",
+      "stepIndicator": "Step {{stage}} of {{total}}",
       "methodName": {
         "totp": "an authenticator code",
         "duo": "Duo push",
@@ -683,6 +684,9 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "dualMfaLogin": "New: dual MFA — require two MFA challenges from different providers to log in, either by role (Settings > MFA Providers) or self-service opt-in (Settings > Security)",
+      "lastSuperadminGuard": "The last superadmin can no longer be demoted (by themselves or anyone else), preventing a Fleet Manager with nobody left holding full access",
+      "offlineAlertPreview": "New button under Settings > Alerts to preview the real offline-device alert template, not just generic test text",
       "ssoTogglePatchFix": "Fixed enabling/disabling device SSO failing with a validation error",
       "phonehomeAuthEnabledFix": "Fixed phone-home heartbeat failing on a device with local login enabled",
       "provisionWizardPlatform": "\"Install New\" device wizard now asks which platform (Raspberry Pi 4/5 or x86 PC) before showing prep instructions, instead of assuming Raspberry Pi",
@@ -1006,6 +1010,8 @@
     "fromEmail": "From address",
     "useTls": "Use TLS",
     "sendTest": "Send test email",
+    "sendTestOffline": "Send real alert sample",
+    "sendTestOfflineHint": "Uses the real offline-devices alert template (with currently offline devices, or a sample if none are offline), instead of the generic text from the test above.",
     "testSent": "Test email sent — check your inbox.",
     "testFailed": "Could not send the test email. Check the SMTP settings."
   },
@@ -1032,7 +1038,9 @@
     "duoDescription": "Push-notification 2FA via a Duo Security account. Credentials from an \"Auth API\" application created in the Duo Admin Panel — env vars still work if set, values entered here take priority.",
     "privacyideaDescription": "TOTP 2FA via a self-hosted privacyIDEA server. Needs an admin account and a realm created on that server beforehand — env vars still work if set, values entered here take priority.",
     "piResolverHint": "Only needed if this is privacyIDEA's own \"internal\" resolver (pi-manage resolver create_internal) — each user then gets auto-created there on first enrolment. Leave blank for an external LDAP/SQL resolver that already has these users.",
-    "authpointDescription": "WatchGuard AuthPoint push 2FA — credentials can be saved here for later, but this provider isn't wired up to a real integration yet, so it won't appear as a login option even once filled in."
+    "authpointDescription": "WatchGuard AuthPoint push 2FA — credentials can be saved here for later, but this provider isn't wired up to a real integration yet, so it won't appear as a login option even once filled in.",
+    "dualPolicyTitle": "Dual MFA (two providers)",
+    "dualPolicyDescription": "Users with one of the selected roles must pass two MFA challenges from different providers (e.g. Duo + an authenticator code) to log in, instead of just one. Only applies to users who already have 2+ confirmed methods — with just 1, login still uses that one alone."
   },
   "brandingLibrary": {
     "titleLogo": "Choose a logo",
@@ -1316,7 +1324,12 @@
     "piTypeTotp": "6-digit code",
     "piTypePush": "Push approval",
     "piScanQrHintPush": "Scan this QR code with the privacyIDEA Authenticator app to finish enrolling.",
-    "piWaitingForApp": "Waiting for you to finish enrolling in the privacyIDEA Authenticator app…"
+    "piWaitingForApp": "Waiting for you to finish enrolling in the privacyIDEA Authenticator app…",
+    "dualMfaTitle": "Dual MFA",
+    "dualMfaDescription": "Require two MFA challenges from different providers (e.g. a code + a push) to log in, instead of just one.",
+    "dualMfaNotEligible": "You need at least 2 confirmed MFA methods to enable this",
+    "dualMfaRoleRequired": "Already required by the system policy for your role",
+    "dualMfaToggleError": "Couldn't update your dual-MFA preference."
   },
   "account": {
     "title": "My Profile",

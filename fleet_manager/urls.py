@@ -26,6 +26,7 @@ from fleet_manager.permissions import _user_role
 from fleet_manager.system_views import (
     alert_settings,
     alert_test_email,
+    alert_test_offline_email,
     branding_delete_logo,
     branding_delete_standby,
     branding_push_all,
@@ -57,6 +58,7 @@ user_router.register('users', UserViewSet)
 @permission_classes([AllowAny])
 def auth_login(request):
     from history.logging import log_action
+    from mfa.policy import dual_mfa_required
     from mfa.providers import enrolled_methods, push_methods
 
     data = request.data
@@ -83,6 +85,11 @@ def auth_login(request):
             from django.core.cache import cache
 
             method = available_methods[0]
+            # dual_required only actually applies with 2+ enrolled
+            # providers — a policy demanding two factors degrades to one
+            # for a user who's only ever set up a single method, rather
+            # than locking them out entirely (see mfa/policy.py).
+            dual_required = dual_mfa_required(user) and len(available_methods) >= 2
             # Every provider's own verify endpoint only ever looks at
             # entry['user_id'] — none check 'method' — so the same
             # challenge_id already works for any of them. available_methods
@@ -92,15 +99,20 @@ def auth_login(request):
             challenge_id = secrets.token_urlsafe(32)
             cache.set(
                 f'mfa_challenge:{challenge_id}',
-                {'user_id': user.id, 'attempts': 0, 'method': method},
+                {
+                    'user_id': user.id, 'attempts': 0, 'method': method,
+                    'dual_required': dual_required, 'passed_methods': [],
+                },
                 timeout=300,
             )
             return Response({
                 'mfa_required': True,
+                'stage': 1,
                 'challenge_id': challenge_id,
                 'method': method,
                 'available_methods': available_methods,
                 'push_methods': push_methods(user),
+                'dual_required': dual_required,
             })
         login(request, user)
         log_action(request, 'login', 'session', target_name=user.username)
@@ -118,11 +130,10 @@ def auth_login(request):
 @permission_classes([AllowAny])
 def auth_mfa_verify(request):
     import pyotp
-    from django.contrib.auth.models import User
     from django.core.cache import cache
-    from django.utils import timezone
 
     from history.logging import log_action
+    from mfa.challenge import register_factor_success
     from mfa.models import TOTPDevice
 
     challenge_id = request.data.get('challenge_id', '')
@@ -134,13 +145,7 @@ def auth_mfa_verify(request):
     device = TOTPDevice.objects.filter(user_id=entry['user_id'], confirmed=True).first()
     code = str(request.data.get('code', ''))
     if device and pyotp.TOTP(device.get_secret()).verify(code, valid_window=1):
-        cache.delete(cache_key)
-        user = User.objects.get(pk=entry['user_id'])
-        login(request, user)
-        device.last_used_at = timezone.now()
-        device.save(update_fields=['last_used_at'])
-        log_action(request, 'login', 'session', target_name=user.username, details={'mfa': True})
-        return Response({'success': True, 'username': user.username})
+        return register_factor_success(request, challenge_id, entry, 'totp')
 
     # Wrong code: bump the attempt counter and drop the challenge after a
     # few failures so a caller can't keep guessing against the same
@@ -164,12 +169,11 @@ def auth_privacyidea_verify(request):
     """Companion to auth_mfa_verify for the privacyIDEA case — same
     challenge/cache mechanics, just checks the code against privacyIDEA's
     own /validate/check instead of a locally-stored TOTP secret."""
-    from django.contrib.auth.models import User
     from django.core.cache import cache
-    from django.utils import timezone
 
     from history.logging import log_action
     from mfa import privacyidea
+    from mfa.challenge import register_factor_success
     from mfa.models import PrivacyIDEAEnrollment
 
     challenge_id = request.data.get('challenge_id', '')
@@ -187,13 +191,7 @@ def auth_privacyidea_verify(request):
             logger.warning('privacyIDEA login verify failed: %s', exc)
             return Response({'detail': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
         if valid:
-            cache.delete(cache_key)
-            user = User.objects.get(pk=entry['user_id'])
-            login(request, user)
-            enrollment.last_used_at = timezone.now()
-            enrollment.save(update_fields=['last_used_at'])
-            log_action(request, 'login', 'session', target_name=user.username, details={'mfa': 'privacyidea'})
-            return Response({'success': True, 'username': user.username})
+            return register_factor_success(request, challenge_id, entry, 'privacyidea')
 
     # Same attempt-counter pattern as auth_mfa_verify.
     entry['attempts'] += 1
@@ -216,12 +214,11 @@ def auth_duo_verify(request):
     see mfa/duo.py::push_auth. Rate limits are looser than the TOTP
     verify's since there's no code to brute-force here; they exist
     purely to stop someone spamming push notifications at a user."""
-    from django.contrib.auth.models import User
     from django.core.cache import cache
-    from django.utils import timezone
 
     from history.logging import log_action
     from mfa import duo
+    from mfa.challenge import register_factor_success
     from mfa.models import DuoEnrollment
 
     challenge_id = request.data.get('challenge_id', '')
@@ -242,13 +239,7 @@ def auth_duo_verify(request):
         return Response({'detail': "Couldn't reach Duo — try again."}, status=502)
 
     if result.get('result') == 'allow':
-        cache.delete(cache_key)
-        user = User.objects.get(pk=entry['user_id'])
-        login(request, user)
-        enrollment.last_used_at = timezone.now()
-        enrollment.save(update_fields=['last_used_at'])
-        log_action(request, 'login', 'session', target_name=user.username, details={'mfa': 'duo'})
-        return Response({'success': True, 'username': user.username})
+        return register_factor_success(request, challenge_id, entry, 'duo')
 
     if result.get('status') == 'timeout':
         # Let the frontend retry (send another push) without forcing a
@@ -281,12 +272,11 @@ def auth_privacyidea_push_verify(request):
     returns immediately with a transaction_id rather than blocking on
     its own infrastructure like Duo's /auth does — see
     mfa/privacyidea.py::trigger_and_wait_push."""
-    from django.contrib.auth.models import User
     from django.core.cache import cache
-    from django.utils import timezone
 
     from history.logging import log_action
     from mfa import privacyidea
+    from mfa.challenge import register_factor_success
     from mfa.models import PrivacyIDEAEnrollment
 
     challenge_id = request.data.get('challenge_id', '')
@@ -309,13 +299,7 @@ def auth_privacyidea_push_verify(request):
         return Response({'detail': "Couldn't reach privacyIDEA — try again."}, status=502)
 
     if result.get('result') == 'allow':
-        cache.delete(cache_key)
-        user = User.objects.get(pk=entry['user_id'])
-        login(request, user)
-        enrollment.last_used_at = timezone.now()
-        enrollment.save(update_fields=['last_used_at'])
-        log_action(request, 'login', 'session', target_name=user.username, details={'mfa': 'privacyidea-push'})
-        return Response({'success': True, 'username': user.username})
+        return register_factor_success(request, challenge_id, entry, 'privacyidea', log_label='privacyidea-push')
 
     if result.get('result') == 'timeout':
         log_action(request, 'login_failed', 'session', details={'mfa': 'privacyidea-push', 'status': 'timeout'})
@@ -488,6 +472,7 @@ urlpatterns = [
     path('api/system/tailscale/', tailscale_settings),
     path('api/system/alerts/', alert_settings),
     path('api/system/alerts/test/', alert_test_email),
+    path('api/system/alerts/test-offline/', alert_test_offline_email),
     path('api/system/registry/', registry_settings),
     path('api/system/registry/sync/', registry_sync),
     path('api/system/registry/sync-status/', registry_sync_status),

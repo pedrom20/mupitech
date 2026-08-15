@@ -131,3 +131,37 @@ class PrivacyIDEAEnrollment(models.Model):
 
     def __str__(self):
         return f'privacyIDEA enrollment for {self.user} ({"confirmed" if self.confirmed else "pending"})'
+
+
+class MFAPolicy(models.Model):
+    """Singleton row (always pk=1) holding the admin-set dual-MFA policy:
+    which roles must pass two challenges from two different providers to
+    log in, not just one. Combines with the per-user self-service opt-in
+    on access.models.UserAccessScope.require_dual_mfa — either being true
+    is enough (see mfa/policy.py::dual_mfa_required, the only reader).
+    A dedicated table rather than the Redis-cache-with-no-timeout pattern
+    fleet_manager/system_views.py::system_settings uses for the
+    auto_update toggle: this is security policy, so it should survive a
+    Redis flush and show up in normal DB backups.
+    """
+
+    require_dual_roles = models.JSONField(
+        default=list,
+        help_text='Subset of [\'viewer\', \'editor\', \'admin\', \'superadmin\'] that must '
+                   'always pass two MFA challenges to log in.',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
+    def __str__(self):
+        return f'MFA policy (dual-required roles: {self.require_dual_roles or "none"})'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

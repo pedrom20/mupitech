@@ -17,4 +17,7 @@ urlpatterns = [
     path('mfa/privacyidea/disable/', views.privacyidea_disable),
     path('mfa/provider-config/', views.provider_config_status),
     path('mfa/provider-config/<str:provider>/', views.provider_config_save),
+    path('mfa/dual/status/', views.dual_mfa_status),
+    path('mfa/dual/self-toggle/', views.dual_mfa_self_toggle),
+    path('mfa/dual/policy/', views.dual_mfa_policy_save),
 ]

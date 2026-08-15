@@ -50,6 +50,16 @@ class UserAccessScope(models.Model):
                    'user can use the Fleet Manager. Cleared automatically once either '
                    'enrolment is confirmed.',
     )
+    require_dual_mfa = models.BooleanField(
+        default=False,
+        help_text='Self-service opt-in: require two challenges from two different MFA '
+                   'providers to log in, not just one. Independent of (and additive to) '
+                   'mfa.models.MFAPolicy\'s admin-set per-role requirement — either one '
+                   'being true is enough to trigger it. Only takes effect once this user '
+                   'has 2+ confirmed providers enrolled; with just one, login degrades to '
+                   'that single factor rather than locking them out. See '
+                   'mfa/policy.py::dual_mfa_required, the only reader.',
+    )
 
     def __str__(self):
         return f'Access scope for {self.user}'

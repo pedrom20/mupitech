@@ -475,6 +475,25 @@ def alert_test_email(request):
     return Response({'success': True})
 
 
+@api_view(['POST'])
+@permission_classes([IsSuperAdmin])
+def alert_test_offline_email(request):
+    """Same as alert_test_email above, but sends the *real* offline-alert
+    subject/body template (with currently-offline devices, or a made-up
+    sample if none) instead of a generic placeholder — lets an operator
+    preview the actual email users would get."""
+    to_email = request.data.get('to_email') or request.user.email
+    if not to_email:
+        return Response({'error': 'No email address to send the test to.'}, status=400)
+
+    from fleet_manager.alerts import send_test_offline_alert_email
+    try:
+        send_test_offline_alert_email(to_email)
+    except Exception as exc:
+        return Response({'success': False, 'error': str(exc)}, status=400)
+    return Response({'success': True})
+
+
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsSuperAdmin])
 def registry_settings(request):

@@ -9,10 +9,11 @@ from qrcode.image.pil import PilImage
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin
+from fleet_manager.permissions import IsAdmin, _user_role
 
 from . import duo, privacyidea, provider_config
-from .models import DuoEnrollment, PrivacyIDEAEnrollment, TOTPDevice
+from .models import DuoEnrollment, MFAPolicy, PrivacyIDEAEnrollment, TOTPDevice
+from .providers import enrolled_methods
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +294,66 @@ def provider_config_save(request, provider):
     provider_config.save_config(provider, request.data, updated_by=request.user)
     log_action(request, 'mfa_provider_config_save', 'session', target_name=provider)
     return Response(provider_config.status_for_ui(provider))
+
+
+@api_view(['GET'])
+def dual_mfa_status(request):
+    """Everything the Security settings page needs to render the dual-MFA
+    card: whether an admin-set role policy already forces it on this
+    user (read-only from here, only an admin can change it — see
+    dual_mfa_policy_save), the user's own opt-in, and whether they
+    currently have enough (2+) confirmed providers for either to
+    actually take effect at login. Admins additionally get the full
+    role list back so the same call can drive the admin policy editor."""
+    scope = getattr(request.user, 'access_scope', None)
+    payload = {
+        'self_opt_in': bool(scope and scope.require_dual_mfa),
+        'role_required': _user_role(request.user) in MFAPolicy.get().require_dual_roles,
+        'eligible': len(enrolled_methods(request.user)) >= 2,
+    }
+    if _user_role(request.user) in ('admin', 'superadmin'):
+        payload['require_dual_roles'] = MFAPolicy.get().require_dual_roles
+    return Response(payload)
+
+
+@api_view(['POST'])
+def dual_mfa_self_toggle(request):
+    """Self-service opt-in/out — any authenticated user, no password
+    reproof needed since this only ever makes login *stricter* for
+    themselves, never weaker (unlike mfa_disable/duo_disable/
+    privacyidea_disable, which all require the current password since
+    they remove a factor)."""
+    from access.models import UserAccessScope
+    from history.logging import log_action
+
+    enabled = bool(request.data.get('enabled'))
+    scope, _ = UserAccessScope.objects.get_or_create(user=request.user)
+    scope.require_dual_mfa = enabled
+    scope.save(update_fields=['require_dual_mfa'])
+    log_action(request, 'dual_mfa_self_toggle', 'session',
+               target_name=request.user.username, details={'enabled': enabled})
+    return Response({'success': True, 'self_opt_in': enabled})
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def dual_mfa_policy_save(request):
+    """Admin-only: which roles must always pass two MFA challenges to
+    log in. See mfa/policy.py::dual_mfa_required for how this combines
+    with each user's own self_opt_in above."""
+    from history.logging import log_action
+
+    roles = request.data.get('require_dual_roles', [])
+    valid_roles = {'viewer', 'editor', 'admin', 'superadmin'}
+    if not isinstance(roles, list) or not set(roles) <= valid_roles:
+        return Response({'error': 'require_dual_roles must be a list of valid role names.'}, status=400)
+
+    policy = MFAPolicy.get()
+    policy.require_dual_roles = roles
+    policy.updated_by = request.user
+    policy.save(update_fields=['require_dual_roles', 'updated_by', 'updated_at'])
+    log_action(request, 'dual_mfa_policy_save', 'session', details={'require_dual_roles': roles})
+    return Response({'require_dual_roles': policy.require_dual_roles})
 
 
 @api_view(['POST'])
