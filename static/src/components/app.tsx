@@ -59,11 +59,15 @@ export const AuthContext = createContext<AuthContextValue>({
 interface ThemeContextValue {
   pref: ThemePreference
   setPref: (pref: ThemePreference) => void
+  retro: boolean
+  dos: boolean
 }
 
 export const ThemeContext = createContext<ThemeContextValue>({
   pref: 'light',
   setPref: () => {},
+  retro: false,
+  dos: false,
 })
 
 const RETRO_STORAGE_KEY = 'fm_retro_theme'
@@ -176,7 +180,7 @@ const App: React.FC = () => {
   return (
     <AuthContext.Provider value={{ user, checked, refresh, clear }}>
       <RoleContext.Provider value={user?.role ?? null}>
-        <ThemeContext.Provider value={{ pref: themePref, setPref: setThemePref }}>
+        <ThemeContext.Provider value={{ pref: themePref, setPref: setThemePref, retro: retroTheme, dos: dosTheme }}>
         <FeaturesProvider>
           {dosTheme && showDosBoot && (
             <DosBootOverlay onDone={() => setShowDosBoot(false)} />

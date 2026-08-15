@@ -506,6 +506,26 @@
         "privacyidea": "privacyIDEA Authenticator",
         "authpoint": "AuthPoint"
       }
+    },
+    "easterEgg": {
+      "retro": {
+        "titlebar": "Erro do Sistema",
+        "message": "Não foi possível carregar o módulo de Autenticação de Dois Fatores.",
+        "back": "Voltar",
+        "travel": "Viajar para o Futuro",
+        "traveling": "A VIAJAR NO TEMPO…"
+      },
+      "dos": {
+        "loading": "a carregar módulo mfa...",
+        "error": "erro: falha de segmentação (0x0007)",
+        "detail": "o módulo de autenticação não pôde ser inicializado.",
+        "back": "voltar",
+        "update": "atualizar sistema",
+        "updateLine1": "a transferir atualização... [##########] 100%",
+        "updateLine2": "a verificar assinatura... ok",
+        "updateLine3": "a instalar módulo mfa...",
+        "updateLine4": "a reiniciar módulo... ok"
+      }
     }
   },
   "schedule": {

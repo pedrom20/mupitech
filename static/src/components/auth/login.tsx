@@ -3,16 +3,18 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { FaSignInAlt, FaArrowLeft, FaShieldAlt } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { AuthContext } from '@/components/app'
+import { AuthContext, ThemeContext } from '@/components/app'
 import { auth, ApiError, type MfaChallenge } from '@/services/api'
 import CodeInput from '@/components/shared/code-input'
 import { MFA_METHOD_ICON } from '@/utils/mfaIcons'
+import MfaEasterEgg from './mfa-easter-egg'
 import type { MFAMethod } from '@/types'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { refresh } = useContext(AuthContext)
+  const { retro: retroTheme, dos: dosTheme } = useContext(ThemeContext)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -197,121 +199,132 @@ const Login: React.FC = () => {
                 {loading ? t('common.loading') : t('auth.login')}
               </button>
             </form>
-          ) : method && pushMethods.includes(method) ? (() => {
-            const PushIcon = MFA_METHOD_ICON[method]
-            return (
-            <div>
-              {dualRequired && (
-                <p className="text-center mb-2">
-                  <span className="badge bg-info-subtle text-info-emphasis">
-                    {t('auth.mfa.stepIndicator', { stage, total: 2 })}
-                  </span>
-                </p>
-              )}
-              <div className="text-center mb-4">
-                <PushIcon size={28} className="mb-2" />
-                <p className="mb-0 fw-semibold">{t('auth.push.title')}</p>
-                {pushStatus === 'pending' && (
-                  <p className="form-text">
-                    <span className="spinner-border spinner-border-sm me-2" />
-                    {t('auth.push.waiting', { app: t(`auth.push.appName.${method}`) })}
-                  </p>
-                )}
-                {pushStatus === 'timeout' && (
-                  <p className="form-text text-warning">{t('auth.push.timeout')}</p>
-                )}
-                {pushStatus === 'error' && (
-                  <p className="form-text text-danger">{pushError || t('auth.push.denied')}</p>
-                )}
-              </div>
-              {pushStatus !== 'pending' && (
-                <button
-                  type="button"
-                  className="fm-btn-primary w-100 mb-2"
-                  onClick={() => challengeId && sendPush(challengeId, method)}
-                >
-                  <PushIcon />
-                  {t('auth.push.retry')}
-                </button>
-              )}
-              {otherMethods.map((m) => {
-                const OtherIcon = MFA_METHOD_ICON[m]
-                return (
+          ) : (() => {
+            const challengeUi = (method && pushMethods.includes(method)) ? (() => {
+              const PushIcon = MFA_METHOD_ICON[method]
+              return (
+                <div>
+                  {dualRequired && (
+                    <p className="text-center mb-2">
+                      <span className="badge bg-info-subtle text-info-emphasis">
+                        {t('auth.mfa.stepIndicator', { stage, total: 2 })}
+                      </span>
+                    </p>
+                  )}
+                  <div className="text-center mb-4">
+                    <PushIcon size={28} className="mb-2" />
+                    <p className="mb-0 fw-semibold">{t('auth.push.title')}</p>
+                    {pushStatus === 'pending' && (
+                      <p className="form-text">
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        {t('auth.push.waiting', { app: t(`auth.push.appName.${method}`) })}
+                      </p>
+                    )}
+                    {pushStatus === 'timeout' && (
+                      <p className="form-text text-warning">{t('auth.push.timeout')}</p>
+                    )}
+                    {pushStatus === 'error' && (
+                      <p className="form-text text-danger">{pushError || t('auth.push.denied')}</p>
+                    )}
+                  </div>
+                  {pushStatus !== 'pending' && (
+                    <button
+                      type="button"
+                      className="fm-btn-primary w-100 mb-2"
+                      onClick={() => challengeId && sendPush(challengeId, method)}
+                    >
+                      <PushIcon />
+                      {t('auth.push.retry')}
+                    </button>
+                  )}
+                  {otherMethods.map((m) => {
+                    const OtherIcon = MFA_METHOD_ICON[m]
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        className="btn btn-link w-100 mb-2 text-decoration-none"
+                        onClick={() => switchMethod(m)}
+                      >
+                        <OtherIcon className="me-1" />
+                        {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                      </button>
+                    )
+                  })}
                   <button
-                    key={m}
                     type="button"
-                    className="btn btn-link w-100 mb-2 text-decoration-none"
-                    onClick={() => switchMethod(m)}
+                    className="fm-btn-outline w-100"
+                    onClick={backToCredentials}
                   >
-                    <OtherIcon className="me-1" />
-                    {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                    <FaArrowLeft />
+                    {t('auth.mfa.back')}
                   </button>
-                )
-              })}
-              <button
-                type="button"
-                className="fm-btn-outline w-100"
-                onClick={backToCredentials}
-              >
-                <FaArrowLeft />
-                {t('auth.mfa.back')}
-              </button>
-            </div>
-            )
-          })() : (() => {
-            const CodeIcon = method ? MFA_METHOD_ICON[method] : FaShieldAlt
-            return (
-            <form onSubmit={handleMfaSubmit}>
-              {dualRequired && (
-                <p className="text-center mb-2">
-                  <span className="badge bg-info-subtle text-info-emphasis">
-                    {t('auth.mfa.stepIndicator', { stage, total: 2 })}
-                  </span>
-                </p>
-              )}
-              <div className="text-center mb-3">
-                <CodeIcon size={28} className="mb-2" />
-                <p className="mb-0 fw-semibold">{t('auth.mfa.title')}</p>
-                <p className="form-text">{t('auth.mfa.description')}</p>
-              </div>
-              <div className="mb-4">
-                <label className="form-label fw-semibold d-block text-center mb-2">{t('auth.mfa.code')}</label>
-                <CodeInput value={code} onChange={setCode} onComplete={submitMfaCode} disabled={loading} autoFocus />
-              </div>
-              <button
-                type="submit"
-                className="fm-btn-primary w-100 mb-2"
-                disabled={loading || code.length !== 6}
-              >
-                <CodeIcon />
-                {loading ? t('common.loading') : t('auth.mfa.verify')}
-              </button>
-              {otherMethods.map((m) => {
-                const OtherIcon = MFA_METHOD_ICON[m]
-                return (
+                </div>
+              )
+            })() : (() => {
+              const CodeIcon = method ? MFA_METHOD_ICON[method] : FaShieldAlt
+              return (
+                <form onSubmit={handleMfaSubmit}>
+                  {dualRequired && (
+                    <p className="text-center mb-2">
+                      <span className="badge bg-info-subtle text-info-emphasis">
+                        {t('auth.mfa.stepIndicator', { stage, total: 2 })}
+                      </span>
+                    </p>
+                  )}
+                  <div className="text-center mb-3">
+                    <CodeIcon size={28} className="mb-2" />
+                    <p className="mb-0 fw-semibold">{t('auth.mfa.title')}</p>
+                    <p className="form-text">{t('auth.mfa.description')}</p>
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold d-block text-center mb-2">{t('auth.mfa.code')}</label>
+                    <CodeInput value={code} onChange={setCode} onComplete={submitMfaCode} disabled={loading} autoFocus />
+                  </div>
                   <button
-                    key={m}
+                    type="submit"
+                    className="fm-btn-primary w-100 mb-2"
+                    disabled={loading || code.length !== 6}
+                  >
+                    <CodeIcon />
+                    {loading ? t('common.loading') : t('auth.mfa.verify')}
+                  </button>
+                  {otherMethods.map((m) => {
+                    const OtherIcon = MFA_METHOD_ICON[m]
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        className="btn btn-link w-100 mb-2 text-decoration-none"
+                        onClick={() => switchMethod(m)}
+                        disabled={loading}
+                      >
+                        <OtherIcon className="me-1" />
+                        {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                      </button>
+                    )
+                  })}
+                  <button
                     type="button"
-                    className="btn btn-link w-100 mb-2 text-decoration-none"
-                    onClick={() => switchMethod(m)}
+                    className="fm-btn-outline w-100"
+                    onClick={backToCredentials}
                     disabled={loading}
                   >
-                    <OtherIcon className="me-1" />
-                    {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                    <FaArrowLeft />
+                    {t('auth.mfa.back')}
                   </button>
-                )
-              })}
-              <button
-                type="button"
-                className="fm-btn-outline w-100"
-                onClick={backToCredentials}
-                disabled={loading}
-              >
-                <FaArrowLeft />
-                {t('auth.mfa.back')}
-              </button>
-            </form>
-            )
+                </form>
+              )
+            })()
+
+            if (retroTheme || dosTheme) {
+              return (
+                <MfaEasterEgg theme={retroTheme ? 'retro' : 'dos'} onBack={backToCredentials}>
+                  {challengeUi}
+                </MfaEasterEgg>
+              )
+            }
+            return challengeUi
           })()}
         </div>
       </div>

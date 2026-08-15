@@ -506,6 +506,26 @@
         "privacyidea": "privacyIDEA Authenticator",
         "authpoint": "AuthPoint"
       }
+    },
+    "easterEgg": {
+      "retro": {
+        "titlebar": "System Error",
+        "message": "Could not load the Two-Factor Authentication module.",
+        "back": "Back",
+        "travel": "Travel to the Future",
+        "traveling": "TRAVELING THROUGH TIME…"
+      },
+      "dos": {
+        "loading": "loading mfa module...",
+        "error": "error: segmentation fault (0x0007)",
+        "detail": "the authentication module could not be initialized.",
+        "back": "back",
+        "update": "update system",
+        "updateLine1": "downloading update... [##########] 100%",
+        "updateLine2": "verifying signature... ok",
+        "updateLine3": "installing mfa module...",
+        "updateLine4": "restarting module... ok"
+      }
     }
   },
   "schedule": {

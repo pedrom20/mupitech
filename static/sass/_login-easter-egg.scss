@@ -1,0 +1,317 @@
+// =============================================================================
+// Login MFA easter egg — shown instead of the real 2FA challenge screen
+// when the retro or DOS easter-egg theme (see app.tsx's ThemeContext) is
+// active and a login reaches the MFA step. See
+// static/src/components/auth/mfa-easter-egg.tsx for the state machine
+// (error → transition → revealed); this file is purely the visuals for
+// both themes. Imported after _retro-easter-egg.scss/_dos-easter-egg.scss
+// so its rules win ties, but the "reveal" classes below also use a
+// doubled class (`.fm-egg-future.fm-egg-future`) to guarantee higher
+// specificity than those themes' own `[data-*-theme] * { ... !important }`
+// blanket resets regardless of import order.
+// =============================================================================
+
+// ---- shared structural bits, no theme-specific colors here ----
+.fm-egg-error-card {
+  text-align: center;
+  padding: 1.25rem 1rem;
+}
+
+.fm-egg-error-card__icon {
+  font-size: 2.1rem;
+  margin-bottom: 0.6rem;
+}
+
+.fm-egg-error-card__message {
+  margin: 0 0 0.35rem 0;
+}
+
+.fm-egg-error-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.fm-egg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+@keyframes fm-egg-pulse {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+// =============================================================================
+// Retro ("Modo Arquivo 2016") — Windows-98-style broken-office-app error,
+// then a CRT warp transition, then an intentionally over-the-top
+// "futuristic" skin once "revealed" (the joke: traveled far enough
+// forward that MFA finally works).
+// =============================================================================
+[data-retro-theme='true'] {
+  .fm-egg-error-card--retro {
+    text-align: left;
+    padding: 0;
+    overflow: hidden;
+    background: #ffffe1 !important;
+    border: 1px solid #808080 !important;
+  }
+
+  .fm-egg-error-card__titlebar {
+    background: #a4373a !important;
+    color: #fff !important;
+    font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif !important;
+    font-size: 0.78rem;
+    padding: 6px 10px;
+    text-transform: uppercase;
+  }
+
+  .fm-egg-error-card--retro .fm-egg-error-card__body {
+    padding: 1rem 1.25rem 0.25rem;
+  }
+
+  .fm-egg-error-card--retro .fm-egg-error-card__icon {
+    color: #a4373a !important;
+  }
+
+  .fm-egg-error-card--retro .fm-egg-error-card__message {
+    font-family: 'Times New Roman', Times, serif !important;
+  }
+
+  .fm-egg-error-card--retro .fm-egg-error-card__code {
+    font-family: 'Courier New', monospace !important;
+    color: #6e2426 !important;
+    font-size: 0.75rem;
+  }
+
+  .fm-egg-error-card--retro .fm-egg-error-card__actions {
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #808080;
+    background: #d4d0c8 !important;
+    margin-top: 0.75rem;
+  }
+
+  .fm-egg-error-card--retro .fm-egg-btn {
+    background: #d4d0c8 !important;
+    border: 2px outset #fff !important;
+    color: #000 !important;
+    cursor: default !important;
+    font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif !important;
+
+    &:active { border-style: inset !important; }
+  }
+
+  .fm-egg-error-card--retro .fm-egg-btn--accent {
+    background: #a4373a !important;
+    color: #fff !important;
+    border: 2px outset #c96063 !important;
+  }
+
+  // ---- warp transition ----
+  .fm-egg-warp {
+    position: relative;
+    height: 220px;
+    background: #000 !important;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+
+  .fm-egg-warp-streaks {
+    position: absolute;
+    inset: -50%;
+    background-image: repeating-conic-gradient(
+      from 0deg,
+      rgba(255, 231, 45, 0.55) 0deg 1deg,
+      transparent 1deg 6deg
+    );
+    animation: fm-egg-warp-spin 1.4s linear infinite !important;
+  }
+
+  .fm-egg-warp-label {
+    position: relative;
+    z-index: 1;
+    color: #ffe72d !important;
+    font-family: 'Courier New', monospace !important;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 8px rgba(255, 231, 45, 0.8) !important;
+    animation: fm-egg-pulse 0.6s ease-in-out infinite alternate !important;
+  }
+
+  @keyframes fm-egg-warp-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  // ---- futuristic reveal ----
+  // Doubled class beats the theme's own `[data-retro-theme='true'] *`
+  // and `[data-retro-theme='true'] .fm-btn-primary` rules (both (0,2,0))
+  // on specificity alone, not source order.
+  .fm-egg-future.fm-egg-future,
+  .fm-egg-future.fm-egg-future * {
+    font-family: 'Segoe UI', 'Plus Jakarta Sans', Arial, sans-serif !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+    text-shadow: none !important;
+    cursor: auto !important;
+  }
+
+  .fm-egg-future.fm-egg-future {
+    position: relative;
+    padding: 1.25rem;
+    border-radius: 14px !important;
+    background: linear-gradient(160deg, #04182b 0%, #0a2947 100%) !important;
+    border: 1px solid rgba(0, 212, 255, 0.4) !important;
+    box-shadow: 0 0 24px rgba(0, 212, 255, 0.25), inset 0 0 40px rgba(0, 212, 255, 0.05) !important;
+    color: #e8f6ff !important;
+    animation: fm-egg-future-glow 2.4s ease-in-out infinite alternate !important;
+  }
+
+  .fm-egg-future.fm-egg-future p,
+  .fm-egg-future.fm-egg-future span,
+  .fm-egg-future.fm-egg-future label {
+    color: #cdeaff !important;
+  }
+
+  .fm-egg-future.fm-egg-future .badge {
+    background: rgba(0, 212, 255, 0.12) !important;
+    color: #7fd8ff !important;
+    border: 1px solid rgba(0, 212, 255, 0.4) !important;
+  }
+
+  .fm-egg-future.fm-egg-future .fm-btn-primary,
+  .fm-egg-future.fm-egg-future button:not(.btn-link) {
+    background: linear-gradient(135deg, #00d4ff, #0082c8) !important;
+    border: none !important;
+    color: #04182b !important;
+    box-shadow: 0 0 14px rgba(0, 212, 255, 0.5) !important;
+  }
+
+  .fm-egg-future.fm-egg-future .fm-btn-outline {
+    background: transparent !important;
+    border: 1px solid rgba(0, 212, 255, 0.5) !important;
+    color: #7fd8ff !important;
+  }
+
+  .fm-egg-future.fm-egg-future .btn-link {
+    background: none !important;
+    color: #7fd8ff !important;
+  }
+
+  @keyframes fm-egg-future-glow {
+    from { box-shadow: 0 0 18px rgba(0, 212, 255, 0.2), inset 0 0 30px rgba(0, 212, 255, 0.04); }
+    to { box-shadow: 0 0 32px rgba(0, 212, 255, 0.4), inset 0 0 50px rgba(0, 212, 255, 0.08); }
+  }
+}
+
+// =============================================================================
+// MS-DOS — terminal-style "segfault" error, a fake update log, then the
+// plain normal-theme look once "revealed" (the joke: the update fixed it).
+// =============================================================================
+[data-dos-theme='true'] {
+  .fm-egg-error-card--dos {
+    text-align: left;
+    padding: 1rem 0.25rem;
+  }
+
+  .fm-egg-dos-line {
+    margin: 0 0 6px 0;
+    font-size: 0.85rem;
+    color: #d4d4d4 !important;
+  }
+
+  .fm-egg-dos-line--error {
+    color: #f44747 !important;
+  }
+
+  .fm-egg-dos-update .fm-egg-dos-line {
+    color: #4ec9b0 !important;
+  }
+
+  .fm-egg-error-card--dos .fm-egg-error-card__actions {
+    justify-content: flex-start;
+  }
+
+  .fm-egg-btn--dos {
+    background: #000 !important;
+    border: 1px solid #4a9d8c !important;
+    color: #d4d4d4 !important;
+
+    &:hover {
+      background: #4ec9b0 !important;
+      color: #000 !important;
+    }
+  }
+
+  .fm-egg-btn--dos.fm-egg-btn--accent {
+    border-color: #f44747 !important;
+    color: #f44747 !important;
+
+    &:hover {
+      background: #f44747 !important;
+      color: #000 !important;
+    }
+  }
+
+  // ---- "restored to normal" reveal ----
+  // Same doubled-class specificity-escape as retro's .fm-egg-future above.
+  .fm-egg-restored.fm-egg-restored,
+  .fm-egg-restored.fm-egg-restored * {
+    font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif !important;
+    border-radius: 0.375rem !important;
+    transition: all 0.15s ease !important;
+    color: #1a1a1a !important;
+  }
+
+  .fm-egg-restored.fm-egg-restored {
+    background: #fff !important;
+    border: none !important;
+    box-shadow: 0 2px 12px rgba(4, 24, 43, 0.08) !important;
+    padding: 1rem;
+  }
+
+  .fm-egg-restored.fm-egg-restored .form-text,
+  .fm-egg-restored.fm-egg-restored small {
+    color: #6c757d !important;
+  }
+
+  // DOS's `* { background-color: transparent !important }` blanket
+  // reset (same trick the theme itself uses) still wins over these
+  // elements' own background unless explicitly restored here too.
+  .fm-egg-restored.fm-egg-restored .form-control,
+  .fm-egg-restored.fm-egg-restored .form-select {
+    background-color: #fff !important;
+    border: 1px solid #ced4da !important;
+  }
+
+  .fm-egg-restored.fm-egg-restored .badge {
+    background-color: #cfe2ff !important;
+    color: #084298 !important;
+  }
+
+  .fm-egg-restored.fm-egg-restored .fm-btn-primary,
+  .fm-egg-restored.fm-egg-restored button:not(.btn-link) {
+    background: #0082c8 !important;
+    color: #fff !important;
+    border: none !important;
+  }
+
+  .fm-egg-restored.fm-egg-restored .fm-btn-outline {
+    background: transparent !important;
+    border: 1px solid #0082c8 !important;
+    color: #0082c8 !important;
+  }
+
+  .fm-egg-restored.fm-egg-restored .btn-link {
+    background: none !important;
+    color: #0082c8 !important;
+  }
+}
