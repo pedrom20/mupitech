@@ -57,6 +57,7 @@ import { isVideoUrl } from '@/utils/media'
 import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
 import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus, Group, Location } from '@/types'
 import PlayerTerminal from './player-terminal'
+import { ScheduleTimeline } from './schedule-timeline'
 import { RoleContext, isAdminRole } from '@/components/app'
 
 const getAssetTypeIcon = (mimetype: string) => {
@@ -2559,6 +2560,12 @@ const PlayerDetail: React.FC = () => {
       {showTerminal && id && (
         <PlayerTerminal playerId={id} onClose={() => setShowTerminal(false)} />
       )}
+
+      {/* Schedule Timeline — visual day/week summary of this device's own
+          recurring schedule, read from the same `assets` already loaded
+          below for the Assets list. Renders nothing on its own once
+          assets is empty (see schedule-timeline.tsx). */}
+      <ScheduleTimeline assets={assets} displaySchedule={displaySchedule} />
 
       {/* Assets */}
       {assetsLoading ? (

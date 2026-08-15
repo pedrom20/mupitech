@@ -683,6 +683,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "scheduleTimelineRestored": "Device details page now shows a visual day/week Schedule Timeline (default/time/event bands, display-off overlay, current time marker)",
       "sessionCookieHttpFix": "Fixed login appearing to succeed but never actually persisting on a plain-HTTP deployment (session cookie was always marked HTTPS-only)",
       "mfaRateLimitFix": "Fixed MFA login rate limiting counting every visitor as the same IP (nginx proxy address wasn't being forwarded to the app)",
       "privacyideaPushLoginFix": "Fixed privacyIDEA push login not actually sending a push request",
