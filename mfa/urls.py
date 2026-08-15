@@ -11,4 +11,8 @@ urlpatterns = [
     path('mfa/duo/enroll/', views.duo_enroll),
     path('mfa/duo/confirm/', views.duo_confirm),
     path('mfa/duo/disable/', views.duo_disable),
+    path('mfa/privacyidea/status/', views.privacyidea_status),
+    path('mfa/privacyidea/enroll/', views.privacyidea_enroll),
+    path('mfa/privacyidea/confirm/', views.privacyidea_confirm),
+    path('mfa/privacyidea/disable/', views.privacyidea_disable),
 ]

@@ -65,3 +65,27 @@ class DuoEnrollment(models.Model):
 
     def __str__(self):
         return f'Duo enrollment for {self.user} ({"confirmed" if self.confirmed else "pending"})'
+
+
+class PrivacyIDEAEnrollment(models.Model):
+    """A user's privacyIDEA TOTP second factor — same shape as
+    TOTPDevice above, but the secret lives on the privacyIDEA server
+    (see mfa/privacyidea.py), not here. `serial` is privacyIDEA's own
+    token identifier, needed to disable/delete the token later; we
+    never see or store the shared secret itself, matching DuoEnrollment's
+    "no secret on our side" property via a different mechanism.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='privacyidea_enrollment',
+    )
+    serial = models.CharField(max_length=64)
+    confirmed = models.BooleanField(default=False)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'privacyIDEA enrollment for {self.user} ({"confirmed" if self.confirmed else "pending"})'

@@ -9,8 +9,8 @@ from qrcode.image.pil import PilImage
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from . import duo
-from .models import DuoEnrollment, TOTPDevice
+from . import duo, privacyidea
+from .models import DuoEnrollment, PrivacyIDEAEnrollment, TOTPDevice
 
 logger = logging.getLogger(__name__)
 
@@ -182,4 +182,88 @@ def duo_disable(request):
 
     DuoEnrollment.objects.filter(user=request.user).delete()
     log_action(request, 'duo_disable', 'session', target_name=request.user.username)
+    return Response({'success': True})
+
+
+@api_view(['GET'])
+def privacyidea_status(request):
+    enrollment = getattr(request.user, 'privacyidea_enrollment', None)
+    return Response({
+        'configured': privacyidea.privacyidea_configured(),
+        'enabled': bool(enrollment and enrollment.confirmed),
+    })
+
+
+@api_view(['POST'])
+def privacyidea_enroll(request):
+    if not privacyidea.privacyidea_configured():
+        return Response({'error': 'privacyIDEA is not configured on this Fleet Manager instance.'}, status=400)
+    existing = getattr(request.user, 'privacyidea_enrollment', None)
+    if existing and existing.confirmed:
+        return Response(
+            {'error': 'privacyIDEA is already enabled — disable it first to re-enroll.'},
+            status=400,
+        )
+
+    try:
+        result = privacyidea.start_enrollment(request.user.username)
+    except privacyidea.PrivacyIDEAError as exc:
+        logger.warning('privacyIDEA enroll failed for %s: %s', request.user.username, exc)
+        return Response({'error': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
+
+    PrivacyIDEAEnrollment.objects.update_or_create(
+        user=request.user,
+        defaults={'serial': result['serial'], 'confirmed': False, 'confirmed_at': None},
+    )
+    return Response({
+        'otpauth_uri': result['otpauth_uri'],
+        'qr_png_base64': _qr_png_base64(result['otpauth_uri']),
+    })
+
+
+@api_view(['POST'])
+def privacyidea_confirm(request):
+    from history.logging import log_action
+
+    enrollment = getattr(request.user, 'privacyidea_enrollment', None)
+    if not enrollment or enrollment.confirmed:
+        return Response({'error': 'No pending privacyIDEA enrolment.'}, status=400)
+
+    code = str(request.data.get('code', ''))
+    try:
+        valid = privacyidea.verify(request.user.username, code)
+    except privacyidea.PrivacyIDEAError as exc:
+        logger.warning('privacyIDEA verify failed for %s: %s', request.user.username, exc)
+        return Response({'error': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
+    if not valid:
+        return Response({'error': 'Invalid code.'}, status=400)
+
+    enrollment.confirmed = True
+    enrollment.confirmed_at = timezone.now()
+    enrollment.save(update_fields=['confirmed', 'confirmed_at'])
+    _clear_force_mfa_enroll(request.user)
+    log_action(request, 'privacyidea_enable', 'session', target_name=request.user.username)
+    return Response({'success': True})
+
+
+@api_view(['POST'])
+def privacyidea_disable(request):
+    from history.logging import log_action
+
+    if not request.user.check_password(request.data.get('password', '')):
+        return Response({'error': 'Incorrect password.'}, status=400)
+
+    enrollment = getattr(request.user, 'privacyidea_enrollment', None)
+    if enrollment:
+        try:
+            privacyidea.delete_token(enrollment.serial)
+        except privacyidea.PrivacyIDEAError as exc:
+            # Still remove our own record — a token privacyIDEA fails to
+            # delete but that no longer verifies against anything on our
+            # side is inert either way, and the operator shouldn't be
+            # stuck unable to disable MFA because privacyIDEA is briefly
+            # unreachable.
+            logger.warning('privacyIDEA token deletion failed for %s: %s', request.user.username, exc)
+        enrollment.delete()
+    log_action(request, 'privacyidea_disable', 'session', target_name=request.user.username)
     return Response({'success': True})

@@ -486,8 +486,13 @@
       "verify": "Verify",
       "back": "Back",
       "invalidCode": "Invalid code",
-      "useCodeInstead": "Use an authenticator code instead",
-      "useDuoInstead": "Use Duo push instead"
+      "switchTo": "Use {{method}} instead",
+      "methodName": {
+        "totp": "an authenticator code",
+        "duo": "Duo push",
+        "privacyidea": "a privacyIDEA code",
+        "authpoint": "AuthPoint push"
+      }
     },
     "duo": {
       "title": "Duo push verification",
@@ -1261,7 +1266,11 @@
     "duoEnableButton": "Enable Duo push",
     "duoScanHint": "Scan this QR code with the Duo Mobile app.",
     "duoWaitingForScan": "Waiting for you to finish enrolling in Duo Mobile…",
-    "duoEnrollError": "Couldn't start Duo enrollment."
+    "duoEnrollError": "Couldn't start Duo enrollment.",
+    "piTitle": "privacyIDEA",
+    "piDescription": "Use a 6-digit code from a self-hosted privacyIDEA server as your second factor — needs privacyIDEA set up by an admin first.",
+    "piEnableButton": "Enable privacyIDEA",
+    "piEnrollError": "Couldn't start privacyIDEA enrollment."
   },
   "account": {
     "title": "My Profile",

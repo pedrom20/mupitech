@@ -1,13 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaShieldAlt, FaCheckCircle, FaMobileAlt } from 'react-icons/fa'
+import { FaShieldAlt, FaCheckCircle, FaMobileAlt, FaKey } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { mfa, duo, ApiError } from '@/services/api'
+import { mfa, duo, privacyidea, ApiError } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import CodeInput from '@/components/shared/code-input'
 
 type Phase = 'loading' | 'disabled' | 'enrolling' | 'enabled'
 type DuoPhase = 'loading' | 'unavailable' | 'disabled' | 'enrolling' | 'enabled'
+// privacyIDEA is code-based like TOTP, no 'unavailable' distinction is
+// needed in the UI the same way Duo has one — the card itself just
+// doesn't render at all when the backend says it's not configured
+// (see the `piConfigured` check below), rather than showing a disabled
+// state for something the operator can't act on either way.
+type PIPhase = 'loading' | 'disabled' | 'enrolling' | 'enabled'
 
 const DUO_POLL_INTERVAL_MS = 2000
 
@@ -27,6 +33,14 @@ const SecuritySettings: React.FC = () => {
   const [duoBusy, setDuoBusy] = useState(false)
   const duoPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  const [piConfigured, setPiConfigured] = useState(false)
+  const [piPhase, setPiPhase] = useState<PIPhase>('loading')
+  const [piOtpauthUri, setPiOtpauthUri] = useState('')
+  const [piQrPng, setPiQrPng] = useState('')
+  const [piCode, setPiCode] = useState('')
+  const [piPassword, setPiPassword] = useState('')
+  const [piBusy, setPiBusy] = useState(false)
+
   const loadStatus = () => {
     mfa.status().then((res) => {
       setConfirmedAt(res.confirmed_at)
@@ -44,9 +58,17 @@ const SecuritySettings: React.FC = () => {
     }).catch(() => setDuoPhase('unavailable'))
   }
 
+  const loadPIStatus = () => {
+    privacyidea.status().then((res) => {
+      setPiConfigured(res.configured)
+      setPiPhase(res.enabled ? 'enabled' : 'disabled')
+    }).catch(() => setPiConfigured(false))
+  }
+
   useEffect(() => {
     loadStatus()
     loadDuoStatus()
+    loadPIStatus()
     return () => stopDuoPolling()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -178,6 +200,76 @@ const SecuritySettings: React.FC = () => {
         text: error instanceof ApiError ? error.message : t('security.disableError'),
       })
     }).finally(() => setDuoBusy(false))
+  }
+
+  const handlePIEnroll = () => {
+    setPiBusy(true)
+    privacyidea.enroll().then((res) => {
+      setPiOtpauthUri(res.otpauth_uri)
+      setPiQrPng(res.qr_png_base64)
+      setPiCode('')
+      setPiPhase('enrolling')
+    }).catch((error) => {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('security.piEnrollError'),
+      })
+    }).finally(() => setPiBusy(false))
+  }
+
+  const submitPIConfirmCode = (submittedCode: string) => {
+    if (submittedCode.length !== 6) return
+    setPiBusy(true)
+    privacyidea.confirm(submittedCode).then(() => {
+      showToast('success', t('security.enabledSuccess'))
+      loadPIStatus()
+    }).catch((error) => {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('security.confirmError'),
+      })
+      setPiCode('')
+    }).finally(() => setPiBusy(false))
+  }
+
+  const handlePIConfirm = (e: React.FormEvent) => {
+    e.preventDefault()
+    submitPIConfirmCode(piCode)
+  }
+
+  const handlePICancelEnroll = () => {
+    setPiOtpauthUri('')
+    setPiQrPng('')
+    setPiCode('')
+    setPiPhase('disabled')
+  }
+
+  const handlePIDisable = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const confirmed = await Swal.fire({
+      icon: 'warning',
+      title: t('security.disableConfirmTitle'),
+      text: t('security.disableConfirmText'),
+      showCancelButton: true,
+      confirmButtonText: t('security.disableButton'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!confirmed.isConfirmed) return
+
+    setPiBusy(true)
+    privacyidea.disable(piPassword).then(() => {
+      showToast('success', t('security.disabledSuccess'))
+      setPiPassword('')
+      loadPIStatus()
+    }).catch((error) => {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('security.disableError'),
+      })
+    }).finally(() => setPiBusy(false))
   }
 
   return (
@@ -368,6 +460,104 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {piConfigured && (
+        <div className="col-lg-6">
+          <div className="fm-card fm-card-accent h-100">
+            <div className="fm-card-header py-2">
+              <h5 className="card-title mb-0">
+                <FaKey className="me-2" />
+                {t('security.piTitle')}
+              </h5>
+            </div>
+            <div className="fm-card-body py-3">
+              <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>{t('security.piDescription')}</p>
+
+              {piPhase === 'loading' && (
+                <p className="form-text mb-0">{t('common.loading')}</p>
+              )}
+
+              {piPhase === 'disabled' && (
+                <>
+                  <span className="badge bg-secondary mb-3">{t('security.statusDisabled')}</span>
+                  <div>
+                    <button
+                      type="button"
+                      className="fm-btn-primary"
+                      onClick={handlePIEnroll}
+                      disabled={piBusy}
+                    >
+                      <FaKey className="me-1" />
+                      {t('security.piEnableButton')}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {piPhase === 'enabled' && (
+                <>
+                  <span className="badge bg-success mb-3">
+                    <FaCheckCircle className="me-1" />
+                    {t('security.statusEnabled')}
+                  </span>
+                  <form onSubmit={handlePIDisable} className="d-flex flex-wrap gap-2 align-items-end">
+                    <div>
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                        {t('security.currentPasswordLabel')}
+                      </label>
+                      <input
+                        type="password"
+                        className="form-control form-control-sm"
+                        value={piPassword}
+                        onChange={(e) => setPiPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="fm-btn-outline btn-sm" disabled={piBusy || !piPassword}>
+                      {t('security.disableButton')}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {piPhase === 'enrolling' && (
+                <div>
+                  <p className="form-text mb-2" style={{ fontSize: '0.8rem' }}>{t('security.scanQrHint')}</p>
+                  {piQrPng && (
+                    <img
+                      src={`data:image/png;base64,${piQrPng}`}
+                      alt="QR code"
+                      style={{ width: 200, height: 200, imageRendering: 'pixelated' }}
+                      className="mb-3 border rounded p-2 bg-white"
+                    />
+                  )}
+                  <p className="form-text mb-1" style={{ fontSize: '0.8rem' }}>{t('security.manualEntryLabel')}</p>
+                  <code className="d-block mb-3" style={{ wordBreak: 'break-all', fontSize: '0.8rem' }}>
+                    {piOtpauthUri.match(/secret=([^&]+)/)?.[1] || piOtpauthUri}
+                  </code>
+
+                  <form onSubmit={handlePIConfirm}>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold mb-1 d-block" style={{ fontSize: '0.85rem' }}>
+                        {t('security.enterCodeLabel')}
+                      </label>
+                      <CodeInput value={piCode} onChange={setPiCode} onComplete={submitPIConfirmCode} disabled={piBusy} autoFocus />
+                    </div>
+                    <div className="d-flex gap-2">
+                      <button type="submit" className="fm-btn-primary btn-sm" disabled={piBusy || piCode.length !== 6}>
+                        {t('security.confirmButton')}
+                      </button>
+                      <button type="button" className="fm-btn-outline btn-sm" onClick={handlePICancelEnroll} disabled={piBusy}>
+                        {t('security.cancelButton')}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

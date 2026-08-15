@@ -6,6 +6,12 @@ import Swal from 'sweetalert2'
 import { AuthContext } from '@/components/app'
 import { auth, ApiError } from '@/services/api'
 import CodeInput from '@/components/shared/code-input'
+import type { MFAMethod } from '@/types'
+
+// 'authpoint' is push-kind like Duo but has no working backend yet
+// (mfa.authpoint.authpoint_configured() is always False) — listed here
+// so this stays exhaustive once it does.
+const PUSH_METHODS: MFAMethod[] = ['duo', 'authpoint']
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
@@ -18,8 +24,8 @@ const Login: React.FC = () => {
   // Second factor: only entered once the first factor comes back with
   // mfa_required — no session exists yet at that point.
   const [challengeId, setChallengeId] = useState<string | null>(null)
-  const [method, setMethod] = useState<'totp' | 'duo' | null>(null)
-  const [availableMethods, setAvailableMethods] = useState<('totp' | 'duo')[]>([])
+  const [method, setMethod] = useState<MFAMethod | null>(null)
+  const [availableMethods, setAvailableMethods] = useState<MFAMethod[]>([])
   const [code, setCode] = useState('')
   const [duoStatus, setDuoStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
   const [duoError, setDuoError] = useState('')
@@ -52,7 +58,11 @@ const Login: React.FC = () => {
     if (!challengeId || submittedCode.length !== 6) return
     setLoading(true)
     try {
-      await auth.verifyMfa(challengeId, submittedCode)
+      if (method === 'privacyidea') {
+        await auth.verifyPrivacyIDEA(challengeId, submittedCode)
+      } else {
+        await auth.verifyMfa(challengeId, submittedCode)
+      }
       refresh()
       navigate('/')
     } catch (error) {
@@ -90,6 +100,10 @@ const Login: React.FC = () => {
   }
 
   useEffect(() => {
+    // Only Duo has a real push implementation today — 'authpoint' is in
+    // PUSH_METHODS for the branch-selection check above, but never
+    // actually reaches here (mfa.authpoint.authpoint_configured() is
+    // always False, so it can never appear in available_methods).
     if (challengeId && method === 'duo') {
       sendDuoPush(challengeId)
     }
@@ -105,16 +119,18 @@ const Login: React.FC = () => {
     setDuoError('')
   }
 
-  // Same challenge_id works against either verify endpoint (see
+  // Same challenge_id works against every verify endpoint (see
   // auth_login's available_methods comment in fleet_manager/urls.py) —
   // switching methods is just changing which UI branch renders, no new
   // challenge or password re-entry needed.
-  const switchMethod = (next: 'totp' | 'duo') => {
+  const switchMethod = (next: MFAMethod) => {
     setCode('')
     setDuoStatus('pending')
     setDuoError('')
     setMethod(next)
   }
+
+  const otherMethods = availableMethods.filter((m) => m !== method)
 
   return (
     <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
@@ -157,7 +173,7 @@ const Login: React.FC = () => {
                 {loading ? t('common.loading') : t('auth.login')}
               </button>
             </form>
-          ) : method === 'duo' ? (
+          ) : method && PUSH_METHODS.includes(method) ? (
             <div>
               <div className="text-center mb-4">
                 <FaMobileAlt size={28} className="mb-2" />
@@ -185,15 +201,16 @@ const Login: React.FC = () => {
                   {t('auth.duo.retry')}
                 </button>
               )}
-              {availableMethods.includes('totp') && (
+              {otherMethods.map((m) => (
                 <button
+                  key={m}
                   type="button"
                   className="btn btn-link w-100 mb-2 text-decoration-none"
-                  onClick={() => switchMethod('totp')}
+                  onClick={() => switchMethod(m)}
                 >
-                  {t('auth.mfa.useCodeInstead')}
+                  {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
                 </button>
-              )}
+              ))}
               <button
                 type="button"
                 className="fm-btn-outline w-100"
@@ -222,16 +239,17 @@ const Login: React.FC = () => {
                 <FaShieldAlt />
                 {loading ? t('common.loading') : t('auth.mfa.verify')}
               </button>
-              {availableMethods.includes('duo') && (
+              {otherMethods.map((m) => (
                 <button
+                  key={m}
                   type="button"
                   className="btn btn-link w-100 mb-2 text-decoration-none"
-                  onClick={() => switchMethod('duo')}
+                  onClick={() => switchMethod(m)}
                   disabled={loading}
                 >
-                  {t('auth.mfa.useDuoInstead')}
+                  {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
                 </button>
-              )}
+              ))}
               <button
                 type="button"
                 className="fm-btn-outline w-100"

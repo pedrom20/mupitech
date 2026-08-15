@@ -486,8 +486,13 @@
       "verify": "Verificar",
       "back": "Voltar",
       "invalidCode": "Código inválido",
-      "useCodeInstead": "Usar antes um código de autenticação",
-      "useDuoInstead": "Usar antes o push do Duo"
+      "switchTo": "Usar antes {{method}}",
+      "methodName": {
+        "totp": "um código de autenticação",
+        "duo": "o push do Duo",
+        "privacyidea": "um código do privacyIDEA",
+        "authpoint": "o push do AuthPoint"
+      }
     },
     "duo": {
       "title": "Verificação por push Duo",
@@ -1262,7 +1267,11 @@
     "duoEnableButton": "Ativar push do Duo",
     "duoScanHint": "Digitalize este código QR com a app Duo Mobile.",
     "duoWaitingForScan": "A aguardar que termine o registo na Duo Mobile…",
-    "duoEnrollError": "Não foi possível iniciar o registo no Duo."
+    "duoEnrollError": "Não foi possível iniciar o registo no Duo.",
+    "piTitle": "privacyIDEA",
+    "piDescription": "Use um código de 6 dígitos de um servidor privacyIDEA self-hosted como segundo fator — precisa do privacyIDEA configurado primeiro por um admin.",
+    "piEnableButton": "Ativar privacyIDEA",
+    "piEnrollError": "Não foi possível iniciar o registo no privacyIDEA."
   },
   "account": {
     "title": "O Meu Perfil",

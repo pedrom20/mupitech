@@ -27,6 +27,15 @@ DUO_IKEY = os.environ.get('DUO_IKEY', '')
 DUO_SKEY = os.environ.get('DUO_SKEY', '')
 DUO_HOST = os.environ.get('DUO_HOST', '')
 
+# privacyIDEA server credentials (mfa/privacyidea.py) — a self-hosted
+# instance deployed separately (see deploy/privacyidea/). Optional:
+# privacyIDEA stays unavailable (mfa.privacyidea.privacyidea_configured()
+# is False) until all four are set.
+PRIVACYIDEA_URL = os.environ.get('PRIVACYIDEA_URL', '')
+PRIVACYIDEA_ADMIN_USER = os.environ.get('PRIVACYIDEA_ADMIN_USER', '')
+PRIVACYIDEA_ADMIN_PASSWORD = os.environ.get('PRIVACYIDEA_ADMIN_PASSWORD', '')
+PRIVACYIDEA_REALM = os.environ.get('PRIVACYIDEA_REALM', '')
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1' if not DEBUG else '*').split(',')
 
 INSTALLED_APPS = [
@@ -122,6 +131,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
+
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
+
+# Optional AD/LDAP login (fleet_manager/ldap_backend.py) — inert unless
+# all four AUTH_LDAP_* env vars below are set; django_auth_ldap /
+# python-ldap are only imported when they are. See that module's
+# docstring for what this does and doesn't handle (notably: no
+# AD-group-to-role mapping yet).
+from fleet_manager.ldap_backend import ldap_configured, ldap_settings  # noqa: E402
+
+if ldap_configured():
+    globals().update(ldap_settings())
+    AUTHENTICATION_BACKENDS.append('django_auth_ldap.backend.LDAPBackend')
 
 # Internationalization
 LANGUAGE_CODE = os.environ.get('LANGUAGE_CODE', 'pt')

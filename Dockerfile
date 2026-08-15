@@ -27,7 +27,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libpq-dev ffmpeg && \
+    apt-get install -y --no-install-recommends libpq-dev ffmpeg gcc libldap2-dev libsasl2-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

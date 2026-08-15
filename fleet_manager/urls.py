@@ -57,7 +57,7 @@ user_router.register('users', UserViewSet)
 @permission_classes([AllowAny])
 def auth_login(request):
     from history.logging import log_action
-    from mfa.models import DuoEnrollment, TOTPDevice
+    from mfa.providers import enrolled_methods
 
     data = request.data
     user = authenticate(
@@ -66,28 +66,29 @@ def auth_login(request):
         password=data.get('password'),
     )
     if user is not None:
-        # Duo push takes priority when a user has both — it's a single
-        # tap, no code to type. Whichever fires, do NOT call login() yet:
-        # that would establish a real session on password alone and
-        # defeat MFA. The challenge lives in the (Redis-backed) cache,
-        # not a signed token: a signed token isn't single-use without a
-        # shared store anyway (need somewhere to record "already
-        # consumed"), and a cache entry gives that for free via
-        # cache.delete() in the matching verify endpoint.
-        has_duo = DuoEnrollment.objects.filter(user=user, confirmed=True).exists()
-        has_totp = TOTPDevice.objects.filter(user=user, confirmed=True).exists()
-        if has_duo or has_totp:
+        # available_methods is every provider (see mfa/providers.py) this
+        # user has a confirmed enrollment with, in priority order — push
+        # methods first, since they're a single tap with no code to type.
+        # Whichever fires, do NOT call login() yet: that would establish
+        # a real session on password alone and defeat MFA. The challenge
+        # lives in the (Redis-backed) cache, not a signed token: a signed
+        # token isn't single-use without a shared store anyway (need
+        # somewhere to record "already consumed"), and a cache entry
+        # gives that for free via cache.delete() in the matching verify
+        # endpoint.
+        available_methods = enrolled_methods(user)
+        if available_methods:
             import secrets
 
             from django.core.cache import cache
 
-            method = 'duo' if has_duo else 'totp'
-            # Both verify endpoints only ever look at entry['user_id'] —
-            # neither checks 'method' — so the same challenge_id already
-            # works for either one. available_methods just tells the
-            # frontend what it's allowed to offer as a "use a different
-            # method" switch when a user has both enrolled.
-            available_methods = [m for m, has in (('duo', has_duo), ('totp', has_totp)) if has]
+            method = available_methods[0]
+            # Every provider's own verify endpoint only ever looks at
+            # entry['user_id'] — none check 'method' — so the same
+            # challenge_id already works for any of them. available_methods
+            # just tells the frontend what it's allowed to offer as a
+            # "use a different method" switch when a user has more than
+            # one enrolled.
             challenge_id = secrets.token_urlsafe(32)
             cache.set(
                 f'mfa_challenge:{challenge_id}',
@@ -151,6 +152,55 @@ def auth_mfa_verify(request):
     else:
         cache.set(cache_key, entry, timeout=300)
     log_action(request, 'login_failed', 'session', details={'mfa': True})
+    return Response({'detail': 'Invalid code.'}, status=401)
+
+
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(key='post:challenge_id', rate='8/5m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_privacyidea_verify(request):
+    """Companion to auth_mfa_verify for the privacyIDEA case — same
+    challenge/cache mechanics, just checks the code against privacyIDEA's
+    own /validate/check instead of a locally-stored TOTP secret."""
+    from django.contrib.auth.models import User
+    from django.core.cache import cache
+    from django.utils import timezone
+
+    from history.logging import log_action
+    from mfa import privacyidea
+    from mfa.models import PrivacyIDEAEnrollment
+
+    challenge_id = request.data.get('challenge_id', '')
+    cache_key = f'mfa_challenge:{challenge_id}'
+    entry = cache.get(cache_key)
+    if not entry:
+        return Response({'detail': 'Challenge expired or invalid — please log in again.'}, status=400)
+
+    enrollment = PrivacyIDEAEnrollment.objects.filter(user_id=entry['user_id'], confirmed=True).first()
+    code = str(request.data.get('code', ''))
+    if enrollment:
+        try:
+            valid = privacyidea.verify(enrollment.user.username, code)
+        except privacyidea.PrivacyIDEAError as exc:
+            logger.warning('privacyIDEA login verify failed: %s', exc)
+            return Response({'detail': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
+        if valid:
+            cache.delete(cache_key)
+            user = User.objects.get(pk=entry['user_id'])
+            login(request, user)
+            enrollment.last_used_at = timezone.now()
+            enrollment.save(update_fields=['last_used_at'])
+            log_action(request, 'login', 'session', target_name=user.username, details={'mfa': 'privacyidea'})
+            return Response({'success': True, 'username': user.username})
+
+    # Same attempt-counter pattern as auth_mfa_verify.
+    entry['attempts'] += 1
+    if entry['attempts'] >= 5:
+        cache.delete(cache_key)
+    else:
+        cache.set(cache_key, entry, timeout=300)
+    log_action(request, 'login_failed', 'session', details={'mfa': 'privacyidea'})
     return Response({'detail': 'Invalid code.'}, status=401)
 
 
@@ -234,7 +284,7 @@ def auth_device_login(request):
     from django.core.cache import cache
 
     from history.logging import log_action
-    from mfa.models import DuoEnrollment, TOTPDevice
+    from mfa.providers import enrolled_methods
     from players.models import Player
     from players.sso import DEVICE_AUTH_PROOF_MAX_AGE, DEVICE_AUTH_PROOF_SALT
 
@@ -273,11 +323,7 @@ def auth_device_login(request):
                    details={'via': 'device_login', 'player': player.name})
         return Response({'detail': 'Invalid credentials.'}, status=401)
 
-    has_mfa = (
-        DuoEnrollment.objects.filter(user=user, confirmed=True).exists()
-        or TOTPDevice.objects.filter(user=user, confirmed=True).exists()
-    )
-    if has_mfa:
+    if enrolled_methods(user):
         return Response({'detail': 'mfa_required'}, status=409)
 
     cache.delete(attempts_key)
@@ -361,6 +407,7 @@ urlpatterns = [
     path('api/auth/login/', auth_login),
     path('api/auth/mfa/verify/', auth_mfa_verify),
     path('api/auth/mfa/duo-verify/', auth_duo_verify),
+    path('api/auth/mfa/privacyidea-verify/', auth_privacyidea_verify),
     path('api/auth/device-login/', auth_device_login),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),

@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -907,16 +907,16 @@ export const auth = {
 
   /** First factor. Returns either {success, username} (no MFA enrolled —
    * a real session was already established) or {mfa_required, challenge_id,
-   * method, available_methods} (second factor needed — verifyMfa()/
-   * verifyDuo() below must succeed before there's a session; method is
-   * the default to start with ('duo' takes priority over 'totp' when a
-   * user has both enrolled), available_methods lists every method the
-   * same challenge_id can be verified against — both verify endpoints
-   * accept it regardless of which one was originally picked, so the
-   * frontend can offer a "use a different method" switch). */
+   * method, available_methods} (second factor needed — one of the
+   * verify*() calls below must succeed before there's a session; method
+   * is the default to start with (push methods take priority — see
+   * mfa/providers.py::PROVIDER_PRIORITY), available_methods lists every
+   * method the same challenge_id can be verified against — every verify
+   * endpoint accepts it regardless of which one was originally picked,
+   * so the frontend can offer a "use a different method" switch). */
   login(username: string, password: string): Promise<
     | { success: true; username: string }
-    | { mfa_required: true; challenge_id: string; method: 'totp' | 'duo'; available_methods: ('totp' | 'duo')[] }
+    | { mfa_required: true; challenge_id: string; method: MFAMethod; available_methods: MFAMethod[] }
   > {
     return apiRequest('POST', '/auth/login/', { username, password })
   },
@@ -932,6 +932,10 @@ export const auth = {
    * again (sends a fresh push); any other failure means log in again. */
   verifyDuo(challengeId: string): Promise<{ success: boolean; username: string }> {
     return apiRequest('POST', '/auth/mfa/duo-verify/', { challenge_id: challengeId })
+  },
+
+  verifyPrivacyIDEA(challengeId: string, code: string): Promise<{ success: boolean; username: string }> {
+    return apiRequest('POST', '/auth/mfa/privacyidea-verify/', { challenge_id: challengeId, code })
   },
 }
 
@@ -970,6 +974,24 @@ export const duo = {
 
   disable(password: string): Promise<{ success: boolean }> {
     return apiRequest('POST', '/mfa/duo/disable/', { password })
+  },
+}
+
+export const privacyidea = {
+  status(): Promise<{ configured: boolean; enabled: boolean }> {
+    return apiRequest('GET', '/mfa/privacyidea/status/')
+  },
+
+  enroll(): Promise<{ otpauth_uri: string; qr_png_base64: string }> {
+    return apiRequest('POST', '/mfa/privacyidea/enroll/')
+  },
+
+  confirm(code: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/mfa/privacyidea/confirm/', { code })
+  },
+
+  disable(password: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/mfa/privacyidea/disable/', { password })
   },
 }
 

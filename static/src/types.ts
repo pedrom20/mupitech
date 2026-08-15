@@ -246,6 +246,12 @@ export interface ProvisionStep {
 
 export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin'
 
+// Keep in sync with mfa/providers.py::PROVIDERS keys. 'authpoint' isn't
+// offered by the backend yet (mfa.authpoint.authpoint_configured() is
+// always False) but is listed here so the frontend already type-checks
+// against it once that lands.
+export type MFAMethod = 'totp' | 'duo' | 'privacyidea' | 'authpoint'
+
 export interface UserScope {
   location_ids: string[]
   group_ids: string[]
