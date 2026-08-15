@@ -5,7 +5,6 @@ import logging
 import socket
 import subprocess
 
-import paramiko
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
@@ -85,32 +84,14 @@ def _check_ssh_port(ip, port=22, timeout=2):
         return False
 
 
-def check_is_raspberry_pi(ip, ssh_user='pi', ssh_password='', timeout=5):
-    """Try SSH and check if host is a Raspberry Pi (aarch64)."""
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(
-            hostname=ip,
-            username=ssh_user,
-            password=ssh_password,
-            timeout=timeout,
-            look_for_keys=False,
-            allow_agent=False,
-        )
-        _, stdout, _ = client.exec_command('uname -m', timeout=5)
-        arch = stdout.read().decode().strip()
-        client.close()
-        return arch in ('aarch64', 'armv7l', 'armv8l')
-    except Exception:
-        return False
-
-
 @shared_task(bind=True)
-def bulk_provision_task(self, task_id):
-    """Celery task: provision multiple players sequentially."""
+def bulk_provision_task(self, task_id, fm_server_url=''):
+    """Celery task: provision multiple players sequentially. Each one's
+    own architecture (pi4/pi5/x86) is auto-detected by provision_player
+    itself over SSH (uname -m) — this task doesn't pre-filter by
+    platform, it just hands every selected IP to the same single-device
+    provisioning path bulk-scan discovered was reachable on port 22."""
     from .models import BulkProvisionTask
-    from .provision import provision_player_sync
 
     try:
         task = BulkProvisionTask.objects.get(pk=task_id)
@@ -141,7 +122,7 @@ def bulk_provision_task(self, task_id):
                 total_steps=13,
             )
             # Call the Celery task directly (not .delay()) to run synchronously in this worker
-            provision_player(str(prov_task.id), ssh_password)
+            provision_player(str(prov_task.id), ssh_password, fm_server_url=fm_server_url)
 
             prov_task.refresh_from_db()
             results[ip] = {

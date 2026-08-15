@@ -13,12 +13,21 @@ import {
   FaChevronUp,
   FaExternalLinkAlt,
   FaCloudUploadAlt,
+  FaRaspberryPi,
+  FaDesktop,
 } from 'react-icons/fa'
 import { provision as provisionApi, players as playersApi } from '@/services/api'
 import type { Player, Group, Location, ProvisionTask, ProvisionStep } from '@/types'
 import PlayerForm from './player-form'
 
-type ModalView = 'choice' | 'manual' | 'instructions' | 'provision-form' | 'provision-progress' | 'image-push'
+type ModalView = 'choice' | 'manual' | 'platform' | 'instructions' | 'provision-form' | 'provision-progress' | 'image-push'
+
+// Only picks which prep instructions to show (SD card vs USB
+// installer) and the SSH-login placeholder below — the backend always
+// auto-detects the real architecture over SSH once provisioning
+// starts (players/provision.py's `uname -m` check), so this never
+// gets sent to the API and can't itself cause a mismatch.
+type Platform = 'pi4' | 'pi5' | 'x86'
 
 interface AddPlayerModalProps {
   editingPlayer: Player | null
@@ -71,6 +80,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
 
   // Skip to manual form when editing
   const [view, setView] = useState<ModalView>(editingPlayer ? 'manual' : 'choice')
+  const [platform, setPlatform] = useState<Platform>('pi4')
 
   // Provision form state
   const [ipAddress, setIpAddress] = useState('')
@@ -262,7 +272,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
           <div
             className="fm-card h-100 text-center p-4"
             style={{ cursor: 'pointer', transition: 'transform 0.15s' }}
-            onClick={() => setView('instructions')}
+            onClick={() => setView('platform')}
             onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
             onMouseLeave={e => (e.currentTarget.style.transform = '')}
           >
@@ -275,19 +285,54 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
     </div>
   )
 
-  const renderInstructions = () => (
+  const renderPlatform = () => (
     <div className="modal-body">
-      <h6 className="fw-bold mb-3">{t('provision.instructionsTitle')}</h6>
-      <div className="alert alert-info py-2 small mb-3">
-        <strong>{t('provision.supportedBoards')}:</strong> Raspberry Pi 4, Raspberry Pi 5
+      <h6 className="fw-bold mb-3">{t('provision.platformTitle')}</h6>
+      <div className="row g-3">
+        {([
+          { key: 'pi4' as Platform, icon: FaRaspberryPi, label: t('provision.platformPi4'), desc: t('provision.platformPiDesc') },
+          { key: 'pi5' as Platform, icon: FaRaspberryPi, label: t('provision.platformPi5'), desc: t('provision.platformPiDesc') },
+          { key: 'x86' as Platform, icon: FaDesktop, label: t('provision.platformX86'), desc: t('provision.platformX86Desc') },
+        ]).map(({ key, icon: Icon, label, desc }) => (
+          <div className="col-4" key={key}>
+            <div
+              className="fm-card h-100 text-center p-3"
+              style={{ cursor: 'pointer', transition: 'transform 0.15s' }}
+              onClick={() => {
+                setPlatform(key)
+                setSshUser(key === 'x86' ? '' : 'pi')
+                setView('instructions')
+              }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = '')}
+            >
+              <Icon size={28} className="text-primary mb-2" />
+              <h6 className="fw-bold mb-1" style={{ fontSize: '0.9rem' }}>{label}</h6>
+              <small className="text-muted" style={{ fontSize: '0.75rem' }}>{desc}</small>
+            </div>
+          </div>
+        ))}
       </div>
+      <div className="d-flex justify-content-between mt-3">
+        <button className="btn btn-secondary btn-sm" onClick={() => setView('choice')}>
+          <FaArrowLeft className="me-1" /> {t('common.cancel')}
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderInstructions = () => {
+    const isX86 = platform === 'x86'
+    return (
+    <div className="modal-body">
+      <h6 className="fw-bold mb-3">{t(isX86 ? 'provision.instructionsTitleX86' : 'provision.instructionsTitlePi')}</h6>
       <ol className="list-unstyled">
         <li className="mb-3 d-flex align-items-start gap-2">
           <span style={{ fontSize: '1.3rem' }}>1.</span>
           <div>
-            <strong>{t('provision.instrFlash')}</strong>
+            <strong>{t(isX86 ? 'provision.instrFlashX86' : 'provision.instrFlash')}</strong>
             <br />
-            <small className="text-muted">{t('provision.instrFlashDesc')}</small>
+            <small className="text-muted">{t(isX86 ? 'provision.instrFlashDescX86' : 'provision.instrFlashDesc')}</small>
           </div>
         </li>
         <li className="mb-3 d-flex align-items-start gap-2">
@@ -303,7 +348,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
           <div>
             <strong>{t('provision.instrSsh')}</strong>
             <br />
-            <small className="text-muted">{t('provision.instrSshDesc')}</small>
+            <small className="text-muted">{t(isX86 ? 'provision.instrSshDescX86' : 'provision.instrSshDesc')}</small>
           </div>
         </li>
         <li className="mb-3 d-flex align-items-start gap-2">
@@ -316,15 +361,16 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
         </li>
       </ol>
       <div className="d-flex justify-content-between">
-        <button className="btn btn-secondary btn-sm" onClick={() => setView('choice')}>
-          <FaArrowLeft className="me-1" /> {t('common.cancel')}
+        <button className="btn btn-secondary btn-sm" onClick={() => setView('platform')}>
+          <FaArrowLeft className="me-1" /> {t('provision.back')}
         </button>
         <button className="fm-btn-primary" onClick={() => setView('provision-form')}>
           {t('provision.next')}
         </button>
       </div>
     </div>
-  )
+    )
+  }
 
   const renderProvisionForm = () => (
     <form onSubmit={handleProvisionSubmit}>
@@ -351,7 +397,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
             className="form-control"
             value={sshUser}
             onChange={e => setSshUser(e.target.value)}
-            placeholder="pi"
+            placeholder={platform === 'x86' ? 'debian' : 'pi'}
           />
         </div>
         <div className="mb-3">
@@ -587,12 +633,12 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
   )
 
   // For manual and provision-progress views, use wider modal
-  const isWide = view === 'provision-progress' || view === 'provision-form' || view === 'instructions'
+  const isWide = view === 'provision-progress' || view === 'provision-form' || view === 'instructions' || view === 'platform'
 
   const getTitle = (): string => {
     if (editingPlayer) return t('players.editPlayer')
     if (view === 'manual') return t('players.addPlayer')
-    if (view === 'instructions' || view === 'provision-form') return t('provision.installNew')
+    if (view === 'platform' || view === 'instructions' || view === 'provision-form') return t('provision.installNew')
     if (view === 'provision-progress') return t('provision.installing')
     if (view === 'image-push') return t('provision.pushImageTitle')
     return t('players.addPlayer')
@@ -632,6 +678,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ editingPlayer, groups, 
               embedded
             />
           )}
+          {view === 'platform' && renderPlatform()}
           {view === 'instructions' && renderInstructions()}
           {view === 'provision-form' && renderProvisionForm()}
           {view === 'provision-progress' && renderProgress()}

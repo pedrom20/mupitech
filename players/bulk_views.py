@@ -108,7 +108,8 @@ def bulk_start(request):
     task.save(update_fields=['ssh_password_encrypted'])
 
     from .bulk_provision import bulk_provision_task
-    bulk_provision_task.delay(str(task.id))
+    fm_server_url = f'{request.scheme}://{request.get_host()}'
+    bulk_provision_task.delay(str(task.id), fm_server_url)
 
     from history.logging import log_action
     log_action(request, 'bulk_provision', 'player',

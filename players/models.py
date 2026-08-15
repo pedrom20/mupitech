@@ -40,7 +40,7 @@ class Player(models.Model):
     )
     device_type = models.CharField(
         max_length=10, choices=DEVICE_TYPE_CHOICES, default='unknown', blank=True,
-        help_text='Detected hardware type (pi4, pi5).',
+        help_text='Detected hardware type (pi4, pi5, x86).',
     )
     group = models.ForeignKey(
         'groups.Group',

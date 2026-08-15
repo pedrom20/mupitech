@@ -1402,6 +1402,18 @@ def register_player(request):
         elif 'Raspberry Pi 4' in device_model or 'Compute Module 4' in device_model or device_type_env == 'pi4':
             player.device_type = 'pi4'
             player.save(update_fields=['device_type'])
+        elif device_type_env == 'x86':
+            # Unlike the Pi cases above, x86's device_model text isn't
+            # reliably pattern-matchable (real vendor/CPU string, or a
+            # generic fallback) — the player's own /api/v2/info sends
+            # an explicit device_type='x86' hint instead (see
+            # anthias_server/api/views/v2.py::InfoViewV2.get_device_type
+            # in the mupitech-player repo). Older player builds that
+            # predate this hint just keep phoning home as 'unknown'
+            # until someone opens that device's Settings > Access tab,
+            # which already runs the same SSH-based arch detection.
+            player.device_type = 'x86'
+            player.save(update_fields=['device_type'])
 
     # Set default SSH credentials if not yet configured
     if not player.username and not player.password:

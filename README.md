@@ -165,6 +165,25 @@ O dispositivo aparece no Fleet Manager em cerca de 30 segundos.
 2. Introduzir o URL do dispositivo (ex.: `http://192.168.1.10`)
 3. Introduzir credenciais, se o dispositivo tiver autenticação ativa
 
+### Instalação remota por SSH ("Instalar Novo")
+
+Em **Dispositivos** > **Adicionar Dispositivo** > **Instalar Novo**, o
+Fleet Manager instala tudo por SSH numa máquina só com um SO base e
+acesso SSH já preparados — Raspberry Pi 4, Raspberry Pi 5 ou um PC x86
+normal (a arquitetura é sempre detetada automaticamente por SSH,
+`uname -m`, independentemente da escolha feita no wizard, que serve só
+para mostrar as instruções de preparação certas). Docker, as imagens e
+o registo automático ficam todos tratados; no final o device já
+aparece pronto no Fleet Manager.
+
+### Provisionamento em massa
+
+Em **Dispositivos** > **Provisionar em Massa**, para várias máquinas
+já com SO+SSH preparados na mesma rede: procura por IPs (tabela ARP ou
+intervalo de portas), credenciais SSH iguais para todas, e cada uma é
+provisionada com a mesma deteção automática de arquitetura do fluxo
+individual acima.
+
 ## Desenvolvimento
 
 ### Frontend
