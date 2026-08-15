@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaBars, FaTimes, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi, system as systemApi } from '@/services/api'
 import { AuthContext } from '@/components/app'
@@ -207,17 +207,20 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
 
           {isAuthenticated && (
             <button
-              className="btn-navbar d-lg-none ms-auto me-2"
+              className={`navbar-toggler-btn d-lg-none ms-auto me-2 ${isOpen ? 'is-open' : ''}`}
               onClick={toggleMenu}
               aria-label="Toggle navigation"
+              aria-expanded={isOpen}
             >
-              {isOpen ? <FaTimes /> : <FaBars />}
+              <span className="navbar-toggler-btn__line" />
+              <span className="navbar-toggler-btn__line" />
+              <span className="navbar-toggler-btn__line" />
             </button>
           )}
 
           {isAuthenticated && (
             <div className={`flex-grow-1 d-lg-flex align-items-center justify-content-center ${isOpen ? 'd-flex flex-column flex-lg-row position-absolute start-0 end-0 bg-purple-dark p-3 p-lg-0' : 'd-none'}`}
-              style={isOpen ? { top: '85px', zIndex: 1030, backgroundColor: '#04182B' } : {}}>
+              style={isOpen ? { top: '100%', zIndex: 1030, backgroundColor: '#04182B' } : {}}>
               <ul className="navbar-nav d-flex flex-column flex-lg-row list-unstyled mb-0 gap-1">
                 {navItemsBefore.map((item) => (
                   <li key={item.to}>
@@ -260,7 +263,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
           </div>
 
           {isOpen && isAuthenticated && (
-            <div className="d-lg-none position-absolute end-0 p-3 d-flex align-items-center gap-2" style={{ top: '85px', zIndex: 1031 }}>
+            <div className="d-lg-none position-absolute end-0 p-3 d-flex align-items-center gap-2" style={{ top: '100%', zIndex: 1031 }}>
               <LanguageSwitcher />
               <UserMenu />
             </div>

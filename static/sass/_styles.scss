@@ -158,6 +158,55 @@ body {
       }
     }
   }
+
+  // Mobile nav toggle — no border/box (a bordered square read as dated
+  // next to the borderless .btn-navbar icon buttons), three flat bars
+  // that morph into an X via rotate/translate on .is-open, instead of
+  // swapping between two separate icon glyphs (that just pops between
+  // shapes with no in-between frame).
+  .navbar-toggler-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: $border-radius;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba($white, 0.08);
+    }
+
+    &__line {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background-color: rgba($white, 0.9);
+      border-radius: 1px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    &.is-open {
+      .navbar-toggler-btn__line {
+        &:nth-child(1) {
+          transform: translateY(7px) rotate(45deg);
+        }
+        &:nth-child(2) {
+          opacity: 0;
+        }
+        &:nth-child(3) {
+          transform: translateY(-7px) rotate(-45deg);
+        }
+      }
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------
