@@ -683,6 +683,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "privacyideaPushLoginFix": "Corrigido o login por push do privacyIDEA, que não estava mesmo a enviar o pedido",
       "privacyideaPushToken": "O privacyIDEA passa a suportar também aprovação por push (sem Firebase) como alternativa a digitar um código de 6 dígitos",
       "mfaProviderSettingsUI": "As credenciais dos providers MFA (Duo, privacyIDEA, AuthPoint) já podem ser definidas em Settings > MFA Providers, em vez de só por env vars no servidor",
       "privacyideaAutoProvision": "Os utilizadores do privacyIDEA são agora criados automaticamente no primeiro enrolamento, quando se usa o resolver interno do próprio privacyIDEA",

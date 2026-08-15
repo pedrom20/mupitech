@@ -238,7 +238,12 @@ def trigger_and_wait_push(username, timeout_s=55, poll_interval_s=2):
     try:
         resp = requests.post(
             f'{config["url"].rstrip("/")}/validate/check',
-            data={'user': username, 'realm': config['realm']},
+            # pass='' (present but empty) is what actually triggers a
+            # challenge for a challenge-response token like push —
+            # omitting the key entirely gets rejected outright as
+            # "wrong otp pin" with no transaction_id, confirmed live
+            # against a real server.
+            data={'user': username, 'realm': config['realm'], 'pass': ''},
             timeout=_REQUEST_TIMEOUT_S,
             verify=_verify_kwarg(),
         )

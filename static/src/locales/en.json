@@ -683,6 +683,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "privacyideaPushLoginFix": "Fixed privacyIDEA push login not actually sending a push request",
       "privacyideaPushToken": "privacyIDEA now also supports push-approval second factor (Firebase-free) as an alternative to typing a 6-digit code",
       "mfaProviderSettingsUI": "MFA provider credentials (Duo, privacyIDEA, AuthPoint) can now be set from Settings > MFA Providers instead of only via server env vars",
       "privacyideaAutoProvision": "privacyIDEA users are now auto-created on first enrolment when using privacyIDEA's own internal resolver",
