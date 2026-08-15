@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import include, path, re_path
@@ -211,6 +212,80 @@ def auth_duo_verify(request):
     return Response({'detail': 'denied', 'status_msg': result.get('status_msg', '')}, status=401)
 
 
+@ratelimit(key='ip', rate='20/m', method='POST', block=True)
+@ratelimit(key='post:player_id', rate='10/m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_device_login(request):
+    """Verifies Fleet Manager credentials typed directly into a device's
+    own login page (as opposed to the FM-initiated SSO button, which
+    signs a token the other direction — see players/sso.py). Does NOT
+    establish a session here; the device is the one logging someone in
+    locally, this just answers "are these FM credentials valid, and for
+    what role" using the same per-device shared secret SSO already
+    provisions (proves the caller really is that device, not just
+    anyone on the LAN guessing passwords against this endpoint).
+
+    No MFA support here — a device without a browser-based challenge
+    flow can't complete TOTP/Duo verification, so an MFA-enrolled user
+    is told to use the FM-initiated SSO button instead.
+    """
+    from django.core import signing
+    from django.core.cache import cache
+
+    from history.logging import log_action
+    from mfa.models import DuoEnrollment, TOTPDevice
+    from players.models import Player
+    from players.sso import DEVICE_AUTH_PROOF_MAX_AGE, DEVICE_AUTH_PROOF_SALT
+
+    player_id = request.data.get('player_id', '')
+    proof = request.data.get('proof', '')
+    username = request.data.get('username', '')
+    password = request.data.get('password', '')
+
+    try:
+        player = Player.objects.get(pk=player_id)
+    except (Player.DoesNotExist, ValueError, ValidationError):
+        return Response({'detail': 'Invalid device.'}, status=400)
+
+    secret = player.get_sso_secret()
+    if not secret:
+        return Response({'detail': 'Invalid device.'}, status=400)
+
+    try:
+        payload = signing.loads(proof, key=secret, salt=DEVICE_AUTH_PROOF_SALT, max_age=DEVICE_AUTH_PROOF_MAX_AGE)
+    except signing.BadSignature:
+        return Response({'detail': 'Invalid device.'}, status=400)
+    if payload.get('player_id') != str(player.id):
+        return Response({'detail': 'Invalid device.'}, status=400)
+
+    # Same brute-force counter pattern as auth_mfa_verify — bounds total
+    # guesses against one username from this device beyond what the
+    # per-minute rate limits above already restrict.
+    attempts_key = f'device_login_attempts:{player.id}:{username}'
+    if cache.get(attempts_key, 0) >= 8:
+        return Response({'detail': 'Too many attempts — try again later.'}, status=429)
+
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        cache.set(attempts_key, cache.get(attempts_key, 0) + 1, timeout=300)
+        log_action(request, 'login_failed', 'session', target_name=username,
+                   details={'via': 'device_login', 'player': player.name})
+        return Response({'detail': 'Invalid credentials.'}, status=401)
+
+    has_mfa = (
+        DuoEnrollment.objects.filter(user=user, confirmed=True).exists()
+        or TOTPDevice.objects.filter(user=user, confirmed=True).exists()
+    )
+    if has_mfa:
+        return Response({'detail': 'mfa_required'}, status=409)
+
+    cache.delete(attempts_key)
+    log_action(request, 'login', 'session', target_name=user.username,
+               details={'via': 'device_login', 'player': player.name})
+    return Response({'success': True, 'username': user.username, 'role': _user_role(user)})
+
+
 @api_view(['POST'])
 def auth_logout(request):
     from history.logging import log_action
@@ -286,6 +361,7 @@ urlpatterns = [
     path('api/auth/login/', auth_login),
     path('api/auth/mfa/verify/', auth_mfa_verify),
     path('api/auth/mfa/duo-verify/', auth_duo_verify),
+    path('api/auth/device-login/', auth_device_login),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),
     path('api/auth/token/', obtain_auth_token, name='api-token'),

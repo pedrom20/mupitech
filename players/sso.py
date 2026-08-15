@@ -30,6 +30,15 @@ logger = logging.getLogger(__name__)
 SSO_TOKEN_SALT = 'mupitech-sso-login'
 SSO_TOKEN_MAX_AGE = 60  # seconds — long enough for a redirect, short enough that a leaked link is useless quickly
 
+# Distinct salt for the reverse direction (device -> FM, see
+# fleet_manager/urls.py::auth_device_login) even though it reuses the
+# same per-device secret — django.core.signing derives a different key
+# per salt, so a leaked/replayed FM->device SSO token can't double as a
+# valid device->FM proof (or vice versa) just because both happen to
+# carry a 'player_id' field.
+DEVICE_AUTH_PROOF_SALT = 'mupitech-device-auth'
+DEVICE_AUTH_PROOF_MAX_AGE = 30
+
 
 class SSOPushError(Exception):
     """Raised when pushing a device's SSO secret over SSH fails."""
@@ -57,7 +66,7 @@ def build_sso_login_url(player, requesting_user):
     return f'{base}/sso/callback/?token={token}'
 
 
-def push_sso_secret_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15):
+def push_sso_secret_to_player(player, ssh_user, ssh_password, ssh_port=22, timeout=15, fm_base_url=None):
     """SSH into `player`'s host and provision it with an SSO secret,
     generating one first if this player doesn't already have one.
 
@@ -67,6 +76,15 @@ def push_sso_secret_to_player(player, ssh_user, ssh_password, ssh_port=22, timeo
     about (see mupitech-player's anthias_server/settings.py DEFAULTS),
     so going through it is what actually makes 'sso_secret' persist
     instead of silently getting dropped.
+
+    Also pushes `fm_player_id` (this Player's own id) and, when given,
+    `fm_base_url` — together they're what lets the device call back to
+    this Fleet Manager to verify FM credentials typed directly into the
+    device's own login page (see fleet_manager/urls.py::auth_device_login
+    and mupitech-player's mupitech_device_login_views.py). Both are
+    optional/inert if that feature is never used, so pushing them here
+    unconditionally (whenever SSO gets (re)provisioned) is simplest —
+    one push covers both features instead of two separate ones.
     """
     import paramiko
 
@@ -98,10 +116,16 @@ def push_sso_secret_to_player(player, ssh_user, ssh_password, ssh_port=22, timeo
         if not container:
             raise SSOPushError('Could not find a running anthias-server container on this device.')
 
+        settings_lines = [
+            f'settings["sso_secret"] = {secret!r}',
+            f'settings["fm_player_id"] = {str(player.id)!r}',
+        ]
+        if fm_base_url:
+            settings_lines.append(f'settings["fm_base_url"] = {fm_base_url.rstrip("/")!r}')
         python_cmd = (
             'from anthias_server.settings import settings; '
-            f'settings["sso_secret"] = {secret!r}; '
-            'settings.save()'
+            + '; '.join(settings_lines)
+            + '; settings.save()'
         )
         _ssh_run(
             ssh,

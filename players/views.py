@@ -731,7 +731,10 @@ class PlayerViewSet(viewsets.ModelViewSet):
         ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
 
         try:
-            push_sso_secret_to_player(player, ssh_user, ssh_password, ssh_port)
+            push_sso_secret_to_player(
+                player, ssh_user, ssh_password, ssh_port,
+                fm_base_url=request.build_absolute_uri('/'),
+            )
         except SSOPushError as exc:
             return Response({'error': str(exc)}, status=502)
 
