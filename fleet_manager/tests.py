@@ -204,3 +204,70 @@ class DualMFAPolicyEndpointTests(TestCase):
         status_resp = self.client.get('/api/mfa/dual/status/')
         self.assertTrue(status_resp.data['role_required'])
         self.assertEqual(status_resp.data['require_dual_roles'], ['superadmin'])
+
+
+class OfflineAlertEmailTests(TestCase):
+    """The branded HTML alert email — real subject/body/HTML generation,
+    not mocked, so a template typo or a crash building the branded shell
+    (e.g. a missing logo file) fails a test instead of only surfacing
+    when an operator clicks 'send test' in production."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        from fleet_manager import alerts
+        cache.set(alerts.ALERTS_SMTP_HOST_KEY, 'localhost', None)
+        cache.set(alerts.ALERTS_FROM_EMAIL_KEY, 'alerts@mupitech.local', None)
+
+    def test_offline_alert_message_has_html_alternative_in_portuguese(self):
+        from django.utils import timezone
+        from fleet_manager import alerts
+
+        players = [alerts._SamplePlayer('Loja Centro', timezone.now())]
+        conf = alerts.get_alert_settings()
+        message = alerts._offline_alert_message(players, conf, ['admin@example.com'])
+
+        self.assertIn('dispositivo(s) offline', message.subject)
+        self.assertEqual(len(message.alternatives), 1)
+        html, mimetype = message.alternatives[0]
+        self.assertEqual(mimetype, 'text/html')
+        self.assertIn('Loja Centro', html)
+        self.assertIn('MupiTech', html)
+        self.assertIn('data:image/png;base64,', html)  # logo actually embedded, not a broken/missing src
+
+    def test_device_name_is_html_escaped_in_table(self):
+        from fleet_manager import alerts
+
+        players = [alerts._SamplePlayer('<script>alert(1)</script>', None)]
+        conf = alerts.get_alert_settings()
+        message = alerts._offline_alert_message(players, conf, ['admin@example.com'])
+        html = message.alternatives[0][0]
+
+        self.assertNotIn('<script>alert(1)</script>', html)
+        self.assertIn('&lt;script&gt;', html)
+
+    def test_send_test_offline_alert_email_requires_smtp_configured(self):
+        from django.core.cache import cache
+        from fleet_manager import alerts
+
+        cache.delete(alerts.ALERTS_SMTP_HOST_KEY)
+        with self.assertRaises(ValueError):
+            alerts.send_test_offline_alert_email('admin@example.com')
+
+    def test_send_test_offline_alert_email_builds_sample_when_none_offline(self):
+        """No real device is offline in this test DB — confirms the
+        sample-data fallback path (not send()'s actual SMTP call, which
+        this test doesn't reach) builds without crashing."""
+        from fleet_manager import alerts
+
+        conf = alerts.get_alert_settings()
+        sample_players = [
+            alerts._SamplePlayer('Exemplo — Receção', None),
+            alerts._SamplePlayer('Exemplo — Balcão 1', None),
+        ]
+        message = alerts._offline_alert_message(
+            sample_players, conf, ['admin@example.com'],
+            sample_notice='Nenhum dispositivo está offline neste momento.',
+        )
+        html = message.alternatives[0][0]
+        self.assertIn('Nenhum dispositivo está offline', html)
+        self.assertIn('Exemplo — Receção', html)

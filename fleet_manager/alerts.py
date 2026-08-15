@@ -92,27 +92,43 @@ def get_alert_recipients():
     return recipients
 
 
-def _offline_alert_message(offline_players, conf, to):
-    """Builds the exact EmailMessage send_offline_alert_emails() sends —
+def _offline_alert_message(offline_players, conf, to, sample_notice=''):
+    """Builds the exact email send_offline_alert_emails() sends —
     factored out so send_test_offline_alert_email() below can reuse the
-    real subject/body template instead of send_test_email()'s generic
-    placeholder text, just redirected to one address instead of every
-    opted-in admin."""
-    from django.core.mail import EmailMessage
+    real subject/body/HTML template, just redirected to one address
+    instead of every opted-in admin. `sample_notice`, if given, is
+    prepended as an HTML paragraph (used only by the sample-data preview
+    path, see send_test_offline_alert_email)."""
+    from django.core.mail import EmailMultiAlternatives
 
-    lines = [f'{len(offline_players)} device(s) have been offline for longer than expected:', '']
+    from .email_branding import branded_email_html, offline_players_table_html
+
+    count = len(offline_players)
+    subject = f'[MupiTech] {count} dispositivo(s) offline'
+
+    lines = [f'{count} dispositivo(s) estão offline há mais tempo do que o esperado:', '']
     for player in offline_players:
-        last_seen = player.last_seen.strftime('%Y-%m-%d %H:%M') if player.last_seen else 'never'
-        lines.append(f'- {player.name} (last seen: {last_seen})')
-    body = '\n'.join(lines)
+        last_seen = player.last_seen.strftime('%d/%m/%Y %H:%M') if player.last_seen else 'nunca'
+        lines.append(f'- {player.name} (visto pela última vez: {last_seen})')
+    text_body = '\n'.join(lines)
 
-    return EmailMessage(
-        subject=f'[MupiTech] {len(offline_players)} device(s) offline',
-        body=body,
+    intro_html = f'<p style="margin:0 0 4px 0;font-size:14px;color:#4b5563;">{count} dispositivo(s) estão offline há mais tempo do que o esperado:</p>'
+    if sample_notice:
+        intro_html = (
+            f'<p style="margin:0 0 12px 0;padding:10px 12px;background:#fff7e0;border:1px solid #f0d98c;'
+            f'border-radius:6px;font-size:13px;color:#7a5c00;">{sample_notice}</p>' + intro_html
+        )
+    html_body = branded_email_html(subject, intro_html, offline_players_table_html(offline_players))
+
+    message = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
         from_email=conf['from_email'] or conf['smtp_username'],
         to=to,
         connection=get_alert_connection(),
     )
+    message.attach_alternative(html_body, 'text/html')
+    return message
 
 
 def send_offline_alert_emails(offline_players):
@@ -166,36 +182,56 @@ def send_test_offline_alert_email(to_email):
 
     offline_players = list(Player.objects.filter(is_online=False))
     is_sample = not offline_players
+    sample_notice = ''
     if is_sample:
         now = timezone.now()
         offline_players = [
-            _SamplePlayer('Exemplo — Recessão', now),
+            _SamplePlayer('Exemplo — Receção', now),
             _SamplePlayer('Exemplo — Balcão 1', None),
         ]
+        sample_notice = (
+            'Nenhum dispositivo está offline neste momento — isto é um exemplo com dados '
+            'fictícios para mostrar o formato real deste email.'
+        )
 
-    message = _offline_alert_message(offline_players, conf, [to_email])
+    message = _offline_alert_message(offline_players, conf, [to_email], sample_notice=sample_notice)
     if is_sample:
         message.subject = f'[MupiTech] (exemplo) {message.subject}'
-        message.body = (
-            'Nenhum device está offline neste momento — isto é um exemplo com dados '
-            'fictícios para mostrar o formato real do email.\n\n' + message.body
-        )
+        message.body = f'(Exemplo — nenhum dispositivo está offline neste momento)\n\n{message.body}'
     message.send()
 
 
 def send_test_email(to_email):
-    """Send a one-off test email to confirm the SMTP config actually works."""
+    """Send a one-off branded test email to confirm the SMTP config
+    actually works — same visual template as the real alerts, just
+    with a plain confirmation message instead of a device list."""
+    from django.core.mail import EmailMultiAlternatives
+
+    from .email_branding import branded_email_html
+
     conf = get_alert_settings()
     connection = get_alert_connection()
     if connection is None:
         raise ValueError('SMTP host is not configured.')
 
-    from django.core.mail import EmailMessage
-    message = EmailMessage(
-        subject='[MupiTech] Test alert email',
-        body='This is a test email from your MupiTech Fleet Manager alert settings. If you received this, SMTP is configured correctly.',
+    subject = '[MupiTech] Email de teste'
+    text_body = (
+        'Este é um email de teste das definições de alertas do MupiTech Fleet Manager. '
+        'Se recebeu este email, o SMTP está configurado corretamente.'
+    )
+    intro_html = (
+        '<p style="margin:0;font-size:14px;color:#4b5563;">'
+        'Este é um email de teste das definições de alertas do MupiTech Fleet Manager. '
+        'Se recebeu este email, o SMTP está configurado corretamente.</p>'
+    )
+    html_body = branded_email_html(subject, intro_html, '')
+
+    message = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
         from_email=conf['from_email'] or conf['smtp_username'],
         to=[to_email],
         connection=connection,
     )
+    message.attach_alternative(html_body, 'text/html')
     message.send()
