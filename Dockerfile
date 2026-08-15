@@ -46,4 +46,4 @@ RUN python manage.py collectstatic --noinput 2>/dev/null || true
 EXPOSE 8000
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "fleet_manager.asgi:application"]
+CMD ["daphne", "--proxy-headers", "-b", "0.0.0.0", "-p", "8000", "fleet_manager.asgi:application"]
