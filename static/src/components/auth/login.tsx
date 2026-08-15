@@ -8,11 +8,6 @@ import { auth, ApiError } from '@/services/api'
 import CodeInput from '@/components/shared/code-input'
 import type { MFAMethod } from '@/types'
 
-// 'authpoint' is push-kind like Duo but has no working backend yet
-// (mfa.authpoint.authpoint_configured() is always False) — listed here
-// so this stays exhaustive once it does.
-const PUSH_METHODS: MFAMethod[] = ['duo', 'authpoint']
-
 const Login: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -26,9 +21,10 @@ const Login: React.FC = () => {
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [method, setMethod] = useState<MFAMethod | null>(null)
   const [availableMethods, setAvailableMethods] = useState<MFAMethod[]>([])
+  const [pushMethods, setPushMethods] = useState<MFAMethod[]>([])
   const [code, setCode] = useState('')
-  const [duoStatus, setDuoStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
-  const [duoError, setDuoError] = useState('')
+  const [pushStatus, setPushStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
+  const [pushError, setPushError] = useState('')
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +35,7 @@ const Login: React.FC = () => {
         setChallengeId(result.challenge_id)
         setMethod(result.method)
         setAvailableMethods(result.available_methods || [result.method])
+        setPushMethods(result.push_methods || [])
       } else {
         refresh()
         navigate('/')
@@ -82,30 +79,35 @@ const Login: React.FC = () => {
     submitMfaCode(code)
   }
 
-  const sendDuoPush = async (challenge: string) => {
-    setDuoStatus('pending')
-    setDuoError('')
+  // Dispatches to the right push-verify endpoint for whichever provider
+  // is push-kind for this user right now — 'authpoint' never actually
+  // reaches here (mfa.authpoint.authpoint_configured() is always False,
+  // so it can never appear in push_methods), listed for exhaustiveness.
+  const verifyPush = (challenge: string, m: MFAMethod): Promise<unknown> => {
+    if (m === 'privacyidea') return auth.verifyPrivacyIDEAPush(challenge)
+    return auth.verifyDuo(challenge)
+  }
+
+  const sendPush = async (challenge: string, m: MFAMethod) => {
+    setPushStatus('pending')
+    setPushError('')
     try {
-      await auth.verifyDuo(challenge)
+      await verifyPush(challenge, m)
       refresh()
       navigate('/')
     } catch (error) {
       if (error instanceof ApiError && error.message === 'timeout') {
-        setDuoStatus('timeout')
+        setPushStatus('timeout')
       } else {
-        setDuoStatus('error')
-        setDuoError(error instanceof ApiError ? error.message : String(error))
+        setPushStatus('error')
+        setPushError(error instanceof ApiError ? error.message : String(error))
       }
     }
   }
 
   useEffect(() => {
-    // Only Duo has a real push implementation today — 'authpoint' is in
-    // PUSH_METHODS for the branch-selection check above, but never
-    // actually reaches here (mfa.authpoint.authpoint_configured() is
-    // always False, so it can never appear in available_methods).
-    if (challengeId && method === 'duo') {
-      sendDuoPush(challengeId)
+    if (challengeId && method && pushMethods.includes(method)) {
+      sendPush(challengeId, method)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challengeId, method])
@@ -114,9 +116,10 @@ const Login: React.FC = () => {
     setChallengeId(null)
     setMethod(null)
     setAvailableMethods([])
+    setPushMethods([])
     setCode('')
-    setDuoStatus('pending')
-    setDuoError('')
+    setPushStatus('pending')
+    setPushError('')
   }
 
   // Same challenge_id works against every verify endpoint (see
@@ -125,8 +128,8 @@ const Login: React.FC = () => {
   // challenge or password re-entry needed.
   const switchMethod = (next: MFAMethod) => {
     setCode('')
-    setDuoStatus('pending')
-    setDuoError('')
+    setPushStatus('pending')
+    setPushError('')
     setMethod(next)
   }
 
@@ -173,32 +176,32 @@ const Login: React.FC = () => {
                 {loading ? t('common.loading') : t('auth.login')}
               </button>
             </form>
-          ) : method && PUSH_METHODS.includes(method) ? (
+          ) : method && pushMethods.includes(method) ? (
             <div>
               <div className="text-center mb-4">
                 <FaMobileAlt size={28} className="mb-2" />
-                <p className="mb-0 fw-semibold">{t('auth.duo.title')}</p>
-                {duoStatus === 'pending' && (
+                <p className="mb-0 fw-semibold">{t('auth.push.title')}</p>
+                {pushStatus === 'pending' && (
                   <p className="form-text">
                     <span className="spinner-border spinner-border-sm me-2" />
-                    {t('auth.duo.waiting')}
+                    {t('auth.push.waiting', { app: t(`auth.push.appName.${method}`) })}
                   </p>
                 )}
-                {duoStatus === 'timeout' && (
-                  <p className="form-text text-warning">{t('auth.duo.timeout')}</p>
+                {pushStatus === 'timeout' && (
+                  <p className="form-text text-warning">{t('auth.push.timeout')}</p>
                 )}
-                {duoStatus === 'error' && (
-                  <p className="form-text text-danger">{duoError || t('auth.duo.denied')}</p>
+                {pushStatus === 'error' && (
+                  <p className="form-text text-danger">{pushError || t('auth.push.denied')}</p>
                 )}
               </div>
-              {duoStatus !== 'pending' && (
+              {pushStatus !== 'pending' && (
                 <button
                   type="button"
                   className="fm-btn-primary w-100 mb-2"
-                  onClick={() => challengeId && sendDuoPush(challengeId)}
+                  onClick={() => challengeId && sendPush(challengeId, method)}
                 >
                   <FaMobileAlt />
-                  {t('auth.duo.retry')}
+                  {t('auth.push.retry')}
                 </button>
               )}
               {otherMethods.map((m) => (

@@ -131,13 +131,27 @@ def _ensure_user_exists(config, token, username, email=''):
         raise PrivacyIDEAError(f'privacyIDEA user provisioning failed: {exc}') from exc
 
 
-def start_enrollment(username, email=''):
-    """Ask privacyIDEA to generate a new TOTP token for `username` in
-    the configured realm (auto-provisioning that user into the
-    configured resolver first, if needed — see _ensure_user_exists).
-    Returns {'serial': ..., 'otpauth_uri': ...} — the caller
+def start_enrollment(username, email='', token_type='totp'):
+    """Ask privacyIDEA to generate a new token for `username` in the
+    configured realm (auto-provisioning that user into the configured
+    resolver first, if needed — see _ensure_user_exists). Returns
+    {'serial': ..., 'otpauth_uri': ...} either way — the caller
     (mfa/views.py::privacyidea_enroll) renders its own QR from
-    otpauth_uri via the same qrcode helper TOTP enrollment uses."""
+    otpauth_uri via the same qrcode helper TOTP enrollment already used,
+    which works unchanged for a push token's otpauth://pipush/... URI
+    too (the qrcode library just encodes whatever string it's given).
+
+    For token_type='push' this is only step 1 of privacyIDEA's own
+    two-step push enrollment — the QR encodes a URL the privacyIDEA
+    Authenticator app itself POSTs to directly (not through us) to
+    finish registering; mfa/views.py polls check_push_rollout() below
+    to find out when that's done, the same way it already polls Duo's
+    enroll_status. Requires two enrollment policies set once on the
+    privacyIDEA server itself (see deploy/privacyidea/README.md):
+    push_registration_url (where the app posts back to) and
+    push_firebase_configuration=poll only (so no Firebase project is
+    needed — the app polls the server for pending challenges instead of
+    being woken up by a push service)."""
     import requests
 
     _require_configured()
@@ -149,7 +163,7 @@ def start_enrollment(username, email=''):
             f'{config["url"].rstrip("/")}/token/init',
             headers={'Authorization': token},
             data={
-                'type': 'totp',
+                'type': token_type,
                 'genkey': '1',
                 'user': username,
                 'realm': config['realm'],
@@ -158,16 +172,117 @@ def start_enrollment(username, email=''):
             verify=_verify_kwarg(),
         )
         resp.raise_for_status()
-        data = resp.json()
-        detail = data['detail']
+        detail = resp.json()['detail']
+        uri_key = 'pushurl' if token_type == 'push' else 'googleurl'
         return {
             'serial': detail['serial'],
-            'otpauth_uri': detail['googleurl']['value'],
+            'otpauth_uri': detail[uri_key]['value'],
         }
     except PrivacyIDEAError:
         raise
     except Exception as exc:
         raise PrivacyIDEAError(f'privacyIDEA enrollment failed: {exc}') from exc
+
+
+def check_push_rollout(serial):
+    """Has the privacyIDEA Authenticator app finished step 2 of push
+    enrollment yet (POSTing its public key back to privacyIDEA)? Polled
+    by mfa/views.py::privacyidea_confirm the same way Duo enrollment is
+    already polled — there's no code for the user to type for a push
+    token, confirmation only happens once this turns True."""
+    import requests
+
+    _require_configured()
+    config = provider_config.get_config('privacyidea')
+    token = _admin_token()
+    try:
+        resp = requests.get(
+            f'{config["url"].rstrip("/")}/token/',
+            headers={'Authorization': token},
+            params={'serial': serial},
+            timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
+        )
+        resp.raise_for_status()
+        tokens = resp.json()['result']['value']['tokens']
+        return bool(tokens and tokens[0].get('active'))
+    except Exception as exc:
+        raise PrivacyIDEAError(f'privacyIDEA rollout check failed: {exc}') from exc
+
+
+def trigger_and_wait_push(username, timeout_s=55, poll_interval_s=2):
+    """Trigger a push challenge for `username`'s active push token and
+    block until it's answered or `timeout_s` elapses — mirrors
+    mfa/duo.py::push_auth's shape ({'result': 'allow'|'deny'|'timeout'})
+    so fleet_manager/urls.py::auth_privacyidea_push_verify can follow
+    the exact same pattern as its Duo equivalent. Unlike Duo's /auth
+    call (which blocks server-side on Duo's own infrastructure until
+    answered), privacyIDEA's /validate/check returns immediately with a
+    transaction_id and expects the CALLER to poll — this function does
+    that polling itself so the caller still only sees one blocking call,
+    same as the Duo path.
+
+    NOTE: this is the one piece of the push flow that could only be
+    verified against privacyIDEA's documented API shape, not against a
+    real phone approving/denying a challenge (no physical device
+    available while building this) — enrollment and rollout-state
+    polling above were both confirmed against a real server. Worth one
+    real end-to-end login test with the privacyIDEA Authenticator app
+    before relying on this in production."""
+    import time
+
+    import requests
+
+    _require_configured()
+    config = provider_config.get_config('privacyidea')
+    try:
+        resp = requests.post(
+            f'{config["url"].rstrip("/")}/validate/check',
+            data={'user': username, 'realm': config['realm']},
+            timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        transaction_id = data.get('detail', {}).get('transaction_id')
+        if not transaction_id:
+            # Nothing to poll — either it somehow already succeeded
+            # (result.value True with no challenge) or there's no
+            # active push token to challenge at all.
+            return {'result': 'allow' if data.get('result', {}).get('value') else 'deny'}
+    except Exception as exc:
+        raise PrivacyIDEAError(f'privacyIDEA push trigger failed: {exc}') from exc
+
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        time.sleep(poll_interval_s)
+        try:
+            resp = requests.get(
+                f'{config["url"].rstrip("/")}/validate/polltransaction',
+                params={'transaction_id': transaction_id},
+                timeout=_REQUEST_TIMEOUT_S,
+                verify=_verify_kwarg(),
+            )
+            resp.raise_for_status()
+            answered = bool(resp.json()['result']['value'])
+        except Exception as exc:
+            raise PrivacyIDEAError(f'privacyIDEA push poll failed: {exc}') from exc
+        if not answered:
+            continue
+        try:
+            resp = requests.post(
+                f'{config["url"].rstrip("/")}/validate/check',
+                data={'user': username, 'realm': config['realm'], 'transaction_id': transaction_id, 'pass': ''},
+                timeout=_REQUEST_TIMEOUT_S,
+                verify=_verify_kwarg(),
+            )
+            resp.raise_for_status()
+            approved = bool(resp.json()['result']['value'])
+        except Exception as exc:
+            raise PrivacyIDEAError(f'privacyIDEA push finalize failed: {exc}') from exc
+        return {'result': 'allow' if approved else 'deny'}
+
+    return {'result': 'timeout'}
 
 
 def verify(username, otp):

@@ -916,7 +916,7 @@ export const auth = {
    * so the frontend can offer a "use a different method" switch). */
   login(username: string, password: string): Promise<
     | { success: true; username: string }
-    | { mfa_required: true; challenge_id: string; method: MFAMethod; available_methods: MFAMethod[] }
+    | { mfa_required: true; challenge_id: string; method: MFAMethod; available_methods: MFAMethod[]; push_methods: MFAMethod[] }
   > {
     return apiRequest('POST', '/auth/login/', { username, password })
   },
@@ -936,6 +936,13 @@ export const auth = {
 
   verifyPrivacyIDEA(challengeId: string, code: string): Promise<{ success: boolean; username: string }> {
     return apiRequest('POST', '/auth/mfa/privacyidea-verify/', { challenge_id: challengeId, code })
+  },
+
+  /** Same push/block/retry-on-timeout shape as verifyDuo() above, for a
+   * privacyIDEA push token instead of Duo — see
+   * fleet_manager/urls.py::auth_privacyidea_push_verify. */
+  verifyPrivacyIDEAPush(challengeId: string): Promise<{ success: boolean; username: string }> {
+    return apiRequest('POST', '/auth/mfa/privacyidea-push-verify/', { challenge_id: challengeId })
   },
 }
 
@@ -978,16 +985,20 @@ export const duo = {
 }
 
 export const privacyidea = {
-  status(): Promise<{ configured: boolean; enabled: boolean }> {
+  status(): Promise<{ configured: boolean; enabled: boolean; token_type: 'totp' | 'push' | null }> {
     return apiRequest('GET', '/mfa/privacyidea/status/')
   },
 
-  enroll(): Promise<{ otpauth_uri: string; qr_png_base64: string }> {
-    return apiRequest('POST', '/mfa/privacyidea/enroll/')
+  enroll(tokenType: 'totp' | 'push' = 'totp'): Promise<{ otpauth_uri: string; qr_png_base64: string }> {
+    return apiRequest('POST', '/mfa/privacyidea/enroll/', { token_type: tokenType })
   },
 
-  confirm(code: string): Promise<{ success: boolean }> {
-    return apiRequest('POST', '/mfa/privacyidea/confirm/', { code })
+  /** For a 'totp' enrolment pass the typed code; for a 'push' one call
+   * with no argument and poll — response is either {success: true}
+   * (confirmed) or {status: 'waiting'} (the app hasn't finished
+   * registering yet), see mfa/views.py::privacyidea_confirm. */
+  confirm(code?: string): Promise<{ success: true } | { status: 'waiting' }> {
+    return apiRequest('POST', '/mfa/privacyidea/confirm/', code !== undefined ? { code } : undefined)
   },
 
   disable(password: string): Promise<{ success: boolean }> {

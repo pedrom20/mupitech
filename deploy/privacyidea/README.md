@@ -89,6 +89,35 @@ inofensivos — os comandos continuam a funcionar nesta versão.)
 
 Guarda o username/password do admin — vais precisar deles no passo 4.
 
+## 3.5. Ativar push (opcional, sem Firebase)
+
+Só é preciso se quiseres a opção de aprovação por push na app
+privacyIDEA Authenticator, além do código de 6 dígitos. Duas políticas
+de enrolamento, testadas a sério contra um servidor real — troca
+`<URL-desta-VM>` pelo URL público desta instância (o mesmo que vais
+pôr em "Server URL" no passo 4):
+
+```bash
+TOKEN=$(curl -sk https://localhost/auth -d username=fmadmin -d 'password=<password do passo 3>' \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['value']['token'])")
+
+# sem isto, /token/init com type=push falha com "Missing enrollment
+# policy for push token: push_registration_url"
+curl -sk https://localhost/policy/push_registration_url -H "Authorization: $TOKEN" \
+  -d name=push_registration_url -d scope=enrollment \
+  -d "action=push_registration_url=<URL-desta-VM>/ttype/push" -d active=1
+
+# "poll only" evita precisares de um projeto Firebase — a app vai
+# buscar os pedidos pendentes ao servidor em vez de ser acordada por
+# uma notificação push da Google
+curl -sk https://localhost/policy/push_poll_only -H "Authorization: $TOKEN" \
+  -d name=push_poll_only -d scope=enrollment \
+  -d "action=push_firebase_configuration=poll only" -d active=1
+```
+
+A troca é que deixa de ser um push instantâneo — a app só mostra o
+pedido quando é aberta ou quando se faz swipe para atualizar.
+
 ## 4. Ligar ao Fleet Manager
 
 Desde a v1.1.6.0 isto faz-se pela interface, não por variáveis de
@@ -126,9 +155,19 @@ mostra "Couldn't reach privacyIDEA".
 ## 5. Verificar que está mesmo a funcionar
 
 Já dentro do Fleet Manager, como um utilizador qualquer: Account →
-Security → cartão privacyIDEA → "Enable privacyIDEA" → aparece um QR
-→ confirma com o código do teu authenticator app → faz logout/login e
-confirma que o passo de MFA aparece.
+Security → cartão privacyIDEA → escolhe "6-digit code" ou "Push
+approval" → "Enable privacyIDEA" → aparece um QR → para o código,
+confirma com o código do teu authenticator app; para push, digitaliza
+o QR com a app privacyIDEA Authenticator e espera a confirmação
+automática → faz logout/login e confirma que o passo de MFA aparece
+(um pedido de push no telemóvel, ou o pedido de código, consoante o
+que escolheste).
+
+O fluxo de enrolamento e o polling de estado foram testados a sério
+contra um servidor real; o passo em que a app aprova mesmo um pedido
+de login (trigger_and_wait_push em mfa/privacyidea.py) foi construído
+a partir da documentação oficial da API mas nunca testado com um
+telemóvel real — vale a pena confirmar esse último passo.
 
 ---
 

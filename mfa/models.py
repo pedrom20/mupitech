@@ -95,13 +95,27 @@ class MFAProviderConfig(models.Model):
 
 
 class PrivacyIDEAEnrollment(models.Model):
-    """A user's privacyIDEA TOTP second factor — same shape as
-    TOTPDevice above, but the secret lives on the privacyIDEA server
-    (see mfa/privacyidea.py), not here. `serial` is privacyIDEA's own
-    token identifier, needed to disable/delete the token later; we
-    never see or store the shared secret itself, matching DuoEnrollment's
-    "no secret on our side" property via a different mechanism.
+    """A user's privacyIDEA second factor — same shape as TOTPDevice
+    above, but the secret (or, for a push token, the key pair) lives on
+    the privacyIDEA server (see mfa/privacyidea.py), not here. `serial`
+    is privacyIDEA's own token identifier, needed to disable/delete the
+    token later; we never see or store the shared secret itself,
+    matching DuoEnrollment's "no secret on our side" property via a
+    different mechanism.
+
+    `token_type` picks which of privacyIDEA's own token types this is:
+    'totp' behaves exactly like before (type this file's earlier
+    versions only supported) — a 6-digit code, confirmed the moment a
+    valid one is entered. 'push' has no code to type at all: enrolment
+    finishes asynchronously once the privacyIDEA Authenticator app
+    completes its own registration (mfa/privacyidea.py's
+    check_push_rollout, polled by mfa/views.py::privacyidea_confirm the
+    same way mfa/duo.py's enrollment is already polled), and login is a
+    trigger-and-wait against privacyIDEA's challenge/poll API instead of
+    a typed code (mfa/privacyidea.py::trigger_and_wait_push).
     """
+
+    TOKEN_TYPE_CHOICES = [('totp', 'totp'), ('push', 'push')]
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -109,6 +123,7 @@ class PrivacyIDEAEnrollment(models.Model):
         related_name='privacyidea_enrollment',
     )
     serial = models.CharField(max_length=64)
+    token_type = models.CharField(max_length=8, choices=TOKEN_TYPE_CHOICES, default='totp')
     confirmed = models.BooleanField(default=False)
     confirmed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

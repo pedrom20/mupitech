@@ -193,6 +193,7 @@ def privacyidea_status(request):
     return Response({
         'configured': privacyidea.privacyidea_configured(),
         'enabled': bool(enrollment and enrollment.confirmed),
+        'token_type': enrollment.token_type if enrollment and enrollment.confirmed else None,
     })
 
 
@@ -207,15 +208,19 @@ def privacyidea_enroll(request):
             status=400,
         )
 
+    token_type = request.data.get('token_type', 'totp')
+    if token_type not in ('totp', 'push'):
+        return Response({'error': 'Invalid token_type.'}, status=400)
+
     try:
-        result = privacyidea.start_enrollment(request.user.username, request.user.email)
+        result = privacyidea.start_enrollment(request.user.username, request.user.email, token_type)
     except privacyidea.PrivacyIDEAError as exc:
         logger.warning('privacyIDEA enroll failed for %s: %s', request.user.username, exc)
         return Response({'error': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
 
     PrivacyIDEAEnrollment.objects.update_or_create(
         user=request.user,
-        defaults={'serial': result['serial'], 'confirmed': False, 'confirmed_at': None},
+        defaults={'serial': result['serial'], 'token_type': token_type, 'confirmed': False, 'confirmed_at': None},
     )
     return Response({
         'otpauth_uri': result['otpauth_uri'],
@@ -225,20 +230,35 @@ def privacyidea_enroll(request):
 
 @api_view(['POST'])
 def privacyidea_confirm(request):
+    """For a 'totp' enrolment, checks the typed `code` — unchanged from
+    before. For a 'push' enrolment there's no code: the frontend polls
+    this repeatedly (same pattern as mfa/views.py::duo_confirm) until
+    the privacyIDEA Authenticator app finishes its own registration,
+    reported here as {'status': 'waiting'} vs the {'success': True}
+    both paths return once actually confirmed."""
     from history.logging import log_action
 
     enrollment = getattr(request.user, 'privacyidea_enrollment', None)
     if not enrollment or enrollment.confirmed:
         return Response({'error': 'No pending privacyIDEA enrolment.'}, status=400)
 
-    code = str(request.data.get('code', ''))
-    try:
-        valid = privacyidea.verify(request.user.username, code)
-    except privacyidea.PrivacyIDEAError as exc:
-        logger.warning('privacyIDEA verify failed for %s: %s', request.user.username, exc)
-        return Response({'error': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
-    if not valid:
-        return Response({'error': 'Invalid code.'}, status=400)
+    if enrollment.token_type == 'push':
+        try:
+            active = privacyidea.check_push_rollout(enrollment.serial)
+        except privacyidea.PrivacyIDEAError as exc:
+            logger.warning('privacyIDEA push rollout check failed for %s: %s', request.user.username, exc)
+            return Response({'error': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
+        if not active:
+            return Response({'status': 'waiting'})
+    else:
+        code = str(request.data.get('code', ''))
+        try:
+            valid = privacyidea.verify(request.user.username, code)
+        except privacyidea.PrivacyIDEAError as exc:
+            logger.warning('privacyIDEA verify failed for %s: %s', request.user.username, exc)
+            return Response({'error': "Couldn't reach privacyIDEA — try again shortly."}, status=502)
+        if not valid:
+            return Response({'error': 'Invalid code.'}, status=400)
 
     enrollment.confirmed = True
     enrollment.confirmed_at = timezone.now()

@@ -490,16 +490,21 @@
       "methodName": {
         "totp": "an authenticator code",
         "duo": "Duo push",
-        "privacyidea": "a privacyIDEA code",
+        "privacyidea": "privacyIDEA",
         "authpoint": "AuthPoint push"
       }
     },
-    "duo": {
-      "title": "Duo push verification",
-      "waiting": "Check your phone for a Duo Mobile approval request…",
+    "push": {
+      "title": "Push verification",
+      "waiting": "Check your phone for a {{app}} approval request…",
       "timeout": "The request timed out — no response in time.",
       "denied": "The request was denied.",
-      "retry": "Send push again"
+      "retry": "Send push again",
+      "appName": {
+        "duo": "Duo Mobile",
+        "privacyidea": "privacyIDEA Authenticator",
+        "authpoint": "AuthPoint"
+      }
     }
   },
   "schedule": {
@@ -678,6 +683,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "privacyideaPushToken": "privacyIDEA now also supports push-approval second factor (Firebase-free) as an alternative to typing a 6-digit code",
       "mfaProviderSettingsUI": "MFA provider credentials (Duo, privacyIDEA, AuthPoint) can now be set from Settings > MFA Providers instead of only via server env vars",
       "privacyideaAutoProvision": "privacyIDEA users are now auto-created on first enrolment when using privacyIDEA's own internal resolver",
       "playerDetailAccessHidden": "Non-admin users no longer see a device's IP, MAC address or Tailscale IP on its detail page",
@@ -1285,9 +1291,13 @@
     "duoWaitingForScan": "Waiting for you to finish enrolling in Duo Mobile…",
     "duoEnrollError": "Couldn't start Duo enrollment.",
     "piTitle": "privacyIDEA",
-    "piDescription": "Use a 6-digit code from a self-hosted privacyIDEA server as your second factor — needs privacyIDEA set up by an admin first.",
+    "piDescription": "Use a 6-digit code, or a push approval from the privacyIDEA Authenticator app, from a self-hosted privacyIDEA server — needs privacyIDEA set up by an admin first.",
     "piEnableButton": "Enable privacyIDEA",
-    "piEnrollError": "Couldn't start privacyIDEA enrollment."
+    "piEnrollError": "Couldn't start privacyIDEA enrollment.",
+    "piTypeTotp": "6-digit code",
+    "piTypePush": "Push approval",
+    "piScanQrHintPush": "Scan this QR code with the privacyIDEA Authenticator app to finish enrolling.",
+    "piWaitingForApp": "Waiting for you to finish enrolling in the privacyIDEA Authenticator app…"
   },
   "account": {
     "title": "My Profile",

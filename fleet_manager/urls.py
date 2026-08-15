@@ -57,7 +57,7 @@ user_router.register('users', UserViewSet)
 @permission_classes([AllowAny])
 def auth_login(request):
     from history.logging import log_action
-    from mfa.providers import enrolled_methods
+    from mfa.providers import enrolled_methods, push_methods
 
     data = request.data
     user = authenticate(
@@ -100,6 +100,7 @@ def auth_login(request):
                 'challenge_id': challenge_id,
                 'method': method,
                 'available_methods': available_methods,
+                'push_methods': push_methods(user),
             })
         login(request, user)
         log_action(request, 'login', 'session', target_name=user.username)
@@ -262,6 +263,62 @@ def auth_duo_verify(request):
     return Response({'detail': 'denied', 'status_msg': result.get('status_msg', '')}, status=401)
 
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(key='post:challenge_id', rate='5/5m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_privacyidea_push_verify(request):
+    """Companion to auth_duo_verify for a privacyIDEA push enrolment —
+    same shape (one blocking call, retry-on-timeout), but implemented
+    as our own poll loop underneath since privacyIDEA's /validate/check
+    returns immediately with a transaction_id rather than blocking on
+    its own infrastructure like Duo's /auth does — see
+    mfa/privacyidea.py::trigger_and_wait_push."""
+    from django.contrib.auth.models import User
+    from django.core.cache import cache
+    from django.utils import timezone
+
+    from history.logging import log_action
+    from mfa import privacyidea
+    from mfa.models import PrivacyIDEAEnrollment
+
+    challenge_id = request.data.get('challenge_id', '')
+    cache_key = f'mfa_challenge:{challenge_id}'
+    entry = cache.get(cache_key)
+    if not entry:
+        return Response({'detail': 'Challenge expired or invalid — please log in again.'}, status=400)
+
+    enrollment = PrivacyIDEAEnrollment.objects.filter(
+        user_id=entry['user_id'], confirmed=True, token_type='push',
+    ).first()
+    if not enrollment:
+        cache.delete(cache_key)
+        return Response({'detail': 'privacyIDEA push is not set up for this account.'}, status=400)
+
+    try:
+        result = privacyidea.trigger_and_wait_push(enrollment.user.username)
+    except privacyidea.PrivacyIDEAError as exc:
+        logger.warning('privacyIDEA push verify failed: %s', exc)
+        return Response({'detail': "Couldn't reach privacyIDEA — try again."}, status=502)
+
+    if result.get('result') == 'allow':
+        cache.delete(cache_key)
+        user = User.objects.get(pk=entry['user_id'])
+        login(request, user)
+        enrollment.last_used_at = timezone.now()
+        enrollment.save(update_fields=['last_used_at'])
+        log_action(request, 'login', 'session', target_name=user.username, details={'mfa': 'privacyidea-push'})
+        return Response({'success': True, 'username': user.username})
+
+    if result.get('result') == 'timeout':
+        log_action(request, 'login_failed', 'session', details={'mfa': 'privacyidea-push', 'status': 'timeout'})
+        return Response({'detail': 'timeout'}, status=401)
+
+    cache.delete(cache_key)
+    log_action(request, 'login_failed', 'session', details={'mfa': 'privacyidea-push', 'status': 'denied'})
+    return Response({'detail': 'denied'}, status=401)
+
+
 @ratelimit(key='ip', rate='20/m', method='POST', block=True)
 @ratelimit(key='post:player_id', rate='10/m', method='POST', block=True)
 @api_view(['POST'])
@@ -408,6 +465,7 @@ urlpatterns = [
     path('api/auth/mfa/verify/', auth_mfa_verify),
     path('api/auth/mfa/duo-verify/', auth_duo_verify),
     path('api/auth/mfa/privacyidea-verify/', auth_privacyidea_verify),
+    path('api/auth/mfa/privacyidea-push-verify/', auth_privacyidea_push_verify),
     path('api/auth/device-login/', auth_device_login),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),

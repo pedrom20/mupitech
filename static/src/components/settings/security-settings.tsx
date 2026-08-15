@@ -35,11 +35,14 @@ const SecuritySettings: React.FC = () => {
 
   const [piConfigured, setPiConfigured] = useState(false)
   const [piPhase, setPiPhase] = useState<PIPhase>('loading')
+  const [piTokenType, setPiTokenType] = useState<'totp' | 'push'>('totp')
+  const [piEnabledTokenType, setPiEnabledTokenType] = useState<'totp' | 'push' | null>(null)
   const [piOtpauthUri, setPiOtpauthUri] = useState('')
   const [piQrPng, setPiQrPng] = useState('')
   const [piCode, setPiCode] = useState('')
   const [piPassword, setPiPassword] = useState('')
   const [piBusy, setPiBusy] = useState(false)
+  const piPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const loadStatus = () => {
     mfa.status().then((res) => {
@@ -62,14 +65,19 @@ const SecuritySettings: React.FC = () => {
     privacyidea.status().then((res) => {
       setPiConfigured(res.configured)
       setPiPhase(res.enabled ? 'enabled' : 'disabled')
+      setPiEnabledTokenType(res.token_type)
     }).catch(() => setPiConfigured(false))
+  }
+
+  const stopPIPolling = () => {
+    if (piPollRef.current) { clearInterval(piPollRef.current); piPollRef.current = null }
   }
 
   useEffect(() => {
     loadStatus()
     loadDuoStatus()
     loadPIStatus()
-    return () => stopDuoPolling()
+    return () => { stopDuoPolling(); stopPIPolling() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -202,13 +210,28 @@ const SecuritySettings: React.FC = () => {
     }).finally(() => setDuoBusy(false))
   }
 
+  const pollPIPushConfirm = () => {
+    privacyidea.confirm().then((res) => {
+      if ('success' in res) {
+        stopPIPolling()
+        showToast('success', t('security.enabledSuccess'))
+        loadPIStatus()
+      }
+    }).catch(() => {
+      // Transient errors (network blip) just get retried on the next tick.
+    })
+  }
+
   const handlePIEnroll = () => {
     setPiBusy(true)
-    privacyidea.enroll().then((res) => {
+    privacyidea.enroll(piTokenType).then((res) => {
       setPiOtpauthUri(res.otpauth_uri)
       setPiQrPng(res.qr_png_base64)
       setPiCode('')
       setPiPhase('enrolling')
+      if (piTokenType === 'push') {
+        piPollRef.current = setInterval(pollPIPushConfirm, DUO_POLL_INTERVAL_MS)
+      }
     }).catch((error) => {
       Swal.fire({
         icon: 'error',
@@ -240,6 +263,7 @@ const SecuritySettings: React.FC = () => {
   }
 
   const handlePICancelEnroll = () => {
+    stopPIPolling()
     setPiOtpauthUri('')
     setPiQrPng('')
     setPiCode('')
@@ -480,6 +504,34 @@ const SecuritySettings: React.FC = () => {
               {piPhase === 'disabled' && (
                 <>
                   <span className="badge bg-secondary mb-3">{t('security.statusDisabled')}</span>
+                  <div className="mb-3 d-flex gap-3">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="pi-token-type"
+                        id="pi-token-totp"
+                        checked={piTokenType === 'totp'}
+                        onChange={() => setPiTokenType('totp')}
+                      />
+                      <label className="form-check-label" htmlFor="pi-token-totp" style={{ fontSize: '0.85rem' }}>
+                        {t('security.piTypeTotp')}
+                      </label>
+                    </div>
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="pi-token-type"
+                        id="pi-token-push"
+                        checked={piTokenType === 'push'}
+                        onChange={() => setPiTokenType('push')}
+                      />
+                      <label className="form-check-label" htmlFor="pi-token-push" style={{ fontSize: '0.85rem' }}>
+                        {t('security.piTypePush')}
+                      </label>
+                    </div>
+                  </div>
                   <div>
                     <button
                       type="button"
@@ -499,6 +551,7 @@ const SecuritySettings: React.FC = () => {
                   <span className="badge bg-success mb-3">
                     <FaCheckCircle className="me-1" />
                     {t('security.statusEnabled')}
+                    {piEnabledTokenType && ` — ${t(piEnabledTokenType === 'push' ? 'security.piTypePush' : 'security.piTypeTotp')}`}
                   </span>
                   <form onSubmit={handlePIDisable} className="d-flex flex-wrap gap-2 align-items-end">
                     <div>
@@ -520,7 +573,28 @@ const SecuritySettings: React.FC = () => {
                 </>
               )}
 
-              {piPhase === 'enrolling' && (
+              {piPhase === 'enrolling' && piTokenType === 'push' && (
+                <div>
+                  <p className="form-text mb-2" style={{ fontSize: '0.8rem' }}>{t('security.piScanQrHintPush')}</p>
+                  {piQrPng && (
+                    <img
+                      src={`data:image/png;base64,${piQrPng}`}
+                      alt="QR code"
+                      style={{ width: 200, height: 200, imageRendering: 'pixelated' }}
+                      className="mb-3 border rounded p-2 bg-white"
+                    />
+                  )}
+                  <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    {t('security.piWaitingForApp')}
+                  </p>
+                  <button type="button" className="fm-btn-outline btn-sm" onClick={handlePICancelEnroll}>
+                    {t('security.cancelButton')}
+                  </button>
+                </div>
+              )}
+
+              {piPhase === 'enrolling' && piTokenType === 'totp' && (
                 <div>
                   <p className="form-text mb-2" style={{ fontSize: '0.8rem' }}>{t('security.scanQrHint')}</p>
                   {piQrPng && (

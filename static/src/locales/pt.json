@@ -490,16 +490,21 @@
       "methodName": {
         "totp": "um código de autenticação",
         "duo": "o push do Duo",
-        "privacyidea": "um código do privacyIDEA",
+        "privacyidea": "privacyIDEA",
         "authpoint": "o push do AuthPoint"
       }
     },
-    "duo": {
-      "title": "Verificação por push Duo",
-      "waiting": "Verifique o seu telemóvel — pedido de aprovação no Duo Mobile…",
+    "push": {
+      "title": "Verificação por push",
+      "waiting": "Verifique o seu telemóvel — pedido de aprovação no {{app}}…",
       "timeout": "O pedido expirou — sem resposta a tempo.",
       "denied": "O pedido foi recusado.",
-      "retry": "Enviar push novamente"
+      "retry": "Enviar push novamente",
+      "appName": {
+        "duo": "Duo Mobile",
+        "privacyidea": "privacyIDEA Authenticator",
+        "authpoint": "AuthPoint"
+      }
     }
   },
   "schedule": {
@@ -678,6 +683,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "privacyideaPushToken": "O privacyIDEA passa a suportar também aprovação por push (sem Firebase) como alternativa a digitar um código de 6 dígitos",
       "mfaProviderSettingsUI": "As credenciais dos providers MFA (Duo, privacyIDEA, AuthPoint) já podem ser definidas em Settings > MFA Providers, em vez de só por env vars no servidor",
       "privacyideaAutoProvision": "Os utilizadores do privacyIDEA são agora criados automaticamente no primeiro enrolamento, quando se usa o resolver interno do próprio privacyIDEA",
       "playerDetailAccessHidden": "Utilizadores non-admin deixam de ver o IP, MAC address e IP do Tailscale nos detalhes de um device",
@@ -1286,9 +1292,13 @@
     "duoWaitingForScan": "A aguardar que termine o registo na Duo Mobile…",
     "duoEnrollError": "Não foi possível iniciar o registo no Duo.",
     "piTitle": "privacyIDEA",
-    "piDescription": "Use um código de 6 dígitos de um servidor privacyIDEA self-hosted como segundo fator — precisa do privacyIDEA configurado primeiro por um admin.",
+    "piDescription": "Use um código de 6 dígitos, ou aprovação por push na app privacyIDEA Authenticator, de um servidor privacyIDEA self-hosted — precisa do privacyIDEA configurado primeiro por um admin.",
     "piEnableButton": "Ativar privacyIDEA",
-    "piEnrollError": "Não foi possível iniciar o registo no privacyIDEA."
+    "piEnrollError": "Não foi possível iniciar o registo no privacyIDEA.",
+    "piTypeTotp": "Código de 6 dígitos",
+    "piTypePush": "Aprovação por push",
+    "piScanQrHintPush": "Digitalize este código QR com a app privacyIDEA Authenticator para terminar o registo.",
+    "piWaitingForApp": "A aguardar que termine o registo na app privacyIDEA Authenticator…"
   },
   "account": {
     "title": "O Meu Perfil",
