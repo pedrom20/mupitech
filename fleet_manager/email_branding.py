@@ -15,18 +15,23 @@ import mimetypes
 from html import escape
 from pathlib import Path
 
-_ICON_PATH = Path(__file__).resolve().parent.parent / 'static' / 'img' / 'icon-192.png'
+_FAVICON_PATH = Path(__file__).resolve().parent.parent / 'static' / 'img' / 'favicon.svg'
 
 BRAND_NAVY = '#04182B'
 BRAND_YELLOW = '#FFE72D'
 
 
 def _mupitech_logo_data_uri():
+    # favicon.svg (not icon-192.png, the PWA install icon) — confirmed
+    # correct MupiTech mark by reading its own markup directly rather
+    # than eyeballing a raster image; the PWA icon set's actual
+    # provenance is unclear and an operator reported it rendering as
+    # what looked like a leftover Anthias mark in a real test email.
     try:
-        data = _ICON_PATH.read_bytes()
+        data = _FAVICON_PATH.read_bytes()
     except OSError:
         return ''
-    return f'data:image/png;base64,{base64.b64encode(data).decode()}'
+    return f'data:image/svg+xml;base64,{base64.b64encode(data).decode()}'
 
 
 def _partner_logo_data_uri():
