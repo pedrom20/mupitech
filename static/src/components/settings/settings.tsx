@@ -12,6 +12,7 @@ import BrandingSettings from './branding-settings'
 import PartnerLogoSettings from './partner-logo-settings'
 import AlertSettings from './alert-settings'
 import RegistrySettings from './registry-settings'
+import MFAProviderSettings from './mfa-provider-settings'
 
 const UPDATE_POLL_INTERVAL = 5000 // 5s
 const UPDATE_TIMEOUT = 120000 // 120s
@@ -221,6 +222,7 @@ const Settings: React.FC = () => {
           { id: 'tailscale', label: t('tailscale.title'), show: isSuperAdminRole(role) },
           { id: 'alerts', label: t('alerts.title'), show: isSuperAdminRole(role) },
           { id: 'registry', label: t('registryMirror.title'), show: isSuperAdminRole(role) },
+          { id: 'mfaProviders', label: t('mfaProviders.title'), show: isSuperAdminRole(role) },
           { id: 'branding', label: t('branding.title'), show: isAdminRole(role) },
           { id: 'users', label: t('users.title'), show: isAdminRole(role) },
           { id: 'audit', label: t('audit.title'), show: isAdminRole(role) },
@@ -585,6 +587,10 @@ const Settings: React.FC = () => {
 
         {activeSettingsTab === 'registry' && isSuperAdminRole(role) && (
           <RegistrySettings />
+        )}
+
+        {activeSettingsTab === 'mfaProviders' && isSuperAdminRole(role) && (
+          <MFAProviderSettings />
         )}
 
         {activeSettingsTab === 'branding' && isAdminRole(role) && (

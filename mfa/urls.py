@@ -15,4 +15,6 @@ urlpatterns = [
     path('mfa/privacyidea/enroll/', views.privacyidea_enroll),
     path('mfa/privacyidea/confirm/', views.privacyidea_confirm),
     path('mfa/privacyidea/disable/', views.privacyidea_disable),
+    path('mfa/provider-config/', views.provider_config_status),
+    path('mfa/provider-config/<str:provider>/', views.provider_config_save),
 ]

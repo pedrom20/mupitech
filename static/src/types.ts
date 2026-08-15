@@ -252,6 +252,36 @@ export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin'
 // against it once that lands.
 export type MFAMethod = 'totp' | 'duo' | 'privacyidea' | 'authpoint'
 
+// A non-secret field returns its current value (DB override or env
+// var fallback); a secret field only reveals whether one is set, see
+// mfa/provider_config.py::status_for_ui().
+export interface DuoProviderConfig {
+  configured: boolean
+  ikey: string
+  skey: { set: boolean }
+  host: string
+}
+
+export interface PrivacyIDEAProviderConfig {
+  configured: boolean
+  url: string
+  admin_user: string
+  admin_password: { set: boolean }
+  realm: string
+}
+
+export interface AuthPointProviderConfig {
+  configured: boolean
+  client_id: string
+  client_secret: { set: boolean }
+}
+
+export interface MFAProviderConfigStatus {
+  duo: DuoProviderConfig
+  privacyidea: PrivacyIDEAProviderConfig
+  authpoint: AuthPointProviderConfig
+}
+
 export interface UserScope {
   location_ids: string[]
   group_ids: string[]

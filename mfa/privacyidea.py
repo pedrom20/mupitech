@@ -24,15 +24,17 @@ running) with:
     valid for /token/init's `user` parameter).
 
 Configured via PRIVACYIDEA_URL / PRIVACYIDEA_ADMIN_USER /
-PRIVACYIDEA_ADMIN_PASSWORD / PRIVACYIDEA_REALM env vars — see
-.env.example. All calls raise PrivacyIDEAError on any failure
-(network, bad credentials, unexpected response shape); callers catch
-that the same way mfa/duo.py callers catch its exceptions.
+PRIVACYIDEA_ADMIN_PASSWORD / PRIVACYIDEA_REALM env vars (see
+.env.example) or entered by an admin from the Settings UI
+(mfa/provider_config.py merges the two, DB value wins per-field). All
+calls raise PrivacyIDEAError on any failure (network, bad credentials,
+unexpected response shape); callers catch that the same way
+mfa/duo.py callers catch its exceptions.
 """
 
 import logging
 
-from django.conf import settings
+from . import provider_config
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +47,7 @@ class PrivacyIDEAError(Exception):
 
 
 def privacyidea_configured():
-    return bool(
-        settings.PRIVACYIDEA_URL
-        and settings.PRIVACYIDEA_ADMIN_USER
-        and settings.PRIVACYIDEA_ADMIN_PASSWORD
-        and settings.PRIVACYIDEA_REALM
-    )
+    return provider_config.is_configured('privacyidea')
 
 
 def _require_configured():
@@ -65,12 +62,13 @@ def _admin_token():
     for never having to reason about a stale/expired cached token."""
     import requests
 
+    config = provider_config.get_config('privacyidea')
     try:
         resp = requests.post(
-            f'{settings.PRIVACYIDEA_URL.rstrip("/")}/auth',
+            f'{config["url"].rstrip("/")}/auth',
             data={
-                'username': settings.PRIVACYIDEA_ADMIN_USER,
-                'password': settings.PRIVACYIDEA_ADMIN_PASSWORD,
+                'username': config['admin_user'],
+                'password': config['admin_password'],
             },
             timeout=_REQUEST_TIMEOUT_S,
         )
@@ -88,16 +86,17 @@ def start_enrollment(username):
     import requests
 
     _require_configured()
+    config = provider_config.get_config('privacyidea')
     token = _admin_token()
     try:
         resp = requests.post(
-            f'{settings.PRIVACYIDEA_URL.rstrip("/")}/token/init',
+            f'{config["url"].rstrip("/")}/token/init',
             headers={'Authorization': token},
             data={
                 'type': 'totp',
                 'genkey': '1',
                 'user': username,
-                'realm': settings.PRIVACYIDEA_REALM,
+                'realm': config['realm'],
             },
             timeout=_REQUEST_TIMEOUT_S,
         )
@@ -124,12 +123,13 @@ def verify(username, otp):
     import requests
 
     _require_configured()
+    config = provider_config.get_config('privacyidea')
     try:
         resp = requests.post(
-            f'{settings.PRIVACYIDEA_URL.rstrip("/")}/validate/check',
+            f'{config["url"].rstrip("/")}/validate/check',
             data={
                 'user': username,
-                'realm': settings.PRIVACYIDEA_REALM,
+                'realm': config['realm'],
                 'pass': otp,
             },
             timeout=_REQUEST_TIMEOUT_S,
@@ -148,10 +148,11 @@ def delete_token(serial):
     import requests
 
     _require_configured()
+    config = provider_config.get_config('privacyidea')
     token = _admin_token()
     try:
         resp = requests.delete(
-            f'{settings.PRIVACYIDEA_URL.rstrip("/")}/token/{serial}',
+            f'{config["url"].rstrip("/")}/token/{serial}',
             headers={'Authorization': token},
             timeout=_REQUEST_TIMEOUT_S,
         )

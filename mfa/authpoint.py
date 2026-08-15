@@ -29,8 +29,13 @@ integration behind it. What's actually needed to build one:
      ones (authpoint_status/enroll/confirm/disable, auth_authpoint_verify)
      once the above exists — same shape, not started here.
 
-None of this is wired up — authpoint_configured() below always returns
-False, deliberately, until an implementation actually exists behind it.
+The Settings UI already has a place for an admin to enter the client
+id/secret from point 1 above (mfa/provider_config.py's 'authpoint'
+entry, saved via mfa/views.py::provider_config_save) — entering them
+does NOT make this provider usable, only saves the values for whenever
+points 2-4 get built; authpoint_configured() ignores them and always
+returns False on purpose, so the login page never offers an AuthPoint
+option that would silently fail.
 """
 
 

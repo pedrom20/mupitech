@@ -6,10 +6,12 @@ import pyotp
 import qrcode
 from django.utils import timezone
 from qrcode.image.pil import PilImage
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from . import duo, privacyidea
+from fleet_manager.permissions import IsAdmin
+
+from . import duo, privacyidea, provider_config
 from .models import DuoEnrollment, PrivacyIDEAEnrollment, TOTPDevice
 
 logger = logging.getLogger(__name__)
@@ -244,6 +246,33 @@ def privacyidea_confirm(request):
     _clear_force_mfa_enroll(request.user)
     log_action(request, 'privacyidea_enable', 'session', target_name=request.user.username)
     return Response({'success': True})
+
+
+@api_view(['GET'])
+@permission_classes([IsAdmin])
+def provider_config_status(request):
+    """Admin-only: current merged (DB override + env var fallback)
+    config for every MFA provider that supports Settings-managed
+    credentials — what the Settings UI's "MFA Providers" panel reads
+    to render each card. Secret fields never come back as plaintext,
+    see provider_config.status_for_ui()."""
+    return Response({
+        provider: provider_config.status_for_ui(provider)
+        for provider in provider_config.FIELDS
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def provider_config_save(request, provider):
+    from history.logging import log_action
+
+    if provider not in provider_config.FIELDS:
+        return Response({'error': 'Unknown provider.'}, status=404)
+
+    provider_config.save_config(provider, request.data, updated_by=request.user)
+    log_action(request, 'mfa_provider_config_save', 'session', target_name=provider)
+    return Response(provider_config.status_for_ui(provider))
 
 
 @api_view(['POST'])

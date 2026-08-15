@@ -7,12 +7,14 @@ user maps to.
 
 Requires a free Duo account (covers up to 10 users) with an "Auth API"
 application created in the Duo Admin Panel, and its three credentials
-set as DUO_IKEY/DUO_SKEY/DUO_HOST env vars — see .env.example.
+either set as DUO_IKEY/DUO_SKEY/DUO_HOST env vars (see .env.example)
+or entered by an admin from the Settings UI (mfa/provider_config.py
+merges the two, DB value wins per-field).
 """
 
 import logging
 
-from django.conf import settings
+from . import provider_config
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +23,19 @@ PUSH_DEVICE = 'auto'
 
 
 class DuoNotConfiguredError(Exception):
-    """Raised when DUO_IKEY/DUO_SKEY/DUO_HOST aren't set."""
+    """Raised when Duo's ikey/skey/host aren't set (env var or Settings UI)."""
 
 
 def duo_configured():
-    return bool(settings.DUO_IKEY and settings.DUO_SKEY and settings.DUO_HOST)
+    return provider_config.is_configured('duo')
 
 
 def _client():
     if not duo_configured():
         raise DuoNotConfiguredError('Duo is not configured on this Fleet Manager instance.')
     import duo_client
-    return duo_client.Auth(ikey=settings.DUO_IKEY, skey=settings.DUO_SKEY, host=settings.DUO_HOST)
+    config = provider_config.get_config('duo')
+    return duo_client.Auth(ikey=config['ikey'], skey=config['skey'], host=config['host'])
 
 
 def start_enrollment(duo_username):

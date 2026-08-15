@@ -67,6 +67,33 @@ class DuoEnrollment(models.Model):
         return f'Duo enrollment for {self.user} ({"confirmed" if self.confirmed else "pending"})'
 
 
+class MFAProviderConfig(models.Model):
+    """Admin-editable credentials for an external MFA provider (Duo,
+    privacyIDEA, AuthPoint) — lets an admin set these from the Settings
+    UI instead of only via env vars + a redeploy. One row per provider
+    key; see mfa/provider_config.py for the merge logic (a field set
+    here overrides the matching env var; an unset field here still
+    falls back to its env var, so existing env-var-only deployments
+    keep working unchanged). Encrypted the same way
+    TOTPDevice.secret_encrypted is (mfa/crypto.py) — config_encrypted
+    holds a JSON blob of the provider's fields, not per-field columns,
+    since each provider needs a different shape.
+    """
+
+    provider = models.CharField(max_length=32, unique=True)
+    config_encrypted = models.TextField(blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
+    def __str__(self):
+        return f'MFA provider config: {self.provider}'
+
+
 class PrivacyIDEAEnrollment(models.Model):
     """A user's privacyIDEA TOTP second factor — same shape as
     TOTPDevice above, but the secret lives on the privacyIDEA server

@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -992,6 +992,16 @@ export const privacyidea = {
 
   disable(password: string): Promise<{ success: boolean }> {
     return apiRequest('POST', '/mfa/privacyidea/disable/', { password })
+  },
+}
+
+export const mfaProviders = {
+  status(): Promise<MFAProviderConfigStatus> {
+    return apiRequest('GET', '/mfa/provider-config/')
+  },
+
+  save(provider: 'duo' | 'privacyidea' | 'authpoint', fields: Record<string, string>): Promise<Record<string, unknown>> {
+    return apiRequest('POST', `/mfa/provider-config/${provider}/`, fields)
   },
 }
 

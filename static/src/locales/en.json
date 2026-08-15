@@ -995,6 +995,16 @@
     "status_done": "Done",
     "status_failed": "Failed"
   },
+  "mfaProviders": {
+    "title": "MFA Providers",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "comingSoon": "Coming soon",
+    "leaveBlankToKeep": "Leave blank to keep the current value.",
+    "duoDescription": "Push-notification 2FA via a Duo Security account. Credentials from an \"Auth API\" application created in the Duo Admin Panel — env vars still work if set, values entered here take priority.",
+    "privacyideaDescription": "TOTP 2FA via a self-hosted privacyIDEA server. Needs an admin account and a realm created on that server beforehand — env vars still work if set, values entered here take priority.",
+    "authpointDescription": "WatchGuard AuthPoint push 2FA — credentials can be saved here for later, but this provider isn't wired up to a real integration yet, so it won't appear as a login option even once filled in."
+  },
   "brandingLibrary": {
     "titleLogo": "Choose a logo",
     "titleStandby": "Choose a standby image",
