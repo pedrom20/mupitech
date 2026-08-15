@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaMobileAlt, FaServer, FaShieldAlt, FaSave, FaCheckCircle, FaTimesCircle } from 'react-icons/fa'
+import { FaSave, FaCheckCircle, FaTimesCircle } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { mfaProviders } from '@/services/api'
 import { showToast } from '@/utils/toast'
+import { MFA_METHOD_ICON } from '@/utils/mfaIcons'
 import type { MFAProviderConfigStatus } from '@/types'
+
+const DuoIcon = MFA_METHOD_ICON.duo
+const PrivacyIDEAIcon = MFA_METHOD_ICON.privacyidea
+const AuthPointIcon = MFA_METHOD_ICON.authpoint
 
 const SECRET_PLACEHOLDER_SET = '••••••••'
 const SECRET_PLACEHOLDER_UNSET = ''
@@ -96,7 +101,7 @@ const MFAProviderSettings: React.FC = () => {
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2 d-flex align-items-center justify-content-between">
             <h5 className="card-title mb-0">
-              <FaMobileAlt className="me-2" />
+              <DuoIcon className="me-2" />
               Duo Security
             </h5>
             {status.duo.configured ? (
@@ -141,7 +146,7 @@ const MFAProviderSettings: React.FC = () => {
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2 d-flex align-items-center justify-content-between">
             <h5 className="card-title mb-0">
-              <FaServer className="me-2" />
+              <PrivacyIDEAIcon className="me-2" />
               privacyIDEA
             </h5>
             {status.privacyidea.configured ? (
@@ -195,7 +200,7 @@ const MFAProviderSettings: React.FC = () => {
         <div className="fm-card h-100">
           <div className="fm-card-header py-2 d-flex align-items-center justify-content-between">
             <h5 className="card-title mb-0">
-              <FaShieldAlt className="me-2" />
+              <AuthPointIcon className="me-2" />
               WatchGuard AuthPoint
             </h5>
             <span className="badge bg-secondary">{t('mfaProviders.comingSoon')}</span>

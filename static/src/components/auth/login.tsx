@@ -1,11 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { FaSignInAlt, FaArrowLeft, FaShieldAlt, FaMobileAlt } from 'react-icons/fa'
+import { FaSignInAlt, FaArrowLeft, FaShieldAlt } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { AuthContext } from '@/components/app'
 import { auth, ApiError } from '@/services/api'
 import CodeInput from '@/components/shared/code-input'
+import { MFA_METHOD_ICON } from '@/utils/mfaIcons'
 import type { MFAMethod } from '@/types'
 
 const Login: React.FC = () => {
@@ -176,10 +177,12 @@ const Login: React.FC = () => {
                 {loading ? t('common.loading') : t('auth.login')}
               </button>
             </form>
-          ) : method && pushMethods.includes(method) ? (
+          ) : method && pushMethods.includes(method) ? (() => {
+            const PushIcon = MFA_METHOD_ICON[method]
+            return (
             <div>
               <div className="text-center mb-4">
-                <FaMobileAlt size={28} className="mb-2" />
+                <PushIcon size={28} className="mb-2" />
                 <p className="mb-0 fw-semibold">{t('auth.push.title')}</p>
                 {pushStatus === 'pending' && (
                   <p className="form-text">
@@ -200,20 +203,24 @@ const Login: React.FC = () => {
                   className="fm-btn-primary w-100 mb-2"
                   onClick={() => challengeId && sendPush(challengeId, method)}
                 >
-                  <FaMobileAlt />
+                  <PushIcon />
                   {t('auth.push.retry')}
                 </button>
               )}
-              {otherMethods.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className="btn btn-link w-100 mb-2 text-decoration-none"
-                  onClick={() => switchMethod(m)}
-                >
-                  {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
-                </button>
-              ))}
+              {otherMethods.map((m) => {
+                const OtherIcon = MFA_METHOD_ICON[m]
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className="btn btn-link w-100 mb-2 text-decoration-none"
+                    onClick={() => switchMethod(m)}
+                  >
+                    <OtherIcon className="me-1" />
+                    {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                  </button>
+                )
+              })}
               <button
                 type="button"
                 className="fm-btn-outline w-100"
@@ -223,10 +230,13 @@ const Login: React.FC = () => {
                 {t('auth.mfa.back')}
               </button>
             </div>
-          ) : (
+            )
+          })() : (() => {
+            const CodeIcon = method ? MFA_METHOD_ICON[method] : FaShieldAlt
+            return (
             <form onSubmit={handleMfaSubmit}>
               <div className="text-center mb-3">
-                <FaShieldAlt size={28} className="mb-2" />
+                <CodeIcon size={28} className="mb-2" />
                 <p className="mb-0 fw-semibold">{t('auth.mfa.title')}</p>
                 <p className="form-text">{t('auth.mfa.description')}</p>
               </div>
@@ -239,20 +249,24 @@ const Login: React.FC = () => {
                 className="fm-btn-primary w-100 mb-2"
                 disabled={loading || code.length !== 6}
               >
-                <FaShieldAlt />
+                <CodeIcon />
                 {loading ? t('common.loading') : t('auth.mfa.verify')}
               </button>
-              {otherMethods.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className="btn btn-link w-100 mb-2 text-decoration-none"
-                  onClick={() => switchMethod(m)}
-                  disabled={loading}
-                >
-                  {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
-                </button>
-              ))}
+              {otherMethods.map((m) => {
+                const OtherIcon = MFA_METHOD_ICON[m]
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className="btn btn-link w-100 mb-2 text-decoration-none"
+                    onClick={() => switchMethod(m)}
+                    disabled={loading}
+                  >
+                    <OtherIcon className="me-1" />
+                    {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                  </button>
+                )
+              })}
               <button
                 type="button"
                 className="fm-btn-outline w-100"
@@ -263,7 +277,8 @@ const Login: React.FC = () => {
                 {t('auth.mfa.back')}
               </button>
             </form>
-          )}
+            )
+          })()}
         </div>
       </div>
     </div>
