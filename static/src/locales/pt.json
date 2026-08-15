@@ -683,6 +683,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "sessionCookieHttpFix": "Corrigido o login que parecia funcionar mas nunca ficava guardado em instalações sem HTTPS (o cookie de sessão estava sempre marcado como só-HTTPS)",
       "mfaRateLimitFix": "Corrigido o limite de tentativas do login por MFA, que contava todos os visitantes como o mesmo IP (o endereço real não estava a chegar à app através do proxy nginx)",
       "privacyideaPushLoginFix": "Corrigido o login por push do privacyIDEA, que não estava mesmo a enviar o pedido",
       "privacyideaPushToken": "O privacyIDEA passa a suportar também aprovação por push (sem Firebase) como alternativa a digitar um código de 6 dígitos",

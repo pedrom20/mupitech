@@ -295,11 +295,20 @@ BUILD_DATE = os.environ.get('BUILD_DATE', 'unknown')
 
 # ---------- Production security (when behind Cloudflare / reverse proxy) ----------
 if not DEBUG:
-    SESSION_COOKIE_SECURE = True
+    # Most deployments of this app are reached over plain HTTP on a LAN
+    # (nginx.conf itself never terminates TLS) — a *_COOKIE_SECURE=True
+    # cookie gets silently dropped by the browser on such a connection
+    # (it's only ever sent back over HTTPS), which breaks login/session
+    # persistence entirely despite the server-side login succeeding.
+    # Default off; set to true only for a deployment genuinely served
+    # over HTTPS end-to-end (e.g. the optional cloudflared tunnel
+    # profile in docker-compose.yml, or your own TLS-terminating proxy
+    # in front of nginx).
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() in ('true', '1', 'yes')
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_AGE = 28800  # 8 hours
-    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'false').lower() in ('true', '1', 'yes')
     CSRF_COOKIE_SAMESITE = 'Lax'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_CONTENT_TYPE_NOSNIFF = True
