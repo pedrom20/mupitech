@@ -683,6 +683,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "ssoTogglePatchFix": "Corrigido o ativar/desativar SSO de um device, que falhava com erro de validação",
+      "phonehomeAuthEnabledFix": "Corrigido o phone-home que falhava num device com login local ativado",
       "provisionWizardPlatform": "O wizard de \"Instalar Novo\" device pergunta agora a plataforma (Raspberry Pi 4/5 ou PC x86) antes de mostrar as instruções de preparação, em vez de assumir sempre Raspberry Pi",
       "mfaProviderIcons": "Ícone consistente por provider de MFA no login e nas configurações",
       "x86PhoneHomeFix": "Devices x86 que se auto-registam por phone-home são agora detetados corretamente em vez de ficarem \"unknown\"",

@@ -683,6 +683,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "ssoTogglePatchFix": "Fixed enabling/disabling device SSO failing with a validation error",
+      "phonehomeAuthEnabledFix": "Fixed phone-home heartbeat failing on a device with local login enabled",
       "provisionWizardPlatform": "\"Install New\" device wizard now asks which platform (Raspberry Pi 4/5 or x86 PC) before showing prep instructions, instead of assuming Raspberry Pi",
       "mfaProviderIcons": "Consistent icon per MFA provider across login and settings",
       "x86PhoneHomeFix": "x86 devices auto-registering via phone-home are now correctly detected instead of staying \"unknown\"",

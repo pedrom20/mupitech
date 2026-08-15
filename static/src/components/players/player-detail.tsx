@@ -731,7 +731,7 @@ const PlayerDetail: React.FC = () => {
     if (!id || !player) return
     const nextEnabled = !player.sso_enabled
     try {
-      await playersApi.update(id, { sso_enabled: nextEnabled })
+      await playersApi.partialUpdate(id, { sso_enabled: nextEnabled })
       setPlayer({ ...player, sso_enabled: nextEnabled })
       showToast('success', nextEnabled ? t('players.ssoEnabledToast') : t('players.ssoDisabledToast'))
     } catch (error) {

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.1.9.0'
+export const APP_VERSION = '1.1.9.1'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.1.9.1',
+    date: '2026-08-15',
+    changeKeys: [
+      'ssoTogglePatchFix',
+      'phonehomeAuthEnabledFix',
+    ],
+  },
   {
     version: '1.1.9.0',
     date: '2026-08-15',

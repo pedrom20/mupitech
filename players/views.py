@@ -1474,6 +1474,22 @@ cat > /usr/local/bin/anthias-phonehome.sh << 'SCRIPT'
 SERVER="{server}"
 NAME="$(hostname)"
 INFO=$(curl -sf http://localhost/api/v2/info 2>/dev/null || echo '{{}}')
+# /api/v2/info requires a login when the device has local auth enabled
+# (auth_backend set) — this unauthenticated local curl then gets a 302
+# to /login/ instead of a 4xx/5xx, which `curl -f` does NOT treat as a
+# failure (only >=400 is), so it exits 0 with an empty body instead of
+# falling through to the '{{}}' default above. Left unguarded, that
+# empty $INFO produces `"info":` with no value in the JSON built below
+# — invalid JSON, so the Fleet Manager's own /api/players/register/
+# call rejects the whole heartbeat with a parse error. System stats
+# just won't populate via phone-home on such a device (view them from
+# its own dashboard once logged in, or via the SSH-based checks
+# elsewhere) — that's an accepted gap, but the heartbeat itself must
+# not break because of it.
+case "$INFO" in
+  '{{'*) ;;
+  *) INFO='{{}}' ;;
+esac
 
 # Resolve the LAN-facing interface once (whichever owns the default
 # route) and derive both the reported URL's IP and the MAC from it —
