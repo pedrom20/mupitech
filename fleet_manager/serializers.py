@@ -214,6 +214,16 @@ class UpdateUserSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if not request or _user_role(request.user) != 'superadmin':
                 raise serializers.ValidationError("Only a superadmin can change another superadmin's role.")
+            # Covers both self-demotion and one superadmin demoting another —
+            # either way, dropping the last is_superuser=True account would
+            # lock everyone out of superadmin-only areas (e.g. Tailscale)
+            # with no one left able to promote a replacement.
+            if value != 'superadmin':
+                remaining = User.objects.filter(is_superuser=True).exclude(pk=self.instance.pk).count()
+                if remaining == 0:
+                    raise serializers.ValidationError(
+                        'Cannot demote the last superadmin — promote another user first.',
+                    )
         if self.instance and value != _user_role(self.instance):
             self._reject_self_privilege_edit('role')
         return value
