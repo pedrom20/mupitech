@@ -1238,12 +1238,37 @@ body {
   .fm-navbar {
     height: 65px;
 
+    // Tighter than the desktop 1.5rem — on a narrow phone that alone
+    // (with the brand/button sizing below) was still enough to push
+    // the d-lg-none hamburger button's right edge past the viewport
+    // edge, making the mobile nav menu unreachable. Verified against
+    // the actual compiled CSS at 375/414/450px, not just by inspection
+    // — this rule previously lived in a *different*, earlier block in
+    // this same file (inside .fm-navbar's own top-level ruleset) where
+    // a later-in-source, same-specificity rule silently won and
+    // dropped it; consolidated here into the one block that already
+    // owns every other mobile navbar override, so there's a single
+    // source of truth instead of two that can drift out of sync again.
+    > .container-fluid {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+
     .navbar-brand {
       margin-right: 0.5rem;
+      gap: 0.4rem;
 
       img {
-        height: 42px;
+        height: 34px;
       }
+    }
+
+    // Not scoped to .navbar-actions — that wrapper is d-none below lg,
+    // so it'd never match the actual mobile hamburger toggle (a direct
+    // .container-fluid child) or the mobile lang/user-menu buttons
+    // (their own d-lg-none row). Bare .btn-navbar catches all three.
+    .btn-navbar {
+      padding: 0.3rem 0.55rem;
     }
 
     .fm-version-badge {
