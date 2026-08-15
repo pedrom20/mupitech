@@ -982,6 +982,13 @@ export const users = {
     return apiRequest<User>('GET', '/users/me/')
   },
 
+  /** Self-service profile edit — name, email, and (admin/superadmin
+   * only) the offline-alert email opt-in. Role/scope aren't editable
+   * here on purpose; see fleet_manager/user_views.py::me. */
+  updateMe(data: { first_name?: string; last_name?: string; email?: string; receive_offline_alerts?: boolean }): Promise<User> {
+    return apiRequest<User>('PATCH', '/users/me/', data)
+  },
+
   create(data: {
     username: string; email?: string; password: string; role: string
     first_name?: string; last_name?: string

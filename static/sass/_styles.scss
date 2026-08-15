@@ -266,12 +266,18 @@ body {
 
   // Location / group pill under the device name on player-detail —
   // mirrors mupitech-player's own splash-page.html device-label chip
-  // (icon + name, "/"-separated) so the same identity summary reads the
-  // same way in both places.
+  // (icon + name, "/"-separated, pill background) so the same identity
+  // summary reads the same way — and looks like the same kind of
+  // element — in both places.
   .player-location-chip {
     color: $gray-600;
     font-size: $font-size-sm;
     font-weight: $font-weight-medium;
+    background: $gray-100;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-pill;
+    padding: 0.25rem 0.75rem;
+    width: fit-content;
 
     &__item {
       display: inline-flex;

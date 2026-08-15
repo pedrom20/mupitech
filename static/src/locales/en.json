@@ -1262,7 +1262,10 @@
   },
   "account": {
     "title": "My Profile",
-    "subtitle": "Manage your own account security settings."
+    "subtitle": "Manage your own profile and account security settings.",
+    "profileTitle": "Profile details",
+    "profileSaved": "Profile updated.",
+    "profileSaveError": "Couldn't update your profile."
   },
   "onboarding": {
     "title": "Welcome to MupiTech Fleet Manager",

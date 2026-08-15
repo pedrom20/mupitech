@@ -1263,7 +1263,10 @@
   },
   "account": {
     "title": "O Meu Perfil",
-    "subtitle": "Faça a gestão das definições de segurança da sua conta."
+    "subtitle": "Faça a gestão do seu perfil e das definições de segurança da sua conta.",
+    "profileTitle": "Dados do perfil",
+    "profileSaved": "Perfil atualizado.",
+    "profileSaveError": "Não foi possível atualizar o seu perfil."
   },
   "onboarding": {
     "title": "Bem-vindo ao MupiTech Fleet Manager",

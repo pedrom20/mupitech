@@ -82,11 +82,33 @@ class UserViewSet(viewsets.ModelViewSet):
         log_action(request, 'mfa_reset', 'user', target_id=user.id, target_name=user.username)
         return Response({'success': True, 'had_mfa': bool(deleted)})
 
-    @action(detail=False, methods=['get'], url_path='me', permission_classes=[])
+    @action(detail=False, methods=['get', 'patch'], url_path='me', permission_classes=[])
     def me(self, request):
-        """Return current user info + role. Available to any authenticated user."""
+        """Return (GET) or self-edit (PATCH) the current user's own basic
+        profile — name, email, and (admin/superadmin only) their offline-
+        alert email opt-in. Deliberately excludes role/scope: those stay
+        admin-only via the rest of this viewset, so a user can never
+        self-escalate through this endpoint."""
         if not request.user.is_authenticated:
             return Response({'authenticated': False}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if request.method == 'PATCH':
+            from access.models import UserAccessScope
+            from history.logging import log_action
+
+            user = request.user
+            for field in ('first_name', 'last_name', 'email'):
+                if field in request.data:
+                    setattr(user, field, request.data[field])
+            user.save(update_fields=['first_name', 'last_name', 'email'])
+
+            if 'receive_offline_alerts' in request.data and _user_role(user) in ('admin', 'superadmin'):
+                scope, _ = UserAccessScope.objects.get_or_create(user=user)
+                scope.receive_offline_alerts = bool(request.data['receive_offline_alerts'])
+                scope.save(update_fields=['receive_offline_alerts'])
+
+            log_action(request, 'update', 'user', target_id=user.id, target_name=user.username)
+
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
