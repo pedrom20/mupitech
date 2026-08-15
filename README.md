@@ -191,6 +191,17 @@ docker compose build web
 docker compose up -d
 ```
 
+**Nota para deploys via Portainer (stack criada por upload/colar, não
+por git):** o `docker-compose.yml` que o Portainer usa é um ficheiro
+próprio no servidor (`.../compose/<N>/docker-compose.yml`), independente
+do repositório — não se atualiza sozinho quando o `docker-compose.yml`
+do repositório muda (ex.: uma nova variável de ambiente). Depois de um
+`git pull`, compara os dois (`diff`) e copia o do repositório para o
+servidor antes de correr `docker compose up -d`, senão as variáveis
+novas ficam silenciosamente por passar ao container. Isto não se aplica
+se o servidor correr `docker compose` diretamente a partir de um clone
+git (o caso do "Instalação rápida" acima) — aí basta `git pull`.
+
 ## Histórico de versões
 
 Ver o histórico completo na aplicação em **Definições > Changelog**, acessível a partir do rodapé.
