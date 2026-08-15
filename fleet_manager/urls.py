@@ -256,9 +256,16 @@ def auth_duo_verify(request):
         log_action(request, 'login_failed', 'session', details={'mfa': 'duo', 'status': 'timeout'})
         return Response({'detail': 'timeout', 'status_msg': result.get('status_msg', '')}, status=401)
 
-    # Explicit deny (or any other terminal state) — don't allow retrying
-    # the same challenge; force a fresh login.
-    cache.delete(cache_key)
+    # Explicit deny (or any other terminal state) — deliberately does
+    # NOT delete the shared challenge_id: a user with more than one
+    # method enrolled (e.g. Duo *and* privacyIDEA) needs it to survive
+    # so switchMethod() in login.tsx can still verify against it. This
+    # used to delete it here, which meant Duo denying/timing out first
+    # (it's the default/first-priority method) silently broke every
+    # other enrolled method for the rest of that login attempt — the
+    # challenge just looked "expired" no matter what the user tried
+    # next. The challenge's own 300s TTL (auth_login) and the
+    # post:challenge_id rate limit above are what actually bound this.
     log_action(request, 'login_failed', 'session', details={'mfa': 'duo', 'status': result.get('status')})
     return Response({'detail': 'denied', 'status_msg': result.get('status_msg', '')}, status=401)
 
@@ -314,7 +321,9 @@ def auth_privacyidea_push_verify(request):
         log_action(request, 'login_failed', 'session', details={'mfa': 'privacyidea-push', 'status': 'timeout'})
         return Response({'detail': 'timeout'}, status=401)
 
-    cache.delete(cache_key)
+    # Same reasoning as auth_duo_verify's deny branch above — don't
+    # delete the shared challenge on a deny, or switching to another
+    # enrolled method afterward breaks with a false "expired" error.
     log_action(request, 'login_failed', 'session', details={'mfa': 'privacyidea-push', 'status': 'denied'})
     return Response({'detail': 'denied'}, status=401)
 
