@@ -35,6 +35,13 @@ PRIVACYIDEA_URL = os.environ.get('PRIVACYIDEA_URL', '')
 PRIVACYIDEA_ADMIN_USER = os.environ.get('PRIVACYIDEA_ADMIN_USER', '')
 PRIVACYIDEA_ADMIN_PASSWORD = os.environ.get('PRIVACYIDEA_ADMIN_PASSWORD', '')
 PRIVACYIDEA_REALM = os.environ.get('PRIVACYIDEA_REALM', '')
+PRIVACYIDEA_RESOLVER = os.environ.get('PRIVACYIDEA_RESOLVER', '')
+# Most self-hosted privacyIDEA instances (see deploy/privacyidea/) run
+# behind a self-signed certificate — set to a falsy value to skip TLS
+# verification on the Fleet Manager -> privacyIDEA link. Defaults to
+# verifying, same as requests' own default; only turn this off for an
+# instance you control on a trusted network.
+PRIVACYIDEA_VERIFY_SSL = os.environ.get('PRIVACYIDEA_VERIFY_SSL', 'true').lower() not in ('false', '0', 'no')
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1' if not DEBUG else '*').split(',')
 

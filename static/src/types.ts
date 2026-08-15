@@ -268,6 +268,7 @@ export interface PrivacyIDEAProviderConfig {
   admin_user: string
   admin_password: { set: boolean }
   realm: string
+  resolver: string
 }
 
 export interface AuthPointProviderConfig {

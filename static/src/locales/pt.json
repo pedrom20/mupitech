@@ -678,6 +678,9 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "mfaProviderSettingsUI": "As credenciais dos providers MFA (Duo, privacyIDEA, AuthPoint) já podem ser definidas em Settings > MFA Providers, em vez de só por env vars no servidor",
+      "privacyideaAutoProvision": "Os utilizadores do privacyIDEA são agora criados automaticamente no primeiro enrolamento, quando se usa o resolver interno do próprio privacyIDEA",
+      "playerDetailAccessHidden": "Utilizadores non-admin deixam de ver o IP, MAC address e IP do Tailscale nos detalhes de um device",
       "privacyIdeaProvider": "Novo provider de MFA opcional: privacyIDEA — ativa um token TOTP num servidor privacyIDEA autoalojado via código QR, tal como a opção de autenticador incluída",
       "authpointProviderStub": "Base preparada para uma futura opção de MFA por push com WatchGuard AuthPoint (ainda sem ligação a uma conta AuthPoint real)",
       "ldapLoginPrep": "Base preparada para login via AD/LDAP — os admins podem apontar o Fleet Manager para um servidor de diretório por variáveis de ambiente; novos utilizadores LDAP começam como viewer até serem promovidos",
@@ -1003,6 +1006,7 @@
     "leaveBlankToKeep": "Deixa em branco para manter o valor atual.",
     "duoDescription": "2FA por push via uma conta Duo Security. Credenciais de uma aplicação \"Auth API\" criada no painel de admin do Duo — as env vars continuam a funcionar se estiverem definidas, mas os valores aqui têm prioridade.",
     "privacyideaDescription": "2FA por TOTP via um servidor privacyIDEA autoalojado. Precisa de uma conta admin e de um realm criados antes nesse servidor — as env vars continuam a funcionar se estiverem definidas, mas os valores aqui têm prioridade.",
+    "piResolverHint": "Só é preciso se for o resolver \"internal\" do próprio privacyIDEA (pi-manage resolver create_internal) — cada utilizador é criado lá automaticamente no primeiro enrolamento. Deixa em branco para um resolver LDAP/SQL externo que já tenha esses utilizadores.",
     "authpointDescription": "2FA por push do WatchGuard AuthPoint — podes guardar as credenciais aqui para mais tarde, mas este provider ainda não está ligado a uma integração real, por isso não aparece como opção de login mesmo depois de preenchido."
   },
   "brandingLibrary": {

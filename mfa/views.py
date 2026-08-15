@@ -208,7 +208,7 @@ def privacyidea_enroll(request):
         )
 
     try:
-        result = privacyidea.start_enrollment(request.user.username)
+        result = privacyidea.start_enrollment(request.user.username, request.user.email)
     except privacyidea.PrivacyIDEAError as exc:
         logger.warning('privacyIDEA enroll failed for %s: %s', request.user.username, exc)
         return Response({'error': "Couldn't reach privacyIDEA — try again shortly."}, status=502)

@@ -34,11 +34,23 @@ mfa/duo.py callers catch its exceptions.
 
 import logging
 
+from django.conf import settings
+
 from . import provider_config
 
 logger = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT_S = 15
+
+
+def _verify_kwarg():
+    """`verify=` value for every request below — see
+    settings.PRIVACYIDEA_VERIFY_SSL's own comment for why this is ever
+    off (self-signed certs on self-hosted instances)."""
+    if not settings.PRIVACYIDEA_VERIFY_SSL:
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    return settings.PRIVACYIDEA_VERIFY_SSL
 
 
 class PrivacyIDEAError(Exception):
@@ -71,6 +83,7 @@ def _admin_token():
                 'password': config['admin_password'],
             },
             timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
         )
         resp.raise_for_status()
         return resp.json()['result']['value']['token']
@@ -78,16 +91,59 @@ def _admin_token():
         raise PrivacyIDEAError(f'privacyIDEA admin authentication failed: {exc}') from exc
 
 
-def start_enrollment(username):
+def _ensure_user_exists(config, token, username, email=''):
+    """Create `username` in the configured resolver if it isn't there
+    yet — needed when that resolver is privacyIDEA's own "internal" one
+    (pi-manage resolver create_internal), which starts out empty and
+    has no notion of Fleet Manager's users until told about them.
+    Skipped entirely if no resolver is configured (an admin using an
+    external LDAP/SQL resolver that already has these users has no use
+    for this, and privacyIDEA's own POST /user 500s on a resolver that
+    isn't marked editable). A second POST /user for an already-existing
+    username 500s too — there's no dedicated "does this user exist"
+    endpoint response code to catch, so this checks via GET /user/
+    first rather than try/except-ing the POST."""
+    import requests
+
+    resolver = config.get('resolver')
+    if not resolver:
+        return
+    try:
+        resp = requests.get(
+            f'{config["url"].rstrip("/")}/user/',
+            headers={'Authorization': token},
+            params={'username': username, 'realm': config['realm']},
+            timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
+        )
+        resp.raise_for_status()
+        if resp.json()['result']['value']:
+            return  # already exists
+        resp = requests.post(
+            f'{config["url"].rstrip("/")}/user',
+            headers={'Authorization': token},
+            data={'user': username, 'resolver': resolver, 'email': email},
+            timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
+        )
+        resp.raise_for_status()
+    except Exception as exc:
+        raise PrivacyIDEAError(f'privacyIDEA user provisioning failed: {exc}') from exc
+
+
+def start_enrollment(username, email=''):
     """Ask privacyIDEA to generate a new TOTP token for `username` in
-    the configured realm. Returns {'serial': ..., 'otpauth_uri': ...} —
-    the caller (mfa/views.py::privacyidea_enroll) renders its own QR
-    from otpauth_uri via the same qrcode helper TOTP enrollment uses."""
+    the configured realm (auto-provisioning that user into the
+    configured resolver first, if needed — see _ensure_user_exists).
+    Returns {'serial': ..., 'otpauth_uri': ...} — the caller
+    (mfa/views.py::privacyidea_enroll) renders its own QR from
+    otpauth_uri via the same qrcode helper TOTP enrollment uses."""
     import requests
 
     _require_configured()
     config = provider_config.get_config('privacyidea')
     token = _admin_token()
+    _ensure_user_exists(config, token, username, email)
     try:
         resp = requests.post(
             f'{config["url"].rstrip("/")}/token/init',
@@ -99,6 +155,7 @@ def start_enrollment(username):
                 'realm': config['realm'],
             },
             timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
         )
         resp.raise_for_status()
         data = resp.json()
@@ -133,6 +190,7 @@ def verify(username, otp):
                 'pass': otp,
             },
             timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
         )
         resp.raise_for_status()
         return bool(resp.json()['result']['value'])
@@ -155,6 +213,7 @@ def delete_token(serial):
             f'{config["url"].rstrip("/")}/token/{serial}',
             headers={'Authorization': token},
             timeout=_REQUEST_TIMEOUT_S,
+            verify=_verify_kwarg(),
         )
         resp.raise_for_status()
     except Exception as exc:

@@ -34,6 +34,7 @@ FIELDS = {
         ('admin_user', False, 'PRIVACYIDEA_ADMIN_USER'),
         ('admin_password', True, 'PRIVACYIDEA_ADMIN_PASSWORD'),
         ('realm', False, 'PRIVACYIDEA_REALM'),
+        ('resolver', False, 'PRIVACYIDEA_RESOLVER'),
     ],
     'authpoint': [
         ('client_id', False, None),

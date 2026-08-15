@@ -678,6 +678,9 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "mfaProviderSettingsUI": "MFA provider credentials (Duo, privacyIDEA, AuthPoint) can now be set from Settings > MFA Providers instead of only via server env vars",
+      "privacyideaAutoProvision": "privacyIDEA users are now auto-created on first enrolment when using privacyIDEA's own internal resolver",
+      "playerDetailAccessHidden": "Non-admin users no longer see a device's IP, MAC address or Tailscale IP on its detail page",
       "privacyIdeaProvider": "New optional MFA provider: privacyIDEA — enroll a TOTP token against a self-hosted privacyIDEA server via QR code, same as the built-in authenticator option",
       "authpointProviderStub": "Groundwork laid for a future WatchGuard AuthPoint push-MFA option (not yet connected to a live AuthPoint account)",
       "ldapLoginPrep": "Groundwork laid for AD/LDAP login — admins can point the Fleet Manager at a directory server via environment variables; new LDAP users start as viewers until promoted",
@@ -1003,6 +1006,7 @@
     "leaveBlankToKeep": "Leave blank to keep the current value.",
     "duoDescription": "Push-notification 2FA via a Duo Security account. Credentials from an \"Auth API\" application created in the Duo Admin Panel — env vars still work if set, values entered here take priority.",
     "privacyideaDescription": "TOTP 2FA via a self-hosted privacyIDEA server. Needs an admin account and a realm created on that server beforehand — env vars still work if set, values entered here take priority.",
+    "piResolverHint": "Only needed if this is privacyIDEA's own \"internal\" resolver (pi-manage resolver create_internal) — each user then gets auto-created there on first enrolment. Leave blank for an external LDAP/SQL resolver that already has these users.",
     "authpointDescription": "WatchGuard AuthPoint push 2FA — credentials can be saved here for later, but this provider isn't wired up to a real integration yet, so it won't appear as a login option even once filled in."
   },
   "brandingLibrary": {

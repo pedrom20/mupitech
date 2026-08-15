@@ -23,6 +23,7 @@ const MFAProviderSettings: React.FC = () => {
   const [piAdminUser, setPiAdminUser] = useState('')
   const [piAdminPassword, setPiAdminPassword] = useState('')
   const [piRealm, setPiRealm] = useState('')
+  const [piResolver, setPiResolver] = useState('')
   const [piSaving, setPiSaving] = useState(false)
 
   const [apClientId, setApClientId] = useState('')
@@ -38,6 +39,7 @@ const MFAProviderSettings: React.FC = () => {
       setPiUrl(res.privacyidea.url)
       setPiAdminUser(res.privacyidea.admin_user)
       setPiRealm(res.privacyidea.realm)
+      setPiResolver(res.privacyidea.resolver)
       setApClientId(res.authpoint.client_id)
     }).catch(() => {}).finally(() => setLoading(false))
   }
@@ -58,7 +60,7 @@ const MFAProviderSettings: React.FC = () => {
   const handleSavePI = () => {
     setPiSaving(true)
     mfaProviders.save('privacyidea', {
-      url: piUrl, admin_user: piAdminUser, admin_password: piAdminPassword, realm: piRealm,
+      url: piUrl, admin_user: piAdminUser, admin_password: piAdminPassword, realm: piRealm, resolver: piResolver,
     }).then(() => {
       setPiAdminPassword('')
       showToast('success', t('common.success'))
@@ -171,9 +173,14 @@ const MFAProviderSettings: React.FC = () => {
                 <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('mfaProviders.leaveBlankToKeep')}</div>
               )}
             </div>
-            <div className="mb-3">
+            <div className="mb-2">
               <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>Realm</label>
               <input type="text" className="form-control form-control-sm" value={piRealm} onChange={(e) => setPiRealm(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>Resolver</label>
+              <input type="text" className="form-control form-control-sm" value={piResolver} onChange={(e) => setPiResolver(e.target.value)} />
+              <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('mfaProviders.piResolverHint')}</div>
             </div>
             <button className="fm-btn-primary btn-sm" onClick={handleSavePI} disabled={piSaving}>
               <FaSave />
