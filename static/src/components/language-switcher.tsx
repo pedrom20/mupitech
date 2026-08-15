@@ -40,7 +40,7 @@ const flags: Record<string, React.ReactNode> = {
   ),
 }
 
-const LanguageSwitcher: React.FC = () => {
+const LanguageSwitcher: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
   const { i18n, t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -62,6 +62,7 @@ const LanguageSwitcher: React.FC = () => {
     document.cookie = `django_language=${code};path=/;max-age=${365 * 24 * 60 * 60}`
     document.documentElement.lang = code
     setIsOpen(false)
+    onNavigate?.()
     pushLanguageToPlayers(code)
   }
 

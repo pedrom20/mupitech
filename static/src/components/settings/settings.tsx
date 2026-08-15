@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { FaCog, FaCopy, FaCheck, FaSave, FaSync, FaDownload, FaShieldAlt, FaEye, FaEyeSlash, FaUsers, FaHistory } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { pushLanguageToPlayers, system } from '@/services/api'
@@ -28,7 +28,12 @@ const Settings: React.FC = () => {
   const [language, setLanguage] = useState(i18n.language)
   const [serverUrl, setServerUrl] = useState(window.location.origin)
   const [copied, setCopied] = useState(false)
-  const [activeSettingsTab, setActiveSettingsTab] = useState('general')
+  // Synced to ?tab= (not plain useState) so a full page refresh — not
+  // just client-side navigation — keeps whichever tab was open instead
+  // of always snapping back to 'general'.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeSettingsTab = searchParams.get('tab') || 'general'
+  const setActiveSettingsTab = (tab: string) => setSearchParams({ tab }, { replace: true })
 
   // Update section state
   const [buildDate, setBuildDate] = useState('')

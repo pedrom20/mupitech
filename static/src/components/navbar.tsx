@@ -73,7 +73,7 @@ const FleetMenu: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
   )
 }
 
-const UserMenu: React.FC = () => {
+const UserMenu: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, clear } = useContext(AuthContext)
@@ -94,6 +94,7 @@ const UserMenu: React.FC = () => {
 
   const handleLogout = async () => {
     setIsOpen(false)
+    onNavigate?.()
     try {
       await authApi.logout()
     } catch {
@@ -134,7 +135,7 @@ const UserMenu: React.FC = () => {
             to="/account"
             className="d-flex align-items-center gap-2 w-100 border-0 bg-transparent px-3 py-2 text-start text-dark text-decoration-none"
             style={{ fontSize: '0.875rem' }}
-            onClick={() => setIsOpen(false)}
+            onClick={() => { setIsOpen(false); onNavigate?.() }}
           >
             <FaUserCog />
             <span>{t('account.title')}</span>
@@ -219,7 +220,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
           )}
 
           {isAuthenticated && (
-            <div className={`flex-grow-1 d-lg-flex align-items-center justify-content-center ${isOpen ? 'd-flex flex-column flex-lg-row position-absolute start-0 end-0 bg-purple-dark p-3 p-lg-0' : 'd-none'}`}
+            <div className={`flex-grow-1 d-lg-flex align-items-start align-items-lg-center justify-content-lg-center ${isOpen ? 'd-flex flex-column flex-lg-row position-absolute start-0 end-0 bg-purple-dark p-3 p-lg-0' : 'd-none'}`}
               style={isOpen ? { top: '100%', zIndex: 1030, backgroundColor: '#04182B' } : {}}>
               <ul className="navbar-nav d-flex flex-column flex-lg-row list-unstyled mb-0 gap-1">
                 {navItemsBefore.map((item) => (
@@ -264,8 +265,8 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
 
           {isOpen && isAuthenticated && (
             <div className="d-lg-none position-absolute end-0 p-3 d-flex align-items-center gap-2" style={{ top: '100%', zIndex: 1031 }}>
-              <LanguageSwitcher />
-              <UserMenu />
+              <LanguageSwitcher onNavigate={closeMenu} />
+              <UserMenu onNavigate={closeMenu} />
             </div>
           )}
         </div>

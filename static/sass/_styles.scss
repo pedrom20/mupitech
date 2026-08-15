@@ -141,21 +141,29 @@ body {
     align-items: center;
     gap: 0.75rem;
     margin-left: auto;
+  }
 
-    .btn-navbar {
-      color: rgba($white, 0.85);
-      background: transparent;
-      border: 1px solid rgba($white, 0.15);
-      padding: 0.375rem 0.75rem;
-      border-radius: $border-radius;
-      font-size: $font-size-sm;
-      transition: $transition-fast;
+  // Not scoped to .navbar-actions — that wrapper is d-none below lg, so
+  // a nested rule there would never reach the mobile lang/user-menu row
+  // (its own separate d-lg-none block, no .navbar-actions ancestor).
+  // Borderless to match .navbar-toggler-btn's hover-only treatment
+  // instead of the boxed/outlined look every other icon button here
+  // moved away from.
+  .btn-navbar {
+    display: inline-flex;
+    align-items: center;
+    color: rgba($white, 0.85);
+    background: transparent;
+    border: none;
+    padding: 0.375rem 0.75rem;
+    border-radius: $border-radius;
+    font-size: $font-size-sm;
+    transition: $transition-fast;
 
-      &:hover {
-        color: $white;
-        border-color: rgba($white, 0.3);
-        background-color: rgba($white, 0.08);
-      }
+    &:hover,
+    &:focus-visible {
+      color: $white;
+      background-color: rgba($white, 0.08);
     }
   }
 
