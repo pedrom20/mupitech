@@ -739,6 +739,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "sidebarNavLayout": "Novo layout experimental (Definições > Gerais, só superadmin): barra lateral esquerda colapsável em vez do menu da navbar superior — opt-in e reversível, não remove o layout atual",
       "devicePairingFeature": "Novo: pairing de devices — um device novo, sem credenciais prévias, pode agora pedir para se juntar à sua frota (Dispositivos > aguardar aprovação), sem precisar de SSH nem de conhecer o IP do device antecipadamente",
       "accountTabsRedesign": "\"O Meu Perfil\" e Definições > Providers de MFA passam a ter navegação lateral/por separadores em vez de mostrar tudo empilhado numa só página",
       "mfaMethodTiles": "Os métodos de MFA alternativos no ecrã de login passam a ser quadrados com ícone (o nome aparece ao passar o rato) em vez de uma lista de links",

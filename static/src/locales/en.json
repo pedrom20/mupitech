@@ -739,6 +739,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "sidebarNavLayout": "New experimental layout (Settings > General, superadmin-only): a collapsible left sidebar instead of the top navbar's menu — opt-in and reversible, doesn't remove the current layout",
       "devicePairingFeature": "New: device pairing — a fresh device with no prior credentials can now request to join your fleet (Players > Devices awaiting approval), instead of needing SSH access or the device's IP known up front",
       "accountTabsRedesign": "\"My Profile\" and Settings > MFA Providers now use side/tab navigation instead of stacking everything on one page",
       "mfaMethodTiles": "Alternate MFA methods on the login screen are now icon tiles (hover for the name) instead of a stacked list of text links",
