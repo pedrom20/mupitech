@@ -52,12 +52,21 @@ def _partner_logo_data_uri():
     return f'data:{mime};base64,{base64.b64encode(data).decode()}'
 
 
-def branded_email_html(title, intro_html, body_html):
+_DEFAULT_FOOTER = (
+    'Este é um email automático do MupiTech Gestor de Mupis Digitais. '
+    'Pode ajustar estas notificações em Definições &gt; Alertas.'
+)
+
+
+def branded_email_html(title, intro_html, body_html, footer_html=None):
     """Wraps `body_html` in the shared header/footer chrome. `title` and
     `intro_html` are already-safe HTML fragments the caller builds
     (interpolate any user-controlled text, e.g. a device name, through
     html.escape() first — see rows_table_html below for the one place
-    that currently does)."""
+    that currently does). `footer_html` overrides the default "adjust
+    these notifications in Settings > Alerts" line — wrong for
+    transactional email (password reset, MFA codes) that has nothing to
+    do with the alerts system."""
     logo = _mupitech_logo_data_uri()
     partner_logo = _partner_logo_data_uri()
     partner_html = (
@@ -85,7 +94,7 @@ def branded_email_html(title, intro_html, body_html):
 {body_html}
 </td></tr>
 <tr><td style="padding:16px 24px;background:#f8f9fb;border-top:1px solid #e2e5ea;">
-<p style="margin:0;font-size:12px;color:#8a8f98;">Este é um email automático do MupiTech Gestor de Mupis Digitais. Pode ajustar estas notificações em Definições &gt; Alertas.</p>
+<p style="margin:0;font-size:12px;color:#8a8f98;">{footer_html or _DEFAULT_FOOTER}</p>
 </td></tr>
 </table>
 </td></tr>

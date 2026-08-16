@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.2.1.0'
+export const APP_VERSION = '1.2.2.0'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.2.2.0',
+    date: '2026-08-16',
+    changeKeys: [
+      'passwordResetFeature',
+      'mfaCodeBoxesAndAnimations',
+      'rateLimitGroupFix',
+    ],
+  },
   {
     version: '1.2.1.0',
     date: '2026-08-16',

@@ -55,7 +55,18 @@ user_router = DefaultRouter()
 user_router.register('users', UserViewSet)
 
 
-@ratelimit(key='ip', rate='5/m', method='POST', block=True)
+# Every @ratelimit below takes an explicit group= — django-ratelimit
+# defaults the group to the decorated callable's own __qualname__ when
+# omitted, but @api_view's as_view() doesn't preserve that (every
+# function-based DRF view here resolves to the same generic
+# 'View.as_view.<locals>.view', confirmed by printing it directly).
+# Without group=, any two views sharing the same key type + rate string
+# silently share one rate-limit bucket instead of getting their own —
+# e.g. auth_login and auth_password_reset_request both used to be
+# key='ip', rate='5/m', so exhausting one exhausted the other. Each
+# group= here is just the view's own name, which is guaranteed unique
+# within this module.
+@ratelimit(group='auth_login', key='ip', rate='5/m', method='POST', block=True)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_login(request):
@@ -126,8 +137,8 @@ def auth_login(request):
     )
 
 
-@ratelimit(key='ip', rate='10/m', method='POST', block=True)
-@ratelimit(key='post:challenge_id', rate='8/5m', method='POST', block=True)
+@ratelimit(group='auth_mfa_verify', key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(group='auth_mfa_verify', key='post:challenge_id', rate='8/5m', method='POST', block=True)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_mfa_verify(request):
@@ -163,8 +174,8 @@ def auth_mfa_verify(request):
     return Response({'detail': 'Invalid code.'}, status=401)
 
 
-@ratelimit(key='ip', rate='10/m', method='POST', block=True)
-@ratelimit(key='post:challenge_id', rate='8/5m', method='POST', block=True)
+@ratelimit(group='auth_privacyidea_verify', key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(group='auth_privacyidea_verify', key='post:challenge_id', rate='8/5m', method='POST', block=True)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_privacyidea_verify(request):
@@ -205,8 +216,8 @@ def auth_privacyidea_verify(request):
     return Response({'detail': 'Invalid code.'}, status=401)
 
 
-@ratelimit(key='ip', rate='10/m', method='POST', block=True)
-@ratelimit(key='post:challenge_id', rate='5/5m', method='POST', block=True)
+@ratelimit(group='auth_duo_verify', key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(group='auth_duo_verify', key='post:challenge_id', rate='5/5m', method='POST', block=True)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_duo_verify(request):
@@ -263,8 +274,8 @@ def auth_duo_verify(request):
     return Response({'detail': 'denied', 'status_msg': result.get('status_msg', '')}, status=401)
 
 
-@ratelimit(key='ip', rate='10/m', method='POST', block=True)
-@ratelimit(key='post:challenge_id', rate='5/5m', method='POST', block=True)
+@ratelimit(group='auth_privacyidea_push_verify', key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(group='auth_privacyidea_push_verify', key='post:challenge_id', rate='5/5m', method='POST', block=True)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_privacyidea_push_verify(request):
@@ -314,8 +325,8 @@ def auth_privacyidea_push_verify(request):
     return Response({'detail': 'denied'}, status=401)
 
 
-@ratelimit(key='ip', rate='20/m', method='POST', block=True)
-@ratelimit(key='post:player_id', rate='10/m', method='POST', block=True)
+@ratelimit(group='auth_device_login', key='ip', rate='20/m', method='POST', block=True)
+@ratelimit(group='auth_device_login', key='post:player_id', rate='10/m', method='POST', block=True)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auth_device_login(request):
@@ -432,6 +443,113 @@ def auth_status(request):
     return Response({'authenticated': False})
 
 
+def _send_password_reset_email(request, user):
+    from django.contrib.auth.tokens import default_token_generator
+    from django.core.mail import EmailMultiAlternatives
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    from fleet_manager.alerts import get_alert_connection, get_alert_settings
+    from fleet_manager.email_branding import branded_email_html
+
+    connection = get_alert_connection()
+    if connection is None:
+        logger.warning('Password reset requested for %s but SMTP is not configured.', user.username)
+        return
+
+    conf = get_alert_settings()
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    origin = f'{request.scheme}://{request.get_host()}'
+    reset_url = f'{origin}/reset-password?uid={uid}&token={token}'
+
+    subject = '[MupiTech] Redefinir password'
+    text_body = (
+        f'Foi pedida uma redefinição de password para a conta {user.username}.\n\n'
+        f'Se foi você, aceda a este link para definir uma nova password (válido por algumas horas):\n{reset_url}\n\n'
+        'Se não foi você, pode ignorar este email — a sua password mantém-se inalterada.'
+    )
+    intro_html = (
+        f'<p style="margin:0 0 16px 0;font-size:14px;color:#4b5563;">'
+        f'Foi pedida uma redefinição de password para a conta <strong>{user.username}</strong>. '
+        f'Se foi você, clique no botão abaixo para definir uma nova password. O link é válido por algumas horas.</p>'
+        f'<p style="margin:0 0 16px 0;">'
+        f'<a href="{reset_url}" style="display:inline-block;background:#0082C8;color:#ffffff;text-decoration:none;'
+        f'padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;">Redefinir password</a></p>'
+        f'<p style="margin:0;font-size:12px;color:#8a8f98;">Se não foi você, pode ignorar este email — '
+        f'a sua password mantém-se inalterada.</p>'
+    )
+    html_body = branded_email_html(
+        subject, intro_html, '',
+        footer_html='Este é um email automático do MupiTech Gestor de Mupis Digitais.',
+    )
+
+    message = EmailMultiAlternatives(
+        subject=subject, body=text_body,
+        from_email=conf['from_email'] or conf['smtp_username'],
+        to=[user.email], connection=connection,
+    )
+    message.attach_alternative(html_body, 'text/html')
+    try:
+        message.send()
+    except Exception:
+        logger.exception('Failed to send password reset email to %s.', user.username)
+
+
+@ratelimit(group='auth_password_reset_request', key='ip', rate='5/m', method='POST', block=True)
+@ratelimit(group='auth_password_reset_request', key='post:email', rate='3/30m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_password_reset_request(request):
+    """Always answers {success: True} regardless of whether the email
+    matches an account — confirming/denying that here would let anyone
+    enumerate registered usernames/emails one guess at a time."""
+    from django.contrib.auth.models import User
+
+    from history.logging import log_action
+
+    email = (request.data.get('email') or '').strip()
+    if email:
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if user:
+            _send_password_reset_email(request, user)
+            log_action(request, 'password_reset_request', 'session', target_name=user.username)
+    return Response({'success': True})
+
+
+@ratelimit(group='auth_password_reset_confirm', key='ip', rate='10/m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_password_reset_confirm(request):
+    from django.contrib.auth.models import User
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.encoding import force_str
+    from django.utils.http import urlsafe_base64_decode
+
+    from history.logging import log_action
+
+    uid = request.data.get('uid', '')
+    token = request.data.get('token', '')
+    new_password = request.data.get('new_password', '')
+
+    if len(new_password) < 8:
+        return Response({'error': 'A password tem de ter pelo menos 8 caracteres.'}, status=400)
+
+    try:
+        user_id = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(pk=user_id, is_active=True)
+    except (User.DoesNotExist, ValueError, TypeError, OverflowError, ValidationError):
+        return Response({'error': 'Este link é inválido ou já expirou.'}, status=400)
+
+    if not default_token_generator.check_token(user, token):
+        return Response({'error': 'Este link é inválido ou já expirou.'}, status=400)
+
+    user.set_password(new_password)
+    user.save(update_fields=['password'])
+    log_action(request, 'password_reset_confirm', 'session', target_name=user.username)
+    return Response({'success': True})
+
+
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 
@@ -492,6 +610,8 @@ urlpatterns = [
     path('api/auth/device-login/', auth_device_login),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),
+    path('api/auth/password-reset/', auth_password_reset_request),
+    path('api/auth/password-reset-confirm/', auth_password_reset_confirm),
     path('api/auth/token/', obtain_auth_token, name='api-token'),
     path('api/system/version/', system_version),
     path('api/system/features/', system_features),

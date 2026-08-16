@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { FaSignInAlt, FaArrowLeft, FaShieldAlt } from 'react-icons/fa'
+import { FaSignInAlt, FaArrowLeft, FaShieldAlt, FaEnvelope, FaCheckCircle } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { AuthContext, ThemeContext } from '@/components/app'
 import { auth, ApiError, type MfaChallenge } from '@/services/api'
@@ -19,6 +19,11 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [forgotPasswordMode, setForgotPasswordMode] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+
   // Second factor: only entered once the first factor comes back with
   // mfa_required — no session exists yet at that point. A dual-MFA
   // login goes through this same state twice: the first factor's own
@@ -34,6 +39,11 @@ const Login: React.FC = () => {
   const [code, setCode] = useState('')
   const [pushStatus, setPushStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
   const [pushError, setPushError] = useState('')
+  // A completed factor briefly shows as "confirmed" (green border,
+  // fade-out) before the actual navigate() away — otherwise the whole
+  // challenge panel just vanishes the instant the last digit lands,
+  // with nothing acknowledging it was accepted.
+  const [success, setSuccess] = useState(false)
 
   // Shared by the credentials submit and every verify*() call below:
   // any of them can return either {success} (done) or a fresh
@@ -54,8 +64,11 @@ const Login: React.FC = () => {
       setPushError('')
       return true
     }
-    refresh()
-    navigate('/')
+    setSuccess(true)
+    setTimeout(() => {
+      refresh()
+      navigate('/')
+    }, 350)
     return false
   }
 
@@ -74,6 +87,34 @@ const Login: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setResetLoading(true)
+    try {
+      // Always resolves {success: true} regardless of whether the
+      // email matches an account — see api.ts's own doc comment.
+      // Showing the same "sent" state either way is the point, not an
+      // oversight: the alternative (a distinct "no such email" error)
+      // would let this form be used to check who has an account.
+      await auth.requestPasswordReset(resetEmail)
+      setResetSent(true)
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('auth.forgotPassword.error'),
+      })
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
+  const backToLoginFromForgotPassword = () => {
+    setForgotPasswordMode(false)
+    setResetEmail('')
+    setResetSent(false)
   }
 
   const submitMfaCode = async (submittedCode: string) => {
@@ -143,6 +184,7 @@ const Login: React.FC = () => {
     setCode('')
     setPushStatus('pending')
     setPushError('')
+    setSuccess(false)
   }
 
   // Same challenge_id works against every verify endpoint (see
@@ -189,6 +231,15 @@ const Login: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <div className="text-end mt-2">
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-decoration-none"
+                    onClick={() => setForgotPasswordMode(true)}
+                  >
+                    {t('auth.forgotPassword.link')}
+                  </button>
+                </div>
               </div>
               <button
                 type="submit"
@@ -199,11 +250,62 @@ const Login: React.FC = () => {
                 {loading ? t('common.loading') : t('auth.login')}
               </button>
             </form>
+          ) : forgotPasswordMode ? (
+            resetSent ? (
+              <div className="text-center">
+                <FaCheckCircle size={28} className="mb-2 text-success" />
+                <p className="mb-4">{t('auth.forgotPassword.sent', { email: resetEmail })}</p>
+                <button
+                  type="button"
+                  className="fm-btn-outline w-100"
+                  onClick={backToLoginFromForgotPassword}
+                >
+                  <FaArrowLeft />
+                  {t('auth.mfa.back')}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit}>
+                <div className="text-center mb-3">
+                  <FaEnvelope size={28} className="mb-2" />
+                  <p className="mb-0 fw-semibold">{t('auth.forgotPassword.title')}</p>
+                  <p className="form-text">{t('auth.forgotPassword.description')}</p>
+                </div>
+                <div className="mb-4">
+                  <label className="form-label fw-semibold">{t('auth.forgotPassword.email')}</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="fm-btn-primary w-100 mb-2"
+                  disabled={resetLoading}
+                >
+                  <FaEnvelope />
+                  {resetLoading ? t('common.loading') : t('auth.forgotPassword.submit')}
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn-outline w-100"
+                  onClick={backToLoginFromForgotPassword}
+                  disabled={resetLoading}
+                >
+                  <FaArrowLeft />
+                  {t('auth.mfa.back')}
+                </button>
+              </form>
+            )
           ) : (() => {
             const challengeUi = (method && pushMethods.includes(method)) ? (() => {
               const PushIcon = MFA_METHOD_ICON[method]
               return (
-                <div>
+                <div className={`fm-mfa-panel${success ? ' is-leaving' : ''}`} key={method}>
                   {dualRequired && (
                     <p className="text-center mb-2">
                       <span className="badge bg-info-subtle text-info-emphasis">
@@ -264,7 +366,7 @@ const Login: React.FC = () => {
             })() : (() => {
               const CodeIcon = method ? MFA_METHOD_ICON[method] : FaShieldAlt
               return (
-                <form onSubmit={handleMfaSubmit}>
+                <form onSubmit={handleMfaSubmit} className={`fm-mfa-panel${success ? ' is-leaving' : ''}`} key={method}>
                   {dualRequired && (
                     <p className="text-center mb-2">
                       <span className="badge bg-info-subtle text-info-emphasis">
@@ -279,7 +381,9 @@ const Login: React.FC = () => {
                   </div>
                   <div className="mb-4">
                     <label className="form-label fw-semibold d-block text-center mb-2">{t('auth.mfa.code')}</label>
-                    <CodeInput value={code} onChange={setCode} onComplete={submitMfaCode} disabled={loading} autoFocus />
+                    <div className={`fm-mfa-code-boxes${success ? ' is-complete is-leaving' : ''}`}>
+                      <CodeInput value={code} onChange={setCode} onComplete={submitMfaCode} disabled={loading || success} autoFocus />
+                    </div>
                   </div>
                   <button
                     type="submit"

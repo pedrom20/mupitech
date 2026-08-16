@@ -850,7 +850,12 @@ def setup_required(request):
     return Response({'required': _setup_required()})
 
 
-@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+# group= is required here, not just tidy — see fleet_manager/urls.py's
+# top-of-file comment on the @ratelimit decorators there: @api_view's
+# as_view() erases __qualname__, so django-ratelimit's default
+# (derived-from-qualname) group would silently collide with any other
+# view in this file that happens to reuse key='ip', rate='10/m'.
+@ratelimit(group='run_setup', key='ip', rate='10/m', method='POST', block=True)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def run_setup(request):

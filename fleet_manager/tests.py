@@ -417,3 +417,93 @@ class SetupWizardTests(TestCase):
             'username': 'taken', 'password': 'a-real-password-123',
         }, format='json')
         self.assertEqual(response.status_code, 400)
+
+
+class PasswordResetTests(TestCase):
+    def setUp(self):
+        Group.objects.get_or_create(name='admin')
+        Group.objects.get_or_create(name='editor')
+        Group.objects.get_or_create(name='viewer')
+        Group.objects.get_or_create(name='superadmin')
+        self.client = APIClient()
+        from django.core.cache import cache
+        cache.set('system:alerts_smtp_host', 'localhost', None)
+        cache.set('system:alerts_from_email', 'alerts@mupitech.local', None)
+        self.user = User.objects.create_user(
+            username='forgetful', password='old-password-123', email='forgetful@example.com',
+        )
+
+    def _make_reset_link(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        return uid, token
+
+    def test_request_always_returns_success_even_for_unknown_email(self):
+        response = self.client.post('/api/auth/password-reset/', {
+            'email': 'nobody-here@example.com',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+
+    def test_request_for_real_email_sends_a_message(self):
+        # get_alert_connection() builds an explicit SMTP connection
+        # (bypassing Django's EMAIL_BACKEND, so mail.outbox never sees
+        # it — same reasoning as the OfflineAlertEmailTests above, which
+        # only ever assert on the built message, never a real .send()).
+        # Patch the backend's send_messages() (autospec preserves the
+        # self binding, unlike patching EmailMultiAlternatives.send
+        # directly) so this test doesn't need a real SMTP server, and
+        # can still inspect the actual message that would have gone out.
+        from django.core.mail.backends.smtp import EmailBackend
+        with mock.patch.object(EmailBackend, 'send_messages', autospec=True, return_value=1) as mock_send:
+            response = self.client.post('/api/auth/password-reset/', {
+                'email': 'forgetful@example.com',
+            }, format='json')
+        self.assertEqual(response.status_code, 200)
+        mock_send.assert_called_once()
+        sent_messages = mock_send.call_args[0][1]
+        self.assertEqual(len(sent_messages), 1)
+        self.assertIn('forgetful@example.com', sent_messages[0].to)
+        self.assertIn('reset-password?uid=', sent_messages[0].body)
+
+    def test_confirm_with_valid_token_changes_password(self):
+        uid, token = self._make_reset_link()
+        response = self.client.post('/api/auth/password-reset-confirm/', {
+            'uid': uid, 'token': token, 'new_password': 'a-brand-new-password-456',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('a-brand-new-password-456'))
+
+    def test_confirm_with_wrong_token_is_rejected(self):
+        uid, _ = self._make_reset_link()
+        response = self.client.post('/api/auth/password-reset-confirm/', {
+            'uid': uid, 'token': 'not-a-real-token', 'new_password': 'a-brand-new-password-456',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('old-password-123'))
+
+    def test_confirm_token_is_single_use(self):
+        uid, token = self._make_reset_link()
+        first = self.client.post('/api/auth/password-reset-confirm/', {
+            'uid': uid, 'token': token, 'new_password': 'a-brand-new-password-456',
+        }, format='json')
+        self.assertEqual(first.status_code, 200)
+        # Changing the password rotates the hash the token generator
+        # itself is keyed on, so the exact same token must fail once
+        # already consumed — no separate "used" flag needed.
+        second = self.client.post('/api/auth/password-reset-confirm/', {
+            'uid': uid, 'token': token, 'new_password': 'yet-another-password-789',
+        }, format='json')
+        self.assertEqual(second.status_code, 400)
+
+    def test_confirm_rejects_short_password(self):
+        uid, token = self._make_reset_link()
+        response = self.client.post('/api/auth/password-reset-confirm/', {
+            'uid': uid, 'token': token, 'new_password': 'short',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)

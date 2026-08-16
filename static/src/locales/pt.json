@@ -479,6 +479,23 @@
     "password": "Palavra-passe",
     "invalidCredentials": "Utilizador ou palavra-passe inválidos",
     "brandSuffix": "Gestor de Mupis Digitais",
+    "forgotPassword": {
+      "link": "Esqueceu-se da password?",
+      "title": "Repor a sua password",
+      "description": "Introduza o email da sua conta e enviamos-lhe um link para repor a password.",
+      "email": "Email",
+      "submit": "Enviar link de reposição",
+      "sent": "Se existir uma conta para {{email}}, foi enviado um link de reposição de password. Verifique a sua caixa de entrada.",
+      "error": "Não foi possível enviar o email de reposição — tente novamente.",
+      "resetTitle": "Escolha uma nova password",
+      "newPassword": "Nova password",
+      "confirmPassword": "Confirmar password",
+      "passwordMismatch": "As passwords não coincidem",
+      "resetSubmit": "Repor password",
+      "resetSuccess": "A sua password foi reposta. Já pode iniciar sessão.",
+      "invalidLink": "Este link de reposição é inválido ou expirou.",
+      "backToLogin": "Voltar ao início de sessão"
+    },
     "mfa": {
       "title": "Verificação em dois passos",
       "description": "Introduza o código de 6 dígitos gerado pela sua app de autenticação.",
@@ -704,6 +721,9 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "passwordResetFeature": "Novo: recuperação de password — link \"Esqueceu-se da password?\" no login envia um email com um link seguro (válido por algumas horas, uso único) para definir uma nova password",
+      "mfaCodeBoxesAndAnimations": "O login com MFA no device passa a ter 6 caixas de código separadas (como na Fleet Manager) em vez de um único campo, com animações a aparecer/desaparecer; também adicionadas animações subtis ao mudar de método ou concluir a verificação, tanto na Fleet Manager como no device",
+      "rateLimitGroupFix": "Corrigido um bug em que dois endpoints diferentes com o mesmo limite de pedidos podiam partilhar acidentalmente o mesmo contador, causando bloqueios (403) incorretos e prematuros em vez do limite (429) esperado",
       "setupWizardFeature": "Novo: assistente de configuração inicial — numa instalação nova (sem nenhum superadmin), a app guia a criação da primeira conta de administrador e, opcionalmente, do logótipo de parceiro, em vez de exigir 'manage.py createsuperuser' manual",
       "deviceLoginMfaFeature": "O login direto no device com uma conta com 2FA ativo já funciona — antes ficava sempre bloqueado, a mandar usar o SSO da própria Fleet Manager em vez disso",
       "mobileNavbarFixes": "Corrigidos 4 problemas do menu mobile: botão de abrir menu que ficava fora do ecrã em iPhones standard, botões de idioma/utilizador sem qualquer estilo, menu que não fechava ao escolher uma opção, e o separador ativo de Definições que resetava ao atualizar a página",

@@ -977,6 +977,18 @@ export const auth = {
   verifyPrivacyIDEAPush(challengeId: string): Promise<{ success: true; username: string } | MfaChallenge> {
     return apiRequest('POST', '/auth/mfa/privacyidea-push-verify/', { challenge_id: challengeId })
   },
+
+  /** Always resolves {success: true} regardless of whether the email
+   * matches an account — see fleet_manager/urls.py::
+   * auth_password_reset_request for why (avoids letting this become an
+   * account-enumeration oracle). */
+  requestPasswordReset(email: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/auth/password-reset/', { email })
+  },
+
+  confirmPasswordReset(uid: string, token: string, newPassword: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/auth/password-reset-confirm/', { uid, token, new_password: newPassword })
+  },
 }
 
 export interface MfaChallenge {

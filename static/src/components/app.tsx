@@ -27,6 +27,7 @@ import AccountPage from '@/components/account/account-page'
 import OnboardingWizard from '@/components/onboarding/onboarding-wizard'
 import SetupWizard from '@/components/setup/setup-wizard'
 import Login from '@/components/auth/login'
+import ResetPassword from '@/components/auth/reset-password'
 import ChangelogPage from '@/components/changelog-page'
 import { users as usersApi, system as systemApi } from '@/services/api'
 import { FeaturesProvider } from '@/context/features-context'
@@ -222,6 +223,7 @@ const App: React.FC = () => {
                 <Route path="/audit" element={<AuditLog />} />
                 <Route path="/changelog" element={<ChangelogPage />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
               </Routes>
             )}
           </main>
