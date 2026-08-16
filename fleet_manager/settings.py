@@ -1,7 +1,21 @@
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Both django-ratelimit (below) and DRF's own AnonRateThrottle/
+# UserRateThrottle (REST_FRAMEWORK, further down) hit the same real,
+# shared Redis-backed cache — with them live during `manage.py test`,
+# unrelated tests that each make a handful of requests (DualMFALoginTests,
+# EmailOTPTests, SetupWizardTests, ...) collectively trip a real
+# "N/minute" limit against the same 127.0.0.1 test-client IP, well
+# before any single test means to exercise rate-limiting itself —
+# nothing in the suite asserts on a 429/403 *from* a limit, so there's
+# nothing to lose by turning both off only here. Never disabled outside
+# the test runner.
+_UNDER_TEST = 'test' in sys.argv
+RATELIMIT_ENABLE = not _UNDER_TEST
 
 _DEFAULT_DEV_KEY = 'django-insecure-fleet-manager-dev-key-change-in-production'
 
@@ -206,7 +220,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_THROTTLE_CLASSES': [
+    'DEFAULT_THROTTLE_CLASSES': [] if _UNDER_TEST else [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
     ],

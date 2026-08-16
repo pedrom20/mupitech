@@ -81,18 +81,31 @@ def _authpoint_enrolled(user):
     return False
 
 
+def _email_configured():
+    from . import email_otp
+    return email_otp.email_otp_configured()
+
+
+def _email_enrolled(user):
+    device = getattr(user, 'email_otp_device', None)
+    return bool(device and device.confirmed)
+
+
 PROVIDERS: dict[str, MFAProvider] = {
     'totp': MFAProvider('totp', lambda user: 'code', _totp_configured, _totp_enrolled),
     'duo': MFAProvider('duo', lambda user: 'push', _duo_configured, _duo_enrolled),
     'privacyidea': MFAProvider('privacyidea', _privacyidea_kind, _privacyidea_configured, _privacyidea_enrolled),
     'authpoint': MFAProvider('authpoint', lambda user: 'push', _authpoint_configured, _authpoint_enrolled),
+    'email': MFAProvider('email', lambda user: 'code', _email_configured, _email_enrolled),
 }
 
 # Priority order when a user has more than one enrolled — first match
 # wins as the *default* method auth_login proposes; available_methods
 # still lists every enrolled one so the frontend can offer a switch
-# (see login.tsx's "use a different method" links).
-PROVIDER_PRIORITY = ['duo', 'authpoint', 'totp', 'privacyidea']
+# (see login.tsx's "use a different method" links). Email sits last —
+# it needs a round trip to the user's inbox, slower than a code already
+# sitting in an authenticator app or a single push tap.
+PROVIDER_PRIORITY = ['duo', 'authpoint', 'totp', 'privacyidea', 'email']
 
 
 def enrolled_methods(user) -> list[str]:

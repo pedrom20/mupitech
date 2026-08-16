@@ -1,4 +1,4 @@
-import { FaShieldAlt, FaMobileAlt, FaKey, FaBell } from 'react-icons/fa'
+import { FaShieldAlt, FaMobileAlt, FaKey, FaBell, FaEnvelope } from 'react-icons/fa'
 import type { IconType } from 'react-icons'
 import type { MFAMethod } from '@/types'
 
@@ -16,4 +16,5 @@ export const MFA_METHOD_ICON: Record<MFAMethod, IconType> = {
   duo: FaMobileAlt,
   privacyidea: FaKey,
   authpoint: FaBell,
+  email: FaEnvelope,
 }

@@ -11,8 +11,8 @@ from rest_framework.response import Response
 
 from fleet_manager.permissions import IsAdmin, _user_role
 
-from . import duo, privacyidea, provider_config
-from .models import DuoEnrollment, MFAPolicy, PrivacyIDEAEnrollment, TOTPDevice
+from . import duo, email_otp, privacyidea, provider_config
+from .models import DuoEnrollment, EmailOTPDevice, MFAPolicy, PrivacyIDEAEnrollment, TOTPDevice
 from .providers import enrolled_methods
 
 logger = logging.getLogger(__name__)
@@ -98,6 +98,81 @@ def mfa_disable(request):
 
     TOTPDevice.objects.filter(user=request.user).delete()
     log_action(request, 'mfa_disable', 'session', target_name=request.user.username)
+    return Response({'success': True})
+
+
+@api_view(['GET'])
+def email_otp_status(request):
+    device = getattr(request.user, 'email_otp_device', None)
+    return Response({
+        'configured': email_otp.email_otp_configured(),
+        'enabled': bool(device and device.confirmed),
+        'email': request.user.email,
+    })
+
+
+@api_view(['POST'])
+def email_otp_enroll(request):
+    if not email_otp.email_otp_configured():
+        return Response({'error': 'Email sending is not configured on this Fleet Manager instance.'}, status=400)
+    if not request.user.email:
+        return Response({'error': 'Your account has no email address set.'}, status=400)
+    existing = getattr(request.user, 'email_otp_device', None)
+    if existing and existing.confirmed:
+        return Response(
+            {'error': 'Email codes are already enabled — disable it first to re-enroll.'},
+            status=400,
+        )
+
+    code = email_otp.generate_code()
+    if not email_otp.send_code_email(request.user, code):
+        return Response({'error': "Couldn't send the email — try again shortly."}, status=502)
+
+    EmailOTPDevice.objects.update_or_create(
+        user=request.user,
+        defaults={
+            'confirmed': False,
+            'confirmed_at': None,
+            'pending_code_hash': email_otp.hash_code(code),
+            'pending_code_expires_at': timezone.now() + timezone.timedelta(seconds=email_otp.CODE_TTL_SECONDS),
+        },
+    )
+    return Response({'success': True, 'email': request.user.email})
+
+
+@api_view(['POST'])
+def email_otp_confirm(request):
+    from history.logging import log_action
+
+    device = getattr(request.user, 'email_otp_device', None)
+    if not device or device.confirmed:
+        return Response({'error': 'No pending email OTP enrolment.'}, status=400)
+    if not device.pending_code_expires_at or timezone.now() > device.pending_code_expires_at:
+        return Response({'error': 'The code has expired — request a new one.'}, status=400)
+
+    code = str(request.data.get('code', ''))
+    if not email_otp.code_matches(code, device.pending_code_hash):
+        return Response({'error': 'Invalid code.'}, status=400)
+
+    device.confirmed = True
+    device.confirmed_at = timezone.now()
+    device.pending_code_hash = ''
+    device.pending_code_expires_at = None
+    device.save(update_fields=['confirmed', 'confirmed_at', 'pending_code_hash', 'pending_code_expires_at'])
+    _clear_force_mfa_enroll(request.user)
+    log_action(request, 'email_otp_enable', 'session', target_name=request.user.username)
+    return Response({'success': True})
+
+
+@api_view(['POST'])
+def email_otp_disable(request):
+    from history.logging import log_action
+
+    if not request.user.check_password(request.data.get('password', '')):
+        return Response({'error': 'Incorrect password.'}, status=400)
+
+    EmailOTPDevice.objects.filter(user=request.user).delete()
+    log_action(request, 'email_otp_disable', 'session', target_name=request.user.username)
     return Response({'success': True})
 
 

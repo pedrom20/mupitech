@@ -1,3 +1,4 @@
+import re
 from unittest import mock
 
 import pyotp
@@ -80,6 +81,16 @@ def _enroll_duo(user):
     DuoEnrollment.objects.create(
         user=user, duo_user_id='DU123', duo_username=user.username, confirmed=True,
     )
+
+
+def _enroll_email_otp(user):
+    from mfa.models import EmailOTPDevice
+    EmailOTPDevice.objects.create(user=user, confirmed=True)
+
+
+def _extract_code(email_body):
+    match = re.search(r'\b(\d{6})\b', email_body)
+    return match.group(1) if match else ''
 
 
 class DualMFALoginTests(TestCase):
@@ -507,3 +518,119 @@ class PasswordResetTests(TestCase):
             'uid': uid, 'token': token, 'new_password': 'short',
         }, format='json')
         self.assertEqual(response.status_code, 400)
+
+
+class EmailOTPTests(TestCase):
+    """Email-delivered one-time-code MFA provider — enrollment (self
+    service, mfa/views.py) and the login-time send/verify pair
+    (fleet_manager/urls.py::auth_email_otp_send/verify). Same SMTP
+    mocking pattern as PasswordResetTests above: get_alert_connection()
+    builds an explicit connection that bypasses mail.outbox, so assert
+    on the message the patched backend actually received instead."""
+
+    def setUp(self):
+        Group.objects.get_or_create(name='admin')
+        Group.objects.get_or_create(name='editor')
+        Group.objects.get_or_create(name='viewer')
+        Group.objects.get_or_create(name='superadmin')
+        self.client = APIClient()
+        from django.core.cache import cache
+        cache.set('system:alerts_smtp_host', 'localhost', None)
+        cache.set('system:alerts_from_email', 'alerts@mupitech.local', None)
+        self.user = User.objects.create_user(
+            username='emailer', password='pw123456', email='emailer@example.com',
+        )
+
+    def tearDown(self):
+        from django.core.cache import cache
+        cache.delete('system:alerts_smtp_host')
+        cache.delete('system:alerts_from_email')
+
+    def test_status_reports_configured_and_account_email(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.get('/api/mfa/email/status/')
+        self.assertTrue(response.data['configured'])
+        self.assertFalse(response.data['enabled'])
+        self.assertEqual(response.data['email'], 'emailer@example.com')
+
+    def test_enroll_and_confirm_activates_device(self):
+        from django.core.mail.backends.smtp import EmailBackend
+        self.client.force_authenticate(self.user)
+        with mock.patch.object(EmailBackend, 'send_messages', autospec=True, return_value=1) as mock_send:
+            enroll_resp = self.client.post('/api/mfa/email/enroll/', {}, format='json')
+        self.assertEqual(enroll_resp.status_code, 200)
+        code = _extract_code(mock_send.call_args[0][1][0].body)
+
+        confirm_resp = self.client.post('/api/mfa/email/confirm/', {'code': code}, format='json')
+        self.assertEqual(confirm_resp.status_code, 200)
+        self.assertTrue(confirm_resp.data['success'])
+        self.assertTrue(self.client.get('/api/mfa/email/status/').data['enabled'])
+
+    def test_confirm_with_wrong_code_fails(self):
+        from django.core.mail.backends.smtp import EmailBackend
+        self.client.force_authenticate(self.user)
+        with mock.patch.object(EmailBackend, 'send_messages', autospec=True, return_value=1):
+            self.client.post('/api/mfa/email/enroll/', {}, format='json')
+        confirm_resp = self.client.post('/api/mfa/email/confirm/', {'code': '000000'}, format='json')
+        self.assertEqual(confirm_resp.status_code, 400)
+
+    def test_enroll_fails_without_account_email(self):
+        no_email_user = User.objects.create_user(username='noemail', password='pw123456')
+        self.client.force_authenticate(no_email_user)
+        response = self.client.post('/api/mfa/email/enroll/', {}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_disable_requires_password(self):
+        from mfa.models import EmailOTPDevice
+        EmailOTPDevice.objects.create(user=self.user, confirmed=True)
+        self.client.force_authenticate(self.user)
+        wrong = self.client.post('/api/mfa/email/disable/', {'password': 'wrong'}, format='json')
+        self.assertEqual(wrong.status_code, 400)
+        right = self.client.post('/api/mfa/email/disable/', {'password': 'pw123456'}, format='json')
+        self.assertEqual(right.status_code, 200)
+        self.assertFalse(EmailOTPDevice.objects.filter(user=self.user).exists())
+
+    def test_login_with_only_email_enrolled_offers_email_method(self):
+        _enroll_email_otp(self.user)
+        login_resp = self.client.post('/api/auth/login/', {'username': 'emailer', 'password': 'pw123456'}, format='json')
+        self.assertTrue(login_resp.data['mfa_required'])
+        self.assertEqual(login_resp.data['method'], 'email')
+        self.assertEqual(login_resp.data['available_methods'], ['email'])
+        self.assertEqual(login_resp.data['push_methods'], [])
+
+    def test_send_endpoint_emails_code_and_verify_completes_login(self):
+        _enroll_email_otp(self.user)
+        login_resp = self.client.post('/api/auth/login/', {'username': 'emailer', 'password': 'pw123456'}, format='json')
+        challenge_id = login_resp.data['challenge_id']
+
+        from django.core.mail.backends.smtp import EmailBackend
+        with mock.patch.object(EmailBackend, 'send_messages', autospec=True, return_value=1) as mock_send:
+            send_resp = self.client.post('/api/auth/mfa/email-send/', {'challenge_id': challenge_id}, format='json')
+        self.assertEqual(send_resp.status_code, 200)
+        self.assertTrue(send_resp.data['sent'])
+        code = _extract_code(mock_send.call_args[0][1][0].body)
+
+        verify_resp = self.client.post('/api/auth/mfa/email-verify/', {'challenge_id': challenge_id, 'code': code}, format='json')
+        self.assertEqual(verify_resp.status_code, 200)
+        self.assertTrue(verify_resp.data['success'])
+        me = self.client.get('/api/users/me/')
+        self.assertEqual(me.data.get('username'), 'emailer')
+
+    def test_verify_with_wrong_code_does_not_login(self):
+        _enroll_email_otp(self.user)
+        login_resp = self.client.post('/api/auth/login/', {'username': 'emailer', 'password': 'pw123456'}, format='json')
+        challenge_id = login_resp.data['challenge_id']
+        from django.core.mail.backends.smtp import EmailBackend
+        with mock.patch.object(EmailBackend, 'send_messages', autospec=True, return_value=1):
+            self.client.post('/api/auth/mfa/email-send/', {'challenge_id': challenge_id}, format='json')
+        verify_resp = self.client.post('/api/auth/mfa/email-verify/', {'challenge_id': challenge_id, 'code': '000000'}, format='json')
+        self.assertEqual(verify_resp.status_code, 401)
+        me = self.client.get('/api/users/me/')
+        self.assertEqual(me.data.get('authenticated'), False)
+
+    def test_verify_without_prior_send_fails(self):
+        _enroll_email_otp(self.user)
+        login_resp = self.client.post('/api/auth/login/', {'username': 'emailer', 'password': 'pw123456'}, format='json')
+        challenge_id = login_resp.data['challenge_id']
+        verify_resp = self.client.post('/api/auth/mfa/email-verify/', {'challenge_id': challenge_id, 'code': '123456'}, format='json')
+        self.assertEqual(verify_resp.status_code, 401)

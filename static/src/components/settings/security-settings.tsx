@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaShieldAlt, FaCheckCircle, FaMobileAlt, FaKey, FaUserShield } from 'react-icons/fa'
+import { FaShieldAlt, FaCheckCircle, FaMobileAlt, FaKey, FaUserShield, FaEnvelope } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { mfa, duo, privacyidea, dualMfa, ApiError } from '@/services/api'
+import { mfa, duo, privacyidea, emailOtp, dualMfa, ApiError } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import CodeInput from '@/components/shared/code-input'
 
@@ -14,6 +14,12 @@ type DuoPhase = 'loading' | 'unavailable' | 'disabled' | 'enrolling' | 'enabled'
 // (see the `piConfigured` check below), rather than showing a disabled
 // state for something the operator can't act on either way.
 type PIPhase = 'loading' | 'disabled' | 'enrolling' | 'enabled'
+// Email codes need an 'unavailable' state like Duo's (SMTP might not
+// be configured — see mfa.email_otp.email_otp_configured()), but
+// unlike Duo the enroll step itself sends the confirmation code
+// (there's no separate QR/scan step), so 'enrolling' here just means
+// "a code was just emailed, waiting for it to be typed in".
+type EmailPhase = 'loading' | 'unavailable' | 'disabled' | 'enrolling' | 'enabled'
 
 const DUO_POLL_INTERVAL_MS = 2000
 
@@ -43,6 +49,12 @@ const SecuritySettings: React.FC = () => {
   const [piPassword, setPiPassword] = useState('')
   const [piBusy, setPiBusy] = useState(false)
   const piPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const [emailPhase, setEmailPhase] = useState<EmailPhase>('loading')
+  const [emailAddress, setEmailAddress] = useState('')
+  const [emailCode, setEmailCode] = useState('')
+  const [emailPassword, setEmailPassword] = useState('')
+  const [emailBusy, setEmailBusy] = useState(false)
 
   const [dualSelfOptIn, setDualSelfOptIn] = useState(false)
   const [dualRoleRequired, setDualRoleRequired] = useState(false)
@@ -87,10 +99,18 @@ const SecuritySettings: React.FC = () => {
     if (piPollRef.current) { clearInterval(piPollRef.current); piPollRef.current = null }
   }
 
+  const loadEmailStatus = () => {
+    emailOtp.status().then((res) => {
+      setEmailAddress(res.email)
+      setEmailPhase(!res.configured ? 'unavailable' : res.enabled ? 'enabled' : 'disabled')
+    }).catch(() => setEmailPhase('unavailable'))
+  }
+
   useEffect(() => {
     loadStatus()
     loadDuoStatus()
     loadPIStatus()
+    loadEmailStatus()
     loadDualStatus()
     return () => { stopDuoPolling(); stopPIPolling() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,6 +350,75 @@ const SecuritySettings: React.FC = () => {
         text: error instanceof ApiError ? error.message : t('security.disableError'),
       })
     }).finally(() => setPiBusy(false))
+  }
+
+  const handleEmailEnroll = () => {
+    setEmailBusy(true)
+    emailOtp.enroll().then((res) => {
+      setEmailAddress(res.email)
+      setEmailCode('')
+      setEmailPhase('enrolling')
+    }).catch((error) => {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('security.emailEnrollError'),
+      })
+    }).finally(() => setEmailBusy(false))
+  }
+
+  const submitEmailConfirmCode = (submittedCode: string) => {
+    if (submittedCode.length !== 6) return
+    setEmailBusy(true)
+    emailOtp.confirm(submittedCode).then(() => {
+      showToast('success', t('security.enabledSuccess'))
+      loadEmailStatus()
+      loadDualStatus()
+    }).catch((error) => {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('security.confirmError'),
+      })
+      setEmailCode('')
+    }).finally(() => setEmailBusy(false))
+  }
+
+  const handleEmailConfirm = (e: React.FormEvent) => {
+    e.preventDefault()
+    submitEmailConfirmCode(emailCode)
+  }
+
+  const handleEmailCancelEnroll = () => {
+    setEmailCode('')
+    setEmailPhase('disabled')
+  }
+
+  const handleEmailDisable = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const confirmed = await Swal.fire({
+      icon: 'warning',
+      title: t('security.disableConfirmTitle'),
+      text: t('security.disableConfirmText'),
+      showCancelButton: true,
+      confirmButtonText: t('security.disableButton'),
+      cancelButtonText: t('common.cancel'),
+    })
+    if (!confirmed.isConfirmed) return
+
+    setEmailBusy(true)
+    emailOtp.disable(emailPassword).then(() => {
+      showToast('success', t('security.disabledSuccess'))
+      setEmailPassword('')
+      loadEmailStatus()
+      loadDualStatus()
+    }).catch((error) => {
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: error instanceof ApiError ? error.message : t('security.disableError'),
+      })
+    }).finally(() => setEmailBusy(false))
   }
 
   return (
@@ -668,6 +757,98 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       )}
+
+      <div className="col-lg-6">
+        <div className="fm-card fm-card-accent h-100">
+          <div className="fm-card-header py-2">
+            <h5 className="card-title mb-0">
+              <FaEnvelope className="me-2" />
+              {t('security.emailTitle')}
+            </h5>
+          </div>
+          <div className="fm-card-body py-3">
+            <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>{t('security.emailDescription')}</p>
+
+            {emailPhase === 'loading' && (
+              <p className="form-text mb-0">{t('common.loading')}</p>
+            )}
+
+            {emailPhase === 'unavailable' && (
+              <span className="badge bg-light text-muted border">{t('security.emailUnavailable')}</span>
+            )}
+
+            {emailPhase === 'disabled' && (
+              <>
+                <span className="badge bg-secondary mb-3">{t('security.statusDisabled')}</span>
+                <div>
+                  <button
+                    type="button"
+                    className="fm-btn-primary"
+                    onClick={handleEmailEnroll}
+                    disabled={emailBusy}
+                  >
+                    <FaEnvelope className="me-1" />
+                    {t('security.emailEnableButton')}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {emailPhase === 'enabled' && (
+              <>
+                <span className="badge bg-success mb-3">
+                  <FaCheckCircle className="me-1" />
+                  {t('security.statusEnabled')}
+                </span>
+                <form onSubmit={handleEmailDisable} className="d-flex flex-wrap gap-2 align-items-end">
+                  <div>
+                    <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                      {t('security.currentPasswordLabel')}
+                    </label>
+                    <input
+                      type="password"
+                      className="form-control form-control-sm"
+                      value={emailPassword}
+                      onChange={(e) => setEmailPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="fm-btn-outline btn-sm" disabled={emailBusy || !emailPassword}>
+                    {t('security.disableButton')}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {emailPhase === 'enrolling' && (
+              <div>
+                <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>
+                  {t('security.emailSentHint', { email: emailAddress })}
+                </p>
+                <form onSubmit={handleEmailConfirm}>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold mb-1 d-block" style={{ fontSize: '0.85rem' }}>
+                      {t('security.enterCodeLabel')}
+                    </label>
+                    <CodeInput value={emailCode} onChange={setEmailCode} onComplete={submitEmailConfirmCode} disabled={emailBusy} autoFocus />
+                  </div>
+                  <div className="d-flex gap-2">
+                    <button type="submit" className="fm-btn-primary btn-sm" disabled={emailBusy || emailCode.length !== 6}>
+                      {t('security.confirmButton')}
+                    </button>
+                    <button type="button" className="fm-btn-outline btn-sm" onClick={handleEmailEnroll} disabled={emailBusy}>
+                      {t('security.emailResendButton')}
+                    </button>
+                    <button type="button" className="fm-btn-outline btn-sm" onClick={handleEmailCancelEnroll} disabled={emailBusy}>
+                      {t('security.cancelButton')}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="col-lg-6">
         <div className="fm-card fm-card-accent h-100">

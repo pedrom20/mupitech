@@ -39,6 +39,12 @@ const Login: React.FC = () => {
   const [code, setCode] = useState('')
   const [pushStatus, setPushStatus] = useState<'pending' | 'timeout' | 'error'>('pending')
   const [pushError, setPushError] = useState('')
+  // 'email' is a hybrid: code-kind (the user types something) but,
+  // unlike totp/privacyidea, there's no code to check until the server
+  // generates and emails one — this tracks that one-time send, kept
+  // separate from pushStatus since email is never in pushMethods.
+  const [emailOtpStatus, setEmailOtpStatus] = useState<'sending' | 'sent' | 'error'>('sending')
+  const [emailOtpError, setEmailOtpError] = useState('')
   // A completed factor briefly shows as "confirmed" (green border,
   // fade-out) before the actual navigate() away — otherwise the whole
   // challenge panel just vanishes the instant the last digit lands,
@@ -62,6 +68,8 @@ const Login: React.FC = () => {
       setCode('')
       setPushStatus('pending')
       setPushError('')
+      setEmailOtpStatus('sending')
+      setEmailOtpError('')
       return true
     }
     setSuccess(true)
@@ -123,6 +131,8 @@ const Login: React.FC = () => {
     try {
       const result = method === 'privacyidea'
         ? await auth.verifyPrivacyIDEA(challengeId, submittedCode)
+        : method === 'email'
+        ? await auth.verifyEmailOtp(challengeId, submittedCode)
         : await auth.verifyMfa(challengeId, submittedCode)
       handleChallengeResult(result)
     } catch (error) {
@@ -174,6 +184,29 @@ const Login: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challengeId, method])
 
+  // Email's one-time send, auto-triggered the same way a push method
+  // auto-triggers above — but this just emails the code and lets the
+  // normal code-entry form take over (submitMfaCode/verifyEmailOtp),
+  // it never itself completes the login.
+  const sendEmailCode = async (challenge: string) => {
+    setEmailOtpStatus('sending')
+    setEmailOtpError('')
+    try {
+      await auth.sendEmailOtp(challenge)
+      setEmailOtpStatus('sent')
+    } catch (error) {
+      setEmailOtpStatus('error')
+      setEmailOtpError(error instanceof ApiError ? error.message : String(error))
+    }
+  }
+
+  useEffect(() => {
+    if (challengeId && method === 'email') {
+      sendEmailCode(challengeId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challengeId, method])
+
   const backToCredentials = () => {
     setChallengeId(null)
     setMethod(null)
@@ -184,6 +217,8 @@ const Login: React.FC = () => {
     setCode('')
     setPushStatus('pending')
     setPushError('')
+    setEmailOtpStatus('sending')
+    setEmailOtpError('')
     setSuccess(false)
   }
 
@@ -377,7 +412,28 @@ const Login: React.FC = () => {
                   <div className="text-center mb-3">
                     <CodeIcon size={28} className="mb-2" />
                     <p className="mb-0 fw-semibold">{t('auth.mfa.title')}</p>
-                    <p className="form-text">{t('auth.mfa.description')}</p>
+                    <p className="form-text">
+                      {method === 'email' ? t('auth.mfa.emailDescription') : t('auth.mfa.description')}
+                    </p>
+                    {method === 'email' && emailOtpStatus === 'sending' && (
+                      <p className="form-text">
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        {t('auth.mfa.emailSending')}
+                      </p>
+                    )}
+                    {method === 'email' && emailOtpStatus === 'error' && (
+                      <p className="form-text text-danger">{emailOtpError || t('auth.mfa.emailSendError')}</p>
+                    )}
+                    {method === 'email' && emailOtpStatus !== 'sending' && (
+                      <button
+                        type="button"
+                        className="btn btn-link p-0 text-decoration-none"
+                        onClick={() => challengeId && sendEmailCode(challengeId)}
+                        disabled={loading}
+                      >
+                        {t('auth.mfa.emailResend')}
+                      </button>
+                    )}
                   </div>
                   <div className="mb-4">
                     <label className="form-label fw-semibold d-block text-center mb-2">{t('auth.mfa.code')}</label>

@@ -499,6 +499,10 @@
     "mfa": {
       "title": "Verificação em dois passos",
       "description": "Introduza o código de 6 dígitos gerado pela sua app de autenticação.",
+      "emailDescription": "Introduza o código de 6 dígitos que acabámos de lhe enviar por email.",
+      "emailSending": "A enviar o código para o seu email…",
+      "emailSendError": "Não foi possível enviar o email — tente novamente.",
+      "emailResend": "Reenviar código",
       "code": "Código",
       "verify": "Verificar",
       "back": "Voltar",
@@ -509,7 +513,8 @@
         "totp": "um código de autenticação",
         "duo": "o push do Duo",
         "privacyidea": "privacyIDEA",
-        "authpoint": "o push do AuthPoint"
+        "authpoint": "o push do AuthPoint",
+        "email": "um código por email"
       }
     },
     "push": {
@@ -721,6 +726,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "emailOtpMfaFeature": "Novo método de MFA: código por email — ative-o em Definições > Segurança para receber um código de 6 dígitos por email a cada login, sem precisar de nenhuma app",
       "passwordResetFeature": "Novo: recuperação de password — link \"Esqueceu-se da password?\" no login envia um email com um link seguro (válido por algumas horas, uso único) para definir uma nova password",
       "mfaCodeBoxesAndAnimations": "O login com MFA no device passa a ter 6 caixas de código separadas (como na Fleet Manager) em vez de um único campo, com animações a aparecer/desaparecer; também adicionadas animações subtis ao mudar de método ou concluir a verificação, tanto na Fleet Manager como no device",
       "rateLimitGroupFix": "Corrigido um bug em que dois endpoints diferentes com o mesmo limite de pedidos podiam partilhar acidentalmente o mesmo contador, causando bloqueios (403) incorretos e prematuros em vez do limite (429) esperado",
@@ -1371,6 +1377,13 @@
     "piTypePush": "Aprovação por push",
     "piScanQrHintPush": "Digitalize este código QR com a app privacyIDEA Authenticator para terminar o registo.",
     "piWaitingForApp": "A aguardar que termine o registo na app privacyIDEA Authenticator…",
+    "emailTitle": "Código por email",
+    "emailDescription": "Receba um código de 6 dígitos por email para a sua conta sempre que iniciar sessão — sem precisar de nenhuma app.",
+    "emailUnavailable": "O envio de emails ainda não está configurado nesta instância do Gestor de Mupis Digitais.",
+    "emailEnableButton": "Ativar código por email",
+    "emailSentHint": "Enviámos um código de 6 dígitos para {{email}}. Introduza-o abaixo para confirmar.",
+    "emailResendButton": "Reenviar código",
+    "emailEnrollError": "Não foi possível enviar o email.",
     "dualMfaTitle": "MFA duplo",
     "dualMfaDescription": "Exigir dois desafios de MFA de providers diferentes (ex: código + push) para fazer login, em vez de apenas um.",
     "dualMfaNotEligible": "Precisa de pelo menos 2 métodos MFA confirmados para ativar",

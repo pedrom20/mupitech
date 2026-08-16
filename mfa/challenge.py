@@ -119,3 +119,8 @@ def _mark_last_used(user, provider_key):
         if enrollment:
             enrollment.last_used_at = timezone.now()
             enrollment.save(update_fields=['last_used_at'])
+    elif provider_key == 'email':
+        device = getattr(user, 'email_otp_device', None)
+        if device:
+            device.last_used_at = timezone.now()
+            device.save(update_fields=['last_used_at'])

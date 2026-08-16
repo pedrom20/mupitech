@@ -325,6 +325,79 @@ def auth_privacyidea_push_verify(request):
     return Response({'detail': 'denied'}, status=401)
 
 
+@ratelimit(group='auth_email_otp_send', key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(group='auth_email_otp_send', key='post:challenge_id', rate='3/5m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_email_otp_send(request):
+    """Triggers (or re-triggers, via a 'resend' action) an email-OTP
+    challenge — the side-effecting half of the email method, companion
+    to auth_duo_verify/auth_privacyidea_push_verify in that sense, but
+    it doesn't block waiting for approval: it just emails a fresh code
+    and lets the frontend fall through to the normal code-entry UI,
+    checked by auth_email_otp_verify below. The code's hash is stashed
+    in the shared challenge cache entry (not on EmailOTPDevice) so it's
+    scoped to this one login attempt and expires with the challenge's
+    own TTL — nothing extra to clean up."""
+    from django.core.cache import cache
+
+    from mfa import email_otp
+    from mfa.models import EmailOTPDevice
+
+    challenge_id = request.data.get('challenge_id', '')
+    cache_key = f'mfa_challenge:{challenge_id}'
+    entry = cache.get(cache_key)
+    if not entry:
+        return Response({'detail': 'Challenge expired or invalid — please log in again.'}, status=400)
+
+    device = EmailOTPDevice.objects.filter(user_id=entry['user_id'], confirmed=True).select_related('user').first()
+    if not device:
+        return Response({'detail': 'Email codes are not set up for this account.'}, status=400)
+
+    code = email_otp.generate_code()
+    if not email_otp.send_code_email(device.user, code):
+        return Response({'detail': "Couldn't send the email — try again shortly."}, status=502)
+
+    entry['email_code_hash'] = email_otp.hash_code(code)
+    cache.set(cache_key, entry, timeout=300)
+    return Response({'sent': True})
+
+
+@ratelimit(group='auth_email_otp_verify', key='ip', rate='10/m', method='POST', block=True)
+@ratelimit(group='auth_email_otp_verify', key='post:challenge_id', rate='8/5m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auth_email_otp_verify(request):
+    """Companion to auth_mfa_verify for the email-OTP case — same
+    attempt-counter mechanics, checking the code's hash stashed in the
+    challenge entry by auth_email_otp_send above instead of a
+    pre-shared secret."""
+    from django.core.cache import cache
+
+    from history.logging import log_action
+    from mfa import email_otp
+    from mfa.challenge import register_factor_success
+
+    challenge_id = request.data.get('challenge_id', '')
+    cache_key = f'mfa_challenge:{challenge_id}'
+    entry = cache.get(cache_key)
+    if not entry:
+        return Response({'detail': 'Challenge expired or invalid — please log in again.'}, status=400)
+
+    code = str(request.data.get('code', ''))
+    if email_otp.code_matches(code, entry.get('email_code_hash', '')):
+        return register_factor_success(request, challenge_id, entry, 'email')
+
+    # Same attempt-counter pattern as auth_mfa_verify.
+    entry['attempts'] += 1
+    if entry['attempts'] >= 5:
+        cache.delete(cache_key)
+    else:
+        cache.set(cache_key, entry, timeout=300)
+    log_action(request, 'login_failed', 'session', details={'mfa': 'email'})
+    return Response({'detail': 'Invalid code.'}, status=401)
+
+
 @ratelimit(group='auth_device_login', key='ip', rate='20/m', method='POST', block=True)
 @ratelimit(group='auth_device_login', key='post:player_id', rate='10/m', method='POST', block=True)
 @api_view(['POST'])
@@ -607,6 +680,8 @@ urlpatterns = [
     path('api/auth/mfa/duo-verify/', auth_duo_verify),
     path('api/auth/mfa/privacyidea-verify/', auth_privacyidea_verify),
     path('api/auth/mfa/privacyidea-push-verify/', auth_privacyidea_push_verify),
+    path('api/auth/mfa/email-send/', auth_email_otp_send),
+    path('api/auth/mfa/email-verify/', auth_email_otp_verify),
     path('api/auth/device-login/', auth_device_login),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),

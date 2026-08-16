@@ -971,6 +971,20 @@ export const auth = {
     return apiRequest('POST', '/auth/mfa/privacyidea-verify/', { challenge_id: challengeId, code })
   },
 
+  /** Emails a fresh code for the 'email' method — unlike every other
+   * code-kind method (an authenticator app already has the code), this
+   * one has nothing to check until the server generates and sends it,
+   * so login.tsx calls this once on mount/switch (mirroring how a push
+   * method auto-triggers) before rendering the code-entry UI. Doesn't
+   * advance the login itself — verifyEmailOtp() below does that. */
+  sendEmailOtp(challengeId: string): Promise<{ sent: true }> {
+    return apiRequest('POST', '/auth/mfa/email-send/', { challenge_id: challengeId })
+  },
+
+  verifyEmailOtp(challengeId: string, code: string): Promise<{ success: true; username: string } | MfaChallenge> {
+    return apiRequest('POST', '/auth/mfa/email-verify/', { challenge_id: challengeId, code })
+  },
+
   /** Same push/block/retry-on-timeout shape as verifyDuo() above, for a
    * privacyIDEA push token instead of Duo — see
    * fleet_manager/urls.py::auth_privacyidea_push_verify. */
@@ -1017,6 +1031,27 @@ export const mfa = {
 
   disable(password: string): Promise<{ success: boolean }> {
     return apiRequest('POST', '/mfa/disable/', { password })
+  },
+}
+
+export const emailOtp = {
+  status(): Promise<{ configured: boolean; enabled: boolean; email: string }> {
+    return apiRequest('GET', '/mfa/email/status/')
+  },
+
+  /** Immediately emails a fresh code to the user's account email —
+   * unlike TOTP/Duo/privacyIDEA there's no QR to scan, just a code to
+   * confirm (see mfa/views.py::email_otp_enroll). */
+  enroll(): Promise<{ success: boolean; email: string }> {
+    return apiRequest('POST', '/mfa/email/enroll/')
+  },
+
+  confirm(code: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/mfa/email/confirm/', { code })
+  },
+
+  disable(password: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', '/mfa/email/disable/', { password })
   },
 }
 

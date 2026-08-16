@@ -67,6 +67,39 @@ class DuoEnrollment(models.Model):
         return f'Duo enrollment for {self.user} ({"confirmed" if self.confirmed else "pending"})'
 
 
+class EmailOTPDevice(models.Model):
+    """A user's email-delivered one-time-code second factor.
+
+    Unlike TOTPDevice (a persistent shared secret) or DuoEnrollment/
+    PrivacyIDEAEnrollment (the enrollment lives on an external
+    service), there's no persistent secret here at all — this row only
+    records *that* the user has confirmed they can receive codes at
+    their account email, never a code itself. Every code — the one
+    used to confirm enrollment, and every login-time challenge — is
+    generated fresh and kept only as a hash (mfa/email_otp.py, the same
+    one-way hasher Django uses for account passwords), never in the
+    clear. `pending_code_hash`/`pending_code_expires_at` back
+    *enrollment* confirmation only; login-time codes live in the
+    mfa_challenge cache entry instead (mfa/challenge.py), never on this
+    row, since a login challenge already has its own short-lived store.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_otp_device',
+    )
+    confirmed = models.BooleanField(default=False)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    pending_code_hash = models.CharField(max_length=255, blank=True, default='')
+    pending_code_expires_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'Email OTP device for {self.user} ({"confirmed" if self.confirmed else "pending"})'
+
+
 class MFAProviderConfig(models.Model):
     """Admin-editable credentials for an external MFA provider (Duo,
     privacyIDEA, AuthPoint) — lets an admin set these from the Settings

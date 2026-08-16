@@ -250,7 +250,7 @@ export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin'
 // offered by the backend yet (mfa.authpoint.authpoint_configured() is
 // always False) but is listed here so the frontend already type-checks
 // against it once that lands.
-export type MFAMethod = 'totp' | 'duo' | 'privacyidea' | 'authpoint'
+export type MFAMethod = 'totp' | 'duo' | 'privacyidea' | 'authpoint' | 'email'
 
 // A non-secret field returns its current value (DB override or env
 // var fallback); a secret field only reveals whether one is set, see
