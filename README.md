@@ -120,12 +120,12 @@ docker compose up -d --build
 
 A aplicação fica disponível em `http://localhost:9000`.
 
-### Credenciais por omissão
+### Primeira conta
 
-- **Utilizador:** admin
-- **Palavra-passe:** admin
-
-Alterar a palavra-passe após o primeiro início de sessão.
+Não há credenciais por omissão — ao abrir a aplicação pela primeira vez
+(base de dados sem nenhum superadmin), aparece um assistente de
+configuração inicial para criar a primeira conta de administrador e,
+opcionalmente, definir um logótipo de parceiro.
 
 ### Variáveis de ambiente
 

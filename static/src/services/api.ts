@@ -741,6 +741,22 @@ export const system = {
     return apiRequest('GET', '/system/features/')
   },
 
+  /** True only until the very first superadmin account exists — see
+   * fleet_manager/system_views.py::setup_required. Checked once on app
+   * boot, alongside the normal auth check, to decide whether to show
+   * the first-run setup wizard instead of the login page. */
+  getSetupRequired(): Promise<{ required: boolean }> {
+    return apiRequest('GET', '/system/setup-required/')
+  },
+
+  /** Creates the first superadmin account and logs the caller straight
+   * in — AllowAny is safe here only because the backend re-checks
+   * setup_required on every call and refuses once any superadmin
+   * exists, not just once at container start. */
+  runSetup(data: { username: string; password: string; email?: string }): Promise<{ success: boolean; username: string }> {
+    return apiRequest('POST', '/system/setup/', data)
+  },
+
   checkForUpdate(force?: boolean): Promise<{
     current_version: string
     latest_version: string | null

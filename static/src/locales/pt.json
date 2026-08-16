@@ -704,6 +704,10 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "setupWizardFeature": "Novo: assistente de configuração inicial — numa instalação nova (sem nenhum superadmin), a app guia a criação da primeira conta de administrador e, opcionalmente, do logótipo de parceiro, em vez de exigir 'manage.py createsuperuser' manual",
+      "deviceLoginMfaFeature": "O login direto no device com uma conta com 2FA ativo já funciona — antes ficava sempre bloqueado, a mandar usar o SSO da própria Fleet Manager em vez disso",
+      "mobileNavbarFixes": "Corrigidos 4 problemas do menu mobile: botão de abrir menu que ficava fora do ecrã em iPhones standard, botões de idioma/utilizador sem qualquer estilo, menu que não fechava ao escolher uma opção, e o separador ativo de Definições que resetava ao atualizar a página",
+      "fleetManagerRebrand": "Substituído \"Fleet Manager\" (nome anterior ao rebranding) por \"Gestor de Mupis Digitais\" em todo o texto atualmente visível — emails, hints de definições, confirmações e mais",
       "brandedAlertEmails": "Os emails de alerta (SMTP de teste e alerta real de devices offline) passam a ter um template visual com o logótipo da MupiTech (ou de parceiro, se configurado) e texto em português, em vez de texto simples em inglês",
       "dualMfaLogin": "Novo: MFA duplo — pode exigir dois desafios de MFA de providers diferentes para fazer login, por role (Definições > Providers MFA) ou por escolha própria (Definições > Segurança)",
       "lastSuperadminGuard": "Já não é possível despromover o último superadmin (nem a si próprio, nem a outro), evitando ficar sem ninguém com acesso total",
@@ -1372,5 +1376,17 @@
     "passwordMismatch": "A nova password e a confirmação não coincidem.",
     "passwordChangeError": "Não foi possível mudar a sua password.",
     "mfaStepHint": "A sua conta exige autenticação de dois fatores antes de poder continuar — ative um dos métodos abaixo."
+  },
+  "setupWizard": {
+    "title": "Configuração inicial",
+    "subtitle": "Só faltam alguns passos para começar a usar o MupiTech Gestor de Mupis Digitais.",
+    "adminStepTitle": "Criar conta de administrador",
+    "adminStepHint": "Esta vai ser a primeira conta — com acesso total. Pode criar mais utilizadores depois em Definições.",
+    "emailOptional": "Email (opcional)",
+    "continueButton": "Continuar",
+    "passwordMismatch": "A password e a confirmação não coincidem.",
+    "createError": "Não foi possível criar a conta. Tente novamente.",
+    "brandingStepHint": "Opcional — mostra o logótipo de um parceiro ao lado do MupiTech no menu. Pode configurar isto mais tarde em Definições.",
+    "finishButton": "Concluir"
   }
 }

@@ -9,7 +9,9 @@ import psutil
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django_ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from fleet_manager.permissions import IsAdmin, IsSuperAdmin
@@ -824,3 +826,62 @@ def fm_theme_delete_partner_logo(request):
         from history.logging import log_action
         log_action(request, 'delete', 'fm_theme_partner_logo')
     return Response(status=204)
+
+
+# ---------- First-run setup wizard ----------
+# A brand-new install has zero users and no code path that creates one
+# (no createsuperuser call anywhere in docker-entrypoint.sh/Dockerfile —
+# confirmed by grepping the whole repo) — the only way in was previously
+# `docker exec ... manage.py createsuperuser` by hand. This lets the
+# first visitor create that account (and optionally the partner logo)
+# from the browser instead. AllowAny is safe here specifically *because*
+# both views re-check "does a superuser already exist" server-side on
+# every call — the moment one exists, setup_required flips to False and
+# run_setup refuses regardless of who calls it or with what payload.
+
+def _setup_required():
+    from django.contrib.auth.models import User
+    return not User.objects.filter(is_superuser=True).exists()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def setup_required(request):
+    return Response({'required': _setup_required()})
+
+
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def run_setup(request):
+    from django.contrib.auth import login
+    from django.contrib.auth.models import User
+
+    from fleet_manager.serializers import _assign_role
+    from history.logging import log_action
+
+    if not _setup_required():
+        return Response({'error': 'Setup has already been completed.'}, status=409)
+
+    username = (request.data.get('username') or '').strip()
+    password = request.data.get('password') or ''
+    email = (request.data.get('email') or '').strip()
+
+    if not username or len(username) < 3:
+        return Response({'error': 'Username must be at least 3 characters.'}, status=400)
+    if len(password) < 8:
+        return Response({'error': 'Password must be at least 8 characters.'}, status=400)
+    if User.objects.filter(username=username).exists():
+        return Response({'error': 'That username is already taken.'}, status=400)
+
+    user = User.objects.create_user(username=username, password=password, email=email)
+    _assign_role(user, 'superadmin')
+
+    # Log them straight in — the wizard's next step (partner branding)
+    # reuses the same authenticated Settings endpoints everything else
+    # in Settings already uses, rather than duplicating an
+    # unauthenticated upload path just for this one-time flow.
+    login(request, user)
+    log_action(request, 'create', 'user', target_id=user.id, target_name=user.username,
+               details={'role': 'superadmin', 'via': 'setup_wizard'})
+    return Response({'success': True, 'username': user.username})

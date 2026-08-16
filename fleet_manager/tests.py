@@ -355,3 +355,65 @@ class DeviceLoginMFATests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data.get('success'))
         self.assertNotIn('mfa_required', response.data)
+
+
+class SetupWizardTests(TestCase):
+    """First-run bootstrap: a fresh DB has zero users and no code path
+    creates one (no createsuperuser call anywhere in the image) — this
+    is the only way in without shelling into the container. Both
+    endpoints are AllowAny, safe only because they re-check "does a
+    superuser already exist" on every call, not just once at startup."""
+
+    def setUp(self):
+        Group.objects.get_or_create(name='admin')
+        Group.objects.get_or_create(name='editor')
+        Group.objects.get_or_create(name='viewer')
+        Group.objects.get_or_create(name='superadmin')
+        self.client = APIClient()
+
+    def test_required_true_on_empty_db(self):
+        response = self.client.get('/api/system/setup-required/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['required'])
+
+    def test_required_false_once_a_superadmin_exists(self):
+        _make_superadmin('existing')
+        response = self.client.get('/api/system/setup-required/')
+        self.assertFalse(response.data['required'])
+
+    def test_run_setup_creates_superadmin_and_logs_in(self):
+        response = self.client.post('/api/system/setup/', {
+            'username': 'firstadmin', 'password': 'a-real-password-123',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+
+        user = User.objects.get(username='firstadmin')
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+
+        # login() during run_setup should have left this client authenticated.
+        me = self.client.get('/api/users/me/')
+        self.assertEqual(me.data.get('username'), 'firstadmin')
+
+    def test_run_setup_refuses_once_a_superadmin_already_exists(self):
+        _make_superadmin('existing')
+        response = self.client.post('/api/system/setup/', {
+            'username': 'sneaky', 'password': 'a-real-password-123',
+        }, format='json')
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(User.objects.filter(username='sneaky').exists())
+
+    def test_run_setup_rejects_short_password(self):
+        response = self.client.post('/api/system/setup/', {
+            'username': 'firstadmin', 'password': 'short',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(User.objects.filter(username='firstadmin').exists())
+
+    def test_run_setup_rejects_duplicate_username(self):
+        User.objects.create_user(username='taken', password='whatever123')
+        response = self.client.post('/api/system/setup/', {
+            'username': 'taken', 'password': 'a-real-password-123',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)

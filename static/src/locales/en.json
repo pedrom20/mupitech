@@ -704,6 +704,10 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "setupWizardFeature": "New: first-run setup wizard — on a fresh install (no superadmin yet), the app walks through creating the first admin account and, optionally, a partner logo, instead of requiring a manual 'manage.py createsuperuser'",
+      "deviceLoginMfaFeature": "Logging into a device directly with an MFA-enrolled account now works — it used to always be blocked, telling you to use the Fleet Manager's own SSO instead",
+      "mobileNavbarFixes": "Fixed 4 mobile menu issues: the menu toggle button being pushed off-screen on standard iPhones, the language/user buttons having no styling at all, the menu not closing after picking an option, and the active Settings tab resetting on page refresh",
+      "fleetManagerRebrand": "Replaced \"Fleet Manager\" (the pre-rebrand name) with \"Gestor de Mupis Digitais\" across all currently-visible text — emails, settings hints, confirmations, and more",
       "brandedAlertEmails": "Alert emails (the SMTP test and the real offline-device alert) now use a branded HTML template with the MupiTech logo (or a partner logo, if configured) and Portuguese text, instead of plain English text",
       "dualMfaLogin": "New: dual MFA — require two MFA challenges from different providers to log in, either by role (Settings > MFA Providers) or self-service opt-in (Settings > Security)",
       "lastSuperadminGuard": "The last superadmin can no longer be demoted (by themselves or anyone else), preventing a Fleet Manager with nobody left holding full access",
@@ -1371,5 +1375,17 @@
     "passwordMismatch": "The new password and confirmation don't match.",
     "passwordChangeError": "Couldn't change your password.",
     "mfaStepHint": "Your account requires two-factor authentication before you can continue — enable one of the methods below."
+  },
+  "setupWizard": {
+    "title": "Initial setup",
+    "subtitle": "Just a few steps to start using MupiTech Gestor de Mupis Digitais.",
+    "adminStepTitle": "Create the admin account",
+    "adminStepHint": "This will be the first account — full access. You can create more users afterwards in Settings.",
+    "emailOptional": "Email (optional)",
+    "continueButton": "Continue",
+    "passwordMismatch": "The password and confirmation don't match.",
+    "createError": "Couldn't create the account — please try again.",
+    "brandingStepHint": "Optional — shows a partner logo next to MupiTech in the menu. You can set this up later in Settings.",
+    "finishButton": "Finish"
   }
 }

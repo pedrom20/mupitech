@@ -25,9 +25,10 @@ import Settings from '@/components/settings/settings'
 import AuditLog from '@/components/settings/audit-log'
 import AccountPage from '@/components/account/account-page'
 import OnboardingWizard from '@/components/onboarding/onboarding-wizard'
+import SetupWizard from '@/components/setup/setup-wizard'
 import Login from '@/components/auth/login'
 import ChangelogPage from '@/components/changelog-page'
-import { users as usersApi } from '@/services/api'
+import { users as usersApi, system as systemApi } from '@/services/api'
 import { FeaturesProvider } from '@/context/features-context'
 import { applyTheme, watchSystemTheme, type ThemePreference } from '@/utils/theme'
 import type { User } from '@/types'
@@ -170,8 +171,17 @@ const App: React.FC = () => {
     })
   }
 
+  // null = not checked yet. Fetched alongside the normal auth check
+  // (not gated behind "only if !user", since a fresh install has no
+  // user *and* setup is required — both need to resolve up front to
+  // pick the right thing to render) — see setup-wizard.tsx.
+  const [setupRequired, setSetupRequired] = useState<boolean | null>(null)
+
   useEffect(() => {
     refresh()
+    systemApi.getSetupRequired()
+      .then((res) => setSetupRequired(res.required))
+      .catch(() => setSetupRequired(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -190,7 +200,9 @@ const App: React.FC = () => {
           )}
           <Navbar onLogoTapSequence={toggleDosTheme} />
           <main className="fm-content">
-            {user && (user.must_change_password || user.force_mfa_enroll) ? (
+            {checked && !user && setupRequired ? (
+              <SetupWizard onComplete={() => { setSetupRequired(false); refresh() }} />
+            ) : user && (user.must_change_password || user.force_mfa_enroll) ? (
               <OnboardingWizard />
             ) : (
               <Routes>
