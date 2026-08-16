@@ -21,6 +21,8 @@ type PIPhase = 'loading' | 'disabled' | 'enrolling' | 'enabled'
 // "a code was just emailed, waiting for it to be typed in".
 type EmailPhase = 'loading' | 'unavailable' | 'disabled' | 'enrolling' | 'enabled'
 
+type SettingsTab = 'totp' | 'duo' | 'privacyidea' | 'email' | 'dual'
+
 const DUO_POLL_INTERVAL_MS = 2000
 
 const SecuritySettings: React.FC = () => {
@@ -49,6 +51,8 @@ const SecuritySettings: React.FC = () => {
   const [piPassword, setPiPassword] = useState('')
   const [piBusy, setPiBusy] = useState(false)
   const piPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>('totp')
 
   const [emailPhase, setEmailPhase] = useState<EmailPhase>('loading')
   const [emailAddress, setEmailAddress] = useState('')
@@ -422,8 +426,65 @@ const SecuritySettings: React.FC = () => {
   }
 
   return (
-    <div className="row g-3">
-      <div className="col-lg-6">
+    <div>
+      <ul className="nav nav-tabs mb-3">
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'totp' ? 'active' : ''}`}
+            onClick={() => setActiveTab('totp')}
+          >
+            <FaShieldAlt className="me-1" />
+            {t('security.mfaTitle')}
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'duo' ? 'active' : ''}`}
+            onClick={() => setActiveTab('duo')}
+          >
+            <FaMobileAlt className="me-1" />
+            {t('security.duoTitle')}
+          </button>
+        </li>
+        {piConfigured && (
+          <li className="nav-item">
+            <button
+              type="button"
+              className={`nav-link ${activeTab === 'privacyidea' ? 'active' : ''}`}
+              onClick={() => setActiveTab('privacyidea')}
+            >
+              <FaKey className="me-1" />
+              {t('security.piTitle')}
+            </button>
+          </li>
+        )}
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'email' ? 'active' : ''}`}
+            onClick={() => setActiveTab('email')}
+          >
+            <FaEnvelope className="me-1" />
+            {t('security.emailTitle')}
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'dual' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dual')}
+          >
+            <FaUserShield className="me-1" />
+            {t('security.dualMfaTitle')}
+          </button>
+        </li>
+      </ul>
+
+      {activeTab === 'totp' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2">
             <h5 className="card-title mb-0">
@@ -523,8 +584,12 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
 
-      <div className="col-lg-6">
+      {activeTab === 'duo' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2">
             <h5 className="card-title mb-0">
@@ -609,9 +674,12 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
 
-      {piConfigured && (
-        <div className="col-lg-6">
+      {activeTab === 'privacyidea' && piConfigured && (
+      <div className="row g-3">
+        <div className="col-lg-8">
           <div className="fm-card fm-card-accent h-100">
             <div className="fm-card-header py-2">
               <h5 className="card-title mb-0">
@@ -756,9 +824,12 @@ const SecuritySettings: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
       )}
 
-      <div className="col-lg-6">
+      {activeTab === 'email' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2">
             <h5 className="card-title mb-0">
@@ -849,8 +920,12 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
 
-      <div className="col-lg-6">
+      {activeTab === 'dual' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2">
             <h5 className="card-title mb-0">
@@ -886,6 +961,8 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
     </div>
   )
 }
