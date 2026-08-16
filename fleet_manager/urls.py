@@ -20,6 +20,16 @@ from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
+
+def _client_ip(request):
+    """Real end-user IP behind nginx's reverse proxy — same precedence
+    history/logging.py's own audit-log extraction already uses.
+    REMOTE_ADDR alone would always be nginx's own address."""
+    return (
+        request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+        or request.META.get('REMOTE_ADDR')
+    )
+
 from rest_framework.routers import DefaultRouter
 
 from fleet_manager.permissions import _user_role
@@ -246,7 +256,7 @@ def auth_duo_verify(request):
         return Response({'detail': 'Duo push is not set up for this account.'}, status=400)
 
     try:
-        result = duo.push_auth(enrollment.duo_user_id)
+        result = duo.push_auth(enrollment.duo_user_id, ipaddr=_client_ip(request))
     except Exception as exc:
         logger.warning('Duo push_auth failed: %s', exc)
         return Response({'detail': "Couldn't reach Duo — try again."}, status=502)

@@ -51,7 +51,7 @@ def check_enrollment_status(duo_user_id, activation_code):
     return _client().enroll_status(user_id=duo_user_id, activation_code=activation_code)
 
 
-def push_auth(duo_user_id):
+def push_auth(duo_user_id, ipaddr=None):
     """Trigger a Duo Mobile push and BLOCK until the user approves/
     denies or it times out (Duo's own ~60s default) — this is a
     synchronous call (no async=1), so Duo's /auth endpoint itself does
@@ -61,6 +61,13 @@ def push_auth(duo_user_id):
     to scale — the alternative is async=1 + polling /auth_status from
     the frontend, not implemented here.
 
+    `ipaddr` is the end user's own client IP (see fleet_manager/urls.py::
+    auth_duo_verify), passed through so the Duo Admin Panel's
+    authentication log shows where the login actually came from instead
+    of Duo's own "0.0.0.0" default when this is omitted — some Duo
+    policies (e.g. geolocation/anonymizer rules) key off this and would
+    otherwise always see a blank/placeholder address.
+
     Returns Duo's raw dict: result ('allow'/'deny'), status,
     status_msg.
     """
@@ -68,4 +75,5 @@ def push_auth(duo_user_id):
         user_id=duo_user_id,
         factor='push',
         device=PUSH_DEVICE,
+        ipaddr=ipaddr,
     )
