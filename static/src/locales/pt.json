@@ -50,6 +50,15 @@
     "temp": "Temperatura",
     "cores": "núcleos"
   },
+  "pairing": {
+    "title": "Dispositivos a aguardar aprovação",
+    "unnamedDevice": "Dispositivo sem nome",
+    "approveButton": "Aprovar",
+    "rejectButton": "Rejeitar",
+    "rejectConfirmTitle": "Rejeitar este dispositivo?",
+    "expired": "Expirado",
+    "approvedToast": "{{name}} foi adicionado à sua frota."
+  },
   "players": {
     "title": "Dispositivos",
     "addPlayer": "Adicionar Dispositivo",

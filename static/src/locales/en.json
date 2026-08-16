@@ -50,6 +50,15 @@
     "temp": "Temperature",
     "cores": "cores"
   },
+  "pairing": {
+    "title": "Devices awaiting approval",
+    "unnamedDevice": "Unnamed device",
+    "approveButton": "Approve",
+    "rejectButton": "Reject",
+    "rejectConfirmTitle": "Reject this device?",
+    "expired": "Expired",
+    "approvedToast": "{{name}} was added to your fleet."
+  },
   "players": {
     "title": "Players",
     "addPlayer": "Add Player",

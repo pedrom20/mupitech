@@ -370,6 +370,33 @@ export const players = {
   },
 }
 
+export interface PendingPairing {
+  id: string
+  pairing_code: string
+  device_name: string
+  mac_address: string
+  url: string
+  created_at: string
+  is_expired: boolean
+}
+
+/** Admin side of players/pairing_views.py — the device's own two calls
+ * (request/status) are unauthenticated and never made from this app,
+ * only from the device itself, so they have no client here. */
+export const pairing = {
+  list(): Promise<PendingPairing[]> {
+    return apiRequest<PendingPairing[]>('GET', '/pairing/pending/')
+  },
+
+  approve(id: string): Promise<{ success: boolean; player_id: string; player_name: string }> {
+    return apiRequest('POST', `/pairing/${id}/approve/`)
+  },
+
+  reject(id: string): Promise<{ success: boolean }> {
+    return apiRequest('POST', `/pairing/${id}/reject/`)
+  },
+}
+
 export const groups = {
   list(): Promise<Group[]> {
     return apiRequest<Group[]>('GET', '/groups/')

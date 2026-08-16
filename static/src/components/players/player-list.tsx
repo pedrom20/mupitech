@@ -18,6 +18,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import AddPlayerModal from './add-player-modal'
 import BulkProvision from './bulk-provision'
+import PendingPairings from './pending-pairings'
 import PlayerCard from '@/components/dashboard/player-card'
 import { RoleContext, isAdminRole } from '@/components/app'
 import type { Player } from '@/types'
@@ -142,6 +143,8 @@ const PlayerList: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {isAdminRole(role) && <PendingPairings />}
 
       <div className="fm-search-bar d-flex align-items-center gap-2">
         <div className="search-input-wrapper flex-grow-1">

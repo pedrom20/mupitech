@@ -241,6 +241,70 @@ class Player(models.Model):
             return ''
 
 
+class PendingPairing(models.Model):
+    """A device-initiated request to join this Fleet Manager, awaiting
+    admin approval.
+
+    Different from the existing PLAYER_REGISTER_TOKEN phone-home path
+    (register_player, a shared secret baked into every device at
+    provisioning time, auto-approved) — this is for a *fresh* device
+    that has never met this Fleet Manager before and has no shared
+    secret yet. It calls in on its own (players/pairing_views.py::
+    pairing_request), gets back this row's id + a poll_token (kept
+    secret between the device and this row — the id alone leaks into
+    the admin's pending list, so approve/reject/status can't be driven
+    by id alone), and polls pairing_status until an admin approves or
+    rejects it here. `pairing_code` is a short, human-readable string
+    shown on both ends purely so an admin juggling more than one
+    pending request at once can visually match "this is the device
+    sitting in front of me" — it carries no security weight on its own
+    (poll_token does that).
+
+    Approval creates (or reuses, if a matching MAC already exists) a
+    real Player and provisions its sso_secret directly — see
+    pairing_views.py::pairing_approve. Unlike push_sso_secret_to_player
+    (players/sso.py), no SSH round-trip is needed here: the device
+    itself calls back and writes the secret into its own local
+    settings once pairing_status reports 'approved', since it already
+    holds the poll_token proving it's the same device that asked.
+    """
+
+    STATUS_CHOICES = [
+        ('pending', 'pending'),
+        ('approved', 'approved'),
+        ('rejected', 'rejected'),
+    ]
+    TTL_MINUTES = 15
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    poll_token = models.CharField(max_length=64)
+    pairing_code = models.CharField(max_length=12)
+    device_name = models.CharField(max_length=255, blank=True, default='')
+    mac_address = models.CharField(max_length=17, blank=True, default='')
+    url = models.CharField(max_length=500, blank=True, default='')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    player = models.ForeignKey(
+        'Player', null=True, blank=True, on_delete=models.SET_NULL, related_name='pairing_requests',
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Pairing {self.pairing_code} ({self.status})'
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+        import datetime
+        return self.status == 'pending' and timezone.now() - self.created_at > datetime.timedelta(minutes=self.TTL_MINUTES)
+
+
 class PlayerSnapshot(models.Model):
     """Historical snapshot of a player's status, saved during each poll."""
     id = models.BigAutoField(primary_key=True)
