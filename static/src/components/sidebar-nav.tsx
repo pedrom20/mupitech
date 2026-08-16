@@ -1,11 +1,13 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup,
-  FaMapMarkerAlt, FaListUl, FaSitemap, FaCalendarAlt, FaChevronLeft, FaChevronRight,
+  FaMapMarkerAlt, FaListUl, FaSitemap, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaChevronDown,
 } from 'react-icons/fa'
 import { SidebarNavContext } from '@/components/app'
+
+const FLEET_EXPANDED_STORAGE_KEY = 'fm_sidebar_fleet_expanded'
 
 /** Experimental alternative to the top navbar's menu — a left sidebar
  * with the same routes, collapsible down to an icon-only rail. Opt-in,
@@ -16,8 +18,23 @@ import { SidebarNavContext } from '@/components/app'
 const SidebarNav: React.FC = () => {
   const { t } = useTranslation()
   const { collapsed, setCollapsed } = useContext(SidebarNavContext)
+  // Independent from the whole-sidebar collapse above — this just
+  // expands/collapses the "Fleet" group of links (an accordion), and
+  // only makes sense while the sidebar itself has room for text: when
+  // the whole sidebar is icon-only, every fleet icon always shows
+  // regardless of this, same as before this existed.
+  const [fleetExpanded, setFleetExpanded] = useState(
+    () => localStorage.getItem(FLEET_EXPANDED_STORAGE_KEY) !== '0',
+  )
 
   const toggleCollapsed = () => setCollapsed(!collapsed)
+  const toggleFleetExpanded = () => {
+    setFleetExpanded((prev) => {
+      const next = !prev
+      localStorage.setItem(FLEET_EXPANDED_STORAGE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
 
   const topItems = [
     { to: '/', icon: FaThLarge, label: t('nav.dashboard'), end: true },
@@ -54,8 +71,24 @@ const SidebarNav: React.FC = () => {
     <nav className={`fm-sidebar d-none d-lg-flex ${collapsed ? 'is-collapsed' : ''}`}>
       <ul className="list-unstyled mb-0 flex-grow-1">
         {topItems.map(renderItem)}
-        {!collapsed && <li className="fm-sidebar-section-label">{t('nav.fleet')}</li>}
-        {fleetItems.map(renderItem)}
+        {collapsed ? (
+          fleetItems.map(renderItem)
+        ) : (
+          <>
+            <li>
+              <button
+                type="button"
+                className="fm-sidebar-section-toggle"
+                onClick={toggleFleetExpanded}
+                aria-expanded={fleetExpanded}
+              >
+                <span className="fm-sidebar-section-label">{t('nav.fleet')}</span>
+                <FaChevronDown className={`fm-sidebar-section-chevron ${fleetExpanded ? '' : 'is-collapsed'}`} />
+              </button>
+            </li>
+            {fleetExpanded && fleetItems.map(renderItem)}
+          </>
+        )}
         {!collapsed && <hr className="fm-sidebar-divider" />}
         {bottomItems.map(renderItem)}
       </ul>

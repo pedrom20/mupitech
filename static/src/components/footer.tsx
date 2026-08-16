@@ -55,14 +55,19 @@ const Footer: React.FC<FooterProps> = ({ onSecretTrigger }) => {
             >
               {t('footer.copyright')}
             </a>
-            {' — '}
-            <a
-              href="https://github.com/Screenly/Anthias"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('footer.upstream')}
-            </a>
+            {/* Attribution credit, not legally load-bearing on its own —
+                the first thing dropped on mobile (footer.upstream-link
+                below) when space is tight. */}
+            <span className="footer-upstream-link">
+              {' — '}
+              <a
+                href="https://github.com/Screenly/Anthias"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('footer.upstream')}
+              </a>
+            </span>
           </p>
           <ul className="footer-links">
             <li>
@@ -77,7 +82,7 @@ const Footer: React.FC<FooterProps> = ({ onSecretTrigger }) => {
                 {updateAvailable && <span className="fm-update-dot" title={t('updates.newVersion')} />}
               </Link>
             </li>
-            <li>
+            <li className="footer-github-item">
               <a
                 href="https://github.com/pedrom20/mupiteck"
                 target="_blank"

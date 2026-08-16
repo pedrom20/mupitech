@@ -348,11 +348,35 @@ body {
   }
 
   .fm-sidebar-section-label {
-    padding: 0.75rem 1.25rem 0.25rem;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: rgba($white, 0.4);
+  }
+
+  .fm-sidebar-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1.25rem 0.25rem;
+    cursor: pointer;
+
+    &:hover .fm-sidebar-section-label {
+      color: rgba($white, 0.7);
+    }
+  }
+
+  .fm-sidebar-section-chevron {
+    font-size: 0.65rem;
+    color: rgba($white, 0.4);
+    transition: transform 0.15s ease;
+
+    &.is-collapsed {
+      transform: rotate(-90deg);
+    }
   }
 
   .fm-sidebar-divider {
@@ -1458,6 +1482,12 @@ body {
 @media (max-width: 768px) {
   body {
     padding-top: 65px;
+    // Matches the shrunk mobile .fm-footer below (single, tighter row
+    // instead of the desktop's two spaced-out rows) — the old fixed
+    // $footer-height + 20px assumed the desktop footer's height, which
+    // on mobile the wrapped/stacked content actually exceeded, letting
+    // the fixed-position footer overlap the last bit of page content.
+    padding-bottom: 56px;
   }
 
   .fm-navbar {
@@ -1513,10 +1543,32 @@ body {
 
   .fm-footer {
     height: auto;
-    padding: 0.75rem 1rem;
-    flex-direction: column;
-    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.4rem 1rem;
     text-align: center;
+
+    .footer-inner {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      row-gap: 0.15rem;
+      column-gap: 0.5rem;
+    }
+
+    .footer-text {
+      font-size: 0.7rem;
+    }
+
+    // Attribution credit and the GitHub text link are the first things
+    // dropped when space is tight — the copyright line + version badge
+    // (which is also the link to /changelog) are what's actually load-
+    // bearing on a small screen; everything else was making this fixed-
+    // position bar taller than the space body's own padding reserved
+    // for it, so it started overlapping page content.
+    .footer-upstream-link,
+    .footer-github-item {
+      display: none;
+    }
 
     .footer-links {
       gap: 0.75rem;
