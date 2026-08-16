@@ -11,7 +11,9 @@
     "history": "History",
     "settings": "Settings",
     "audit": "Audit Log",
-    "fleetOverview": "Overview"
+    "fleetOverview": "Overview",
+    "sidebarCollapse": "Collapse sidebar",
+    "sidebarExpand": "Expand sidebar"
   },
   "fleetOverview": {
     "title": "Fleet Overview",
@@ -474,6 +476,8 @@
     "lightTheme": "Light",
     "darkTheme": "Dark",
     "systemTheme": "Follow system",
+    "experimentalSidebarNav": "Experimental: left sidebar navigation",
+    "experimentalSidebarNavDesc": "Test layout — replaces the top navbar's menu with a collapsible left sidebar for everyone on this Gestor de Mupis Digitais instance. Doesn't remove the current layout; can be switched off again at any time.",
     "saved": "Settings saved",
     "autoRegistration": "Auto-Registration",
     "autoRegistrationDesc": "Run this command on a player to enable automatic registration with Gestor de Mupis Digitais.",

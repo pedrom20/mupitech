@@ -160,9 +160,15 @@ interface NavbarProps {
    * on devices with no physical keyboard. Same useTapTrigger mechanism
    * the footer already uses for the retro theme's mobile trigger. */
   onLogoTapSequence?: () => void
+  /** Set when the experimental sidebar-nav layout is active (see
+   * SidebarNavContext) — the same route links now live in sidebar-nav.tsx
+   * instead, so this hides them here *only* at the lg+ breakpoint. The
+   * mobile hamburger dropdown is left untouched: sidebar-nav.tsx is
+   * desktop-only, so small screens still need this menu to navigate at all. */
+  hideDesktopNavItems?: boolean
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
+const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems }) => {
   const { t } = useTranslation()
   const { user, checked } = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
@@ -220,7 +226,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence }) => {
           )}
 
           {isAuthenticated && (
-            <div className={`flex-grow-1 d-lg-flex align-items-start align-items-lg-center justify-content-lg-center ${isOpen ? 'd-flex flex-column flex-lg-row position-absolute start-0 end-0 bg-purple-dark p-3 p-lg-0' : 'd-none'}`}
+            <div className={`flex-grow-1 ${hideDesktopNavItems ? 'd-lg-none' : 'd-lg-flex'} align-items-start align-items-lg-center justify-content-lg-center ${isOpen ? 'd-flex flex-column flex-lg-row position-absolute start-0 end-0 bg-purple-dark p-3 p-lg-0' : 'd-none'}`}
               style={isOpen ? { top: '100%', zIndex: 1030, backgroundColor: '#04182B' } : {}}>
               <ul className="navbar-nav d-flex flex-column flex-lg-row list-unstyled mb-0 gap-1">
                 {navItemsBefore.map((item) => (

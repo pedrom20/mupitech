@@ -6,7 +6,7 @@ import Swal from 'sweetalert2'
 import { pushLanguageToPlayers, system } from '@/services/api'
 import type { TailscaleSettings } from '@/types'
 import { APP_VERSION } from '../../changelog'
-import { RoleContext, ThemeContext, isAdminRole, isSuperAdminRole } from '@/components/app'
+import { RoleContext, ThemeContext, SidebarNavContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
 import BrandingSettings from './branding-settings'
 import PartnerLogoSettings from './partner-logo-settings'
@@ -21,6 +21,7 @@ const Settings: React.FC = () => {
   const { t, i18n } = useTranslation()
   const role = useContext(RoleContext)
   const { pref: theme, setPref: setTheme } = useContext(ThemeContext)
+  const sidebarNav = useContext(SidebarNavContext)
 
   const [pollInterval, setPollInterval] = useState(
     localStorage.getItem('fm_poll_interval') || '60',
@@ -189,6 +190,13 @@ const Settings: React.FC = () => {
     })
   }
 
+  const handleSidebarNavToggle = (value: boolean) => {
+    sidebarNav.setEnabled(value)
+    system.updateSettings({ experimental_sidebar_nav: value }).catch(() => {
+      sidebarNav.setEnabled(!value)
+    })
+  }
+
   const handleSave = () => {
     localStorage.setItem('fm_poll_interval', pollInterval)
 
@@ -348,6 +356,23 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {isSuperAdminRole(role) && (
+                <div className="mb-3 form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="experimental-sidebar-nav"
+                    checked={sidebarNav.enabled}
+                    onChange={(e) => handleSidebarNavToggle(e.target.checked)}
+                  />
+                  <label className="form-check-label fw-semibold" htmlFor="experimental-sidebar-nav" style={{ fontSize: '0.85rem' }}>
+                    {t('settings.experimentalSidebarNav')}
+                  </label>
+                  <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('settings.experimentalSidebarNavDesc')}</div>
+                </div>
+              )}
 
               <button className="fm-btn-primary btn-sm" onClick={handleSave}>
                 <FaSave />

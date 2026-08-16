@@ -14,7 +14,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, IsSuperAdmin
+from fleet_manager.permissions import IsAdmin, IsSuperAdmin, _user_role
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,12 @@ GITHUB_REPO = os.environ.get('UPDATE_CHECK_GITHUB_REPO', 'pedrom20/mupiteck')
 UPDATE_CHECK_CACHE_KEY = 'system:latest_version'
 UPDATE_CHECK_CACHE_TTL = 300  # 5 minutes
 AUTO_UPDATE_CACHE_KEY = 'system:auto_update'
+# Superadmin-only, instance-wide opt-in for the experimental left-
+# sidebar navigation layout (see static/src/components/sidebar-nav.tsx)
+# — a test alternative to the top navbar, not a replacement; anyone
+# can read it (every user's app.tsx needs to know which layout to
+# render), only a superadmin can flip it (see system_settings below).
+SIDEBAR_NAV_CACHE_KEY = 'system:experimental_sidebar_nav'
 
 # Tailscale settings keys
 TS_ENABLED_KEY = 'system:tailscale_enabled'
@@ -235,17 +241,35 @@ def system_update(request):
 
 @api_view(['GET', 'PATCH'])
 def system_settings(request):
-    """Get or update system settings (auto_update toggle)."""
+    """Get or update system settings (auto_update toggle, experimental
+    sidebar-nav layout)."""
     if request.method == 'GET':
-        auto_update = cache.get(AUTO_UPDATE_CACHE_KEY, True)
-        return Response({'auto_update': auto_update})
+        return Response({
+            'auto_update': cache.get(AUTO_UPDATE_CACHE_KEY, True),
+            'experimental_sidebar_nav': cache.get(SIDEBAR_NAV_CACHE_KEY, False),
+        })
 
     auto_update = request.data.get('auto_update')
     if auto_update is not None:
         cache.set(AUTO_UPDATE_CACHE_KEY, bool(auto_update), None)
         from history.logging import log_action
         log_action(request, 'update', 'settings', target_name='auto_update', details={'auto_update': bool(auto_update)})
-    return Response({'auto_update': cache.get(AUTO_UPDATE_CACHE_KEY, True)})
+
+    sidebar_nav = request.data.get('experimental_sidebar_nav')
+    if sidebar_nav is not None:
+        if _user_role(request.user) != 'superadmin':
+            return Response({'error': 'Only a superadmin can change this setting.'}, status=403)
+        cache.set(SIDEBAR_NAV_CACHE_KEY, bool(sidebar_nav), None)
+        from history.logging import log_action
+        log_action(
+            request, 'update', 'settings', target_name='experimental_sidebar_nav',
+            details={'experimental_sidebar_nav': bool(sidebar_nav)},
+        )
+
+    return Response({
+        'auto_update': cache.get(AUTO_UPDATE_CACHE_KEY, True),
+        'experimental_sidebar_nav': cache.get(SIDEBAR_NAV_CACHE_KEY, False),
+    })
 
 
 @api_view(['GET'])

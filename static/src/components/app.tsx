@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Swal from 'sweetalert2'
 import Navbar from './navbar'
+import SidebarNav from './sidebar-nav'
 import Footer from './footer'
 import { useKonamiCode } from '@/hooks/use-konami-code'
 import { useDosCode } from '@/hooks/use-dos-code'
@@ -72,9 +73,33 @@ export const ThemeContext = createContext<ThemeContextValue>({
   dos: false,
 })
 
+interface SidebarNavContextValue {
+  /** Instance-wide, superadmin-controlled (system:experimental_sidebar_nav
+   * on the backend) — NOT a personal preference, so this is fetched once
+   * in app.tsx rather than read from localStorage. Exposed as context
+   * (not just a prop) so settings.tsx's toggle can flip it live for
+   * every open tab of every user, without a full page reload. */
+  enabled: boolean
+  setEnabled: (enabled: boolean) => void
+  /** Collapsed-to-icon-rail state IS a personal preference (persisted
+   * to localStorage in app.tsx) — owned here instead of inside
+   * sidebar-nav.tsx itself because .fm-content's own margin-left needs
+   * to match it too, and the two aren't parent/child in the DOM. */
+  collapsed: boolean
+  setCollapsed: (collapsed: boolean) => void
+}
+
+export const SidebarNavContext = createContext<SidebarNavContextValue>({
+  enabled: false,
+  setEnabled: () => {},
+  collapsed: false,
+  setCollapsed: () => {},
+})
+
 const RETRO_STORAGE_KEY = 'fm_retro_theme'
 const DOS_STORAGE_KEY = 'fm_dos_theme'
 const THEME_STORAGE_KEY = 'fm_theme'
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'fm_sidebar_nav_collapsed'
 
 const App: React.FC = () => {
   const { i18n, t } = useTranslation()
@@ -177,12 +202,23 @@ const App: React.FC = () => {
   // user *and* setup is required — both need to resolve up front to
   // pick the right thing to render) — see setup-wizard.tsx.
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null)
+  const [sidebarNavEnabled, setSidebarNavEnabled] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1',
+  )
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, sidebarCollapsed ? '1' : '0')
+  }, [sidebarCollapsed])
 
   useEffect(() => {
     refresh()
     systemApi.getSetupRequired()
       .then((res) => setSetupRequired(res.required))
       .catch(() => setSetupRequired(false))
+    systemApi.getSettings()
+      .then((res) => setSidebarNavEnabled(res.experimental_sidebar_nav))
+      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -192,6 +228,10 @@ const App: React.FC = () => {
     <AuthContext.Provider value={{ user, checked, refresh, clear }}>
       <RoleContext.Provider value={user?.role ?? null}>
         <ThemeContext.Provider value={{ pref: themePref, setPref: setThemePref, retro: retroTheme, dos: dosTheme }}>
+        <SidebarNavContext.Provider value={{
+          enabled: sidebarNavEnabled, setEnabled: setSidebarNavEnabled,
+          collapsed: sidebarCollapsed, setCollapsed: setSidebarCollapsed,
+        }}>
         <FeaturesProvider>
           {dosTheme && showDosBoot && (
             <DosBootOverlay onDone={() => setShowDosBoot(false)} />
@@ -199,8 +239,9 @@ const App: React.FC = () => {
           {showHacked && (
             <HackedOverlay onDone={() => setShowHacked(false)} />
           )}
-          <Navbar onLogoTapSequence={toggleDosTheme} />
-          <main className="fm-content">
+          <Navbar onLogoTapSequence={toggleDosTheme} hideDesktopNavItems={sidebarNavEnabled} />
+          {checked && user && sidebarNavEnabled && <SidebarNav />}
+          <main className={`fm-content ${checked && user && sidebarNavEnabled ? `fm-content--with-sidebar ${sidebarCollapsed ? 'fm-content--sidebar-collapsed' : ''}` : ''}`}>
             {checked && !user && setupRequired ? (
               <SetupWizard onComplete={() => { setSetupRequired(false); refresh() }} />
             ) : user && (user.must_change_password || user.force_mfa_enroll) ? (
@@ -249,6 +290,7 @@ const App: React.FC = () => {
             </button>
           )}
         </FeaturesProvider>
+        </SidebarNavContext.Provider>
         </ThemeContext.Provider>
       </RoleContext.Provider>
     </AuthContext.Provider>

@@ -800,11 +800,13 @@ export const system = {
     return apiRequest('POST', '/system/update/')
   },
 
-  getSettings(): Promise<{ auto_update: boolean }> {
+  getSettings(): Promise<{ auto_update: boolean; experimental_sidebar_nav: boolean }> {
     return apiRequest('GET', '/system/settings/')
   },
 
-  updateSettings(data: { auto_update: boolean }): Promise<{ auto_update: boolean }> {
+  updateSettings(
+    data: Partial<{ auto_update: boolean; experimental_sidebar_nav: boolean }>,
+  ): Promise<{ auto_update: boolean; experimental_sidebar_nav: boolean }> {
     return apiRequest('PATCH', '/system/settings/', data)
   },
 

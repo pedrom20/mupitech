@@ -291,6 +291,107 @@ body {
 }
 
 // -----------------------------------------------------------------------------
+// Experimental sidebar-nav layout (opt-in, see SidebarNavContext) — an
+// alternative to the top navbar's menu, not a replacement. Desktop-only:
+// .fm-sidebar is d-none below lg (see the component), so .fm-content's
+// own margin-left below only needs to apply at that same breakpoint.
+// -----------------------------------------------------------------------------
+.fm-sidebar {
+  position: fixed;
+  top: $navbar-height;
+  left: 0;
+  bottom: 0;
+  width: $sidebar-width;
+  background-color: $anthias-purple-1;
+  z-index: $z-fixed - 1;
+  flex-direction: column;
+  padding: 1rem 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.2s ease;
+
+  &.is-collapsed {
+    width: $sidebar-width-collapsed;
+  }
+
+  .fm-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1.25rem;
+    color: rgba($white, 0.85);
+    font-weight: $font-weight-medium;
+    font-size: $font-size-sm;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $white;
+      background-color: rgba($white, 0.08);
+    }
+
+    &.active {
+      color: $anthias-yellow-3;
+      background-color: rgba($anthias-yellow-3, 0.1);
+    }
+  }
+
+  &.is-collapsed .fm-sidebar-link {
+    justify-content: center;
+    padding: 0.65rem 0;
+  }
+
+  .fm-sidebar-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .fm-sidebar-section-label {
+    padding: 0.75rem 1.25rem 0.25rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba($white, 0.4);
+  }
+
+  .fm-sidebar-divider {
+    border-color: rgba($white, 0.1);
+    margin: 0.75rem 1.25rem;
+  }
+
+  .fm-sidebar-collapse-btn {
+    background: transparent;
+    border: none;
+    color: rgba($white, 0.6);
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: $transition-fast;
+
+    &:hover {
+      color: $white;
+      background-color: rgba($white, 0.08);
+    }
+  }
+}
+
+@media (min-width: 992px) {
+  .fm-content--with-sidebar {
+    margin-left: $sidebar-width;
+    max-width: calc(#{$content-max-width} + #{$sidebar-width});
+    transition: margin-left 0.2s ease;
+
+    &.fm-content--sidebar-collapsed {
+      margin-left: $sidebar-width-collapsed;
+      max-width: calc(#{$content-max-width} + #{$sidebar-width-collapsed});
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Page Header
 // -----------------------------------------------------------------------------
 .fm-page-header {

@@ -11,7 +11,9 @@
     "history": "Histórico",
     "settings": "Definições",
     "audit": "Registo de Auditoria",
-    "fleetOverview": "Visão Geral"
+    "fleetOverview": "Visão Geral",
+    "sidebarCollapse": "Colapsar barra lateral",
+    "sidebarExpand": "Expandir barra lateral"
   },
   "fleetOverview": {
     "title": "Visão Geral do Parque",
@@ -474,6 +476,8 @@
     "lightTheme": "Claro",
     "darkTheme": "Escuro",
     "systemTheme": "Seguir o sistema",
+    "experimentalSidebarNav": "Experimental: navegação lateral esquerda",
+    "experimentalSidebarNavDesc": "Layout de teste — substitui o menu da barra de navegação superior por uma barra lateral esquerda colapsável, para todos nesta instância do Gestor de Mupis Digitais. Não remove o layout atual; pode ser desativado a qualquer momento.",
     "saved": "Definições guardadas",
     "autoRegistration": "Registo Automático",
     "autoRegistrationDesc": "Execute este comando num dispositivo para ativar o registo automático no Gestor de Mupis Digitais.",
