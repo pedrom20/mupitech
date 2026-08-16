@@ -735,6 +735,10 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "devicePairingFeature": "New: device pairing — a fresh device with no prior credentials can now request to join your fleet (Players > Devices awaiting approval), instead of needing SSH access or the device's IP known up front",
+      "accountTabsRedesign": "\"My Profile\" and Settings > MFA Providers now use side/tab navigation instead of stacking everything on one page",
+      "mfaMethodTiles": "Alternate MFA methods on the login screen are now icon tiles (hover for the name) instead of a stacked list of text links",
+      "darkModeOutlineButtonFix": "Fixed low-contrast outline buttons in dark mode (e.g. the device Access tab's \"Reveal credentials\"/\"Restore\" buttons) that were nearly unreadable against the dark background",
       "emailOtpMfaFeature": "New MFA method: email code — enable it in Settings > Security to get a 6-digit code emailed to your account address at login, no authenticator app required",
       "passwordResetFeature": "New: password recovery — the \"Forgot your password?\" link on the login page emails a secure, single-use link (valid for a few hours) to set a new password",
       "mfaCodeBoxesAndAnimations": "Device MFA login now shows 6 separate code boxes (matching the Fleet Manager) instead of a single field, with fade in/out animations; also added subtle animations when switching methods or completing verification, on both the Fleet Manager and the device",

@@ -735,6 +735,10 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "devicePairingFeature": "Novo: pairing de devices — um device novo, sem credenciais prévias, pode agora pedir para se juntar à sua frota (Dispositivos > aguardar aprovação), sem precisar de SSH nem de conhecer o IP do device antecipadamente",
+      "accountTabsRedesign": "\"O Meu Perfil\" e Definições > Providers de MFA passam a ter navegação lateral/por separadores em vez de mostrar tudo empilhado numa só página",
+      "mfaMethodTiles": "Os métodos de MFA alternativos no ecrã de login passam a ser quadrados com ícone (o nome aparece ao passar o rato) em vez de uma lista de links",
+      "darkModeOutlineButtonFix": "Corrigido o baixo contraste de botões com contorno no tema escuro (ex: os botões \"Revelar credenciais\"/\"Restaurar\" no separador de Acessos de um device), que ficavam quase ilegíveis sobre o fundo escuro",
       "emailOtpMfaFeature": "Novo método de MFA: código por email — ative-o em Definições > Segurança para receber um código de 6 dígitos por email a cada login, sem precisar de nenhuma app",
       "passwordResetFeature": "Novo: recuperação de password — link \"Esqueceu-se da password?\" no login envia um email com um link seguro (válido por algumas horas, uso único) para definir uma nova password",
       "mfaCodeBoxesAndAnimations": "O login com MFA no device passa a ter 6 caixas de código separadas (como na Fleet Manager) em vez de um único campo, com animações a aparecer/desaparecer; também adicionadas animações subtis ao mudar de método ou concluir a verificação, tanto na Fleet Manager como no device",
