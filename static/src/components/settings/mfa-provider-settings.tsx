@@ -16,8 +16,11 @@ const SECRET_PLACEHOLDER_UNSET = ''
 
 const DUAL_MFA_ROLES = ['viewer', 'editor', 'admin', 'superadmin'] as const
 
+type ProviderTab = 'dual' | 'duo' | 'privacyidea' | 'authpoint'
+
 const MFAProviderSettings: React.FC = () => {
   const { t } = useTranslation()
+  const [activeTab, setActiveTab] = useState<ProviderTab>('dual')
   const [status, setStatus] = useState<MFAProviderConfigStatus | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -122,9 +125,53 @@ const MFAProviderSettings: React.FC = () => {
   }
 
   return (
-    <div className="row g-3">
-      {/* Dual MFA policy */}
-      <div className="col-12">
+    <div>
+      <ul className="nav nav-tabs mb-3">
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'dual' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dual')}
+          >
+            <FaUserShield className="me-1" />
+            {t('mfaProviders.dualPolicyTitle')}
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'duo' ? 'active' : ''}`}
+            onClick={() => setActiveTab('duo')}
+          >
+            <DuoIcon className="me-1" />
+            Duo Security
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'privacyidea' ? 'active' : ''}`}
+            onClick={() => setActiveTab('privacyidea')}
+          >
+            <PrivacyIDEAIcon className="me-1" />
+            privacyIDEA
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'authpoint' ? 'active' : ''}`}
+            onClick={() => setActiveTab('authpoint')}
+          >
+            <AuthPointIcon className="me-1" />
+            WatchGuard AuthPoint
+          </button>
+        </li>
+      </ul>
+
+      {activeTab === 'dual' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card fm-card-accent">
           <div className="fm-card-header py-2">
             <h5 className="card-title mb-0">
@@ -163,9 +210,12 @@ const MFAProviderSettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
 
-      {/* Duo */}
-      <div className="col-lg-6">
+      {activeTab === 'duo' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2 d-flex align-items-center justify-content-between">
             <h5 className="card-title mb-0">
@@ -208,9 +258,12 @@ const MFAProviderSettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
 
-      {/* privacyIDEA */}
-      <div className="col-lg-6">
+      {activeTab === 'privacyidea' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card fm-card-accent h-100">
           <div className="fm-card-header py-2 d-flex align-items-center justify-content-between">
             <h5 className="card-title mb-0">
@@ -262,9 +315,12 @@ const MFAProviderSettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
 
-      {/* AuthPoint */}
-      <div className="col-lg-6">
+      {activeTab === 'authpoint' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
         <div className="fm-card h-100">
           <div className="fm-card-header py-2 d-flex align-items-center justify-content-between">
             <h5 className="card-title mb-0">
@@ -299,6 +355,8 @@ const MFAProviderSettings: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
     </div>
   )
 }

@@ -374,20 +374,24 @@ const Login: React.FC = () => {
                       {t('auth.push.retry')}
                     </button>
                   )}
-                  {otherMethods.map((m) => {
-                    const OtherIcon = MFA_METHOD_ICON[m]
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        className="btn btn-link w-100 mb-2 text-decoration-none"
-                        onClick={() => switchMethod(m)}
-                      >
-                        <OtherIcon className="me-1" />
-                        {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
-                      </button>
-                    )
-                  })}
+                  {otherMethods.length > 0 && (
+                    <div className="d-flex justify-content-center gap-2 mb-3">
+                      {otherMethods.map((m) => {
+                        const OtherIcon = MFA_METHOD_ICON[m]
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            className="fm-mfa-method-tile"
+                            onClick={() => switchMethod(m)}
+                            title={t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                          >
+                            <OtherIcon size={18} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="fm-btn-outline w-100"
@@ -449,21 +453,25 @@ const Login: React.FC = () => {
                     <CodeIcon />
                     {loading ? t('common.loading') : t('auth.mfa.verify')}
                   </button>
-                  {otherMethods.map((m) => {
-                    const OtherIcon = MFA_METHOD_ICON[m]
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        className="btn btn-link w-100 mb-2 text-decoration-none"
-                        onClick={() => switchMethod(m)}
-                        disabled={loading}
-                      >
-                        <OtherIcon className="me-1" />
-                        {t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
-                      </button>
-                    )
-                  })}
+                  {otherMethods.length > 0 && (
+                    <div className="d-flex justify-content-center gap-2 mb-3">
+                      {otherMethods.map((m) => {
+                        const OtherIcon = MFA_METHOD_ICON[m]
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            className="fm-mfa-method-tile"
+                            onClick={() => switchMethod(m)}
+                            disabled={loading}
+                            title={t('auth.mfa.switchTo', { method: t(`auth.mfa.methodName.${m}`) })}
+                          >
+                            <OtherIcon size={18} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="fm-btn-outline w-100"

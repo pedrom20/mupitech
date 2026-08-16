@@ -1393,6 +1393,8 @@
   "account": {
     "title": "O Meu Perfil",
     "subtitle": "Faça a gestão do seu perfil e das definições de segurança da sua conta.",
+    "tabProfile": "Perfil",
+    "tabSecurity": "Segurança",
     "profileTitle": "Dados do perfil",
     "profileSaved": "Perfil atualizado.",
     "profileSaveError": "Não foi possível atualizar o seu perfil."

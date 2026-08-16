@@ -1291,6 +1291,35 @@ body {
   }
 }
 
+// Alternate-MFA-method switcher on the login challenge screen — a row
+// of icon-only squares (title="..." gives the native browser tooltip
+// on hover) instead of a stacked list of text links, so having 3+
+// enrolled methods doesn't push the code/push UI far down the card.
+.fm-mfa-method-tile {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: $anthias-purple-5;
+  border: 2px solid $border-color;
+  border-radius: $border-radius;
+  transition: $transition-base;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: $anthias-purple-5;
+    border-color: $anthias-purple-5;
+    color: $white;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Group Tag / Label
 // -----------------------------------------------------------------------------
@@ -2256,6 +2285,36 @@ body {
       color: #ccc;
       background: rgba(255, 255, 255, 0.05);
       border-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  // Plain Bootstrap outline buttons (btn-outline-secondary/-dark, used
+  // in a handful of places instead of this app's own .fm-btn-outline)
+  // default to Bootstrap's light-mode colors — #6c757d and #212529
+  // respectively — which are both dark, low-contrast, and easy to lose
+  // against this theme's near-black card backgrounds (#16213e/#1a1a2e).
+  // Reported live: the "Reveal credentials"/"Open local dashboard"/
+  // "Restore" buttons on a device's Access tab were nearly unreadable.
+  // These two variants are the ones actually affected — the others
+  // (danger/warning/success/info/primary) already use saturated colors
+  // with enough contrast against a dark background on their own.
+  .btn-outline-secondary {
+    color: #adb5bd;
+    border-color: #6c757d;
+    &:hover {
+      color: #1a1a2e;
+      background-color: #adb5bd;
+      border-color: #adb5bd;
+    }
+  }
+
+  .btn-outline-dark {
+    color: #e0e0e0;
+    border-color: #6c757d;
+    &:hover {
+      color: #1a1a2e;
+      background-color: #e0e0e0;
+      border-color: #e0e0e0;
     }
   }
 }

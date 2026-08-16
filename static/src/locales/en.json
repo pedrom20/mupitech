@@ -1392,6 +1392,8 @@
   "account": {
     "title": "My Profile",
     "subtitle": "Manage your own profile and account security settings.",
+    "tabProfile": "Profile",
+    "tabSecurity": "Security",
     "profileTitle": "Profile details",
     "profileSaved": "Profile updated.",
     "profileSaveError": "Couldn't update your profile."
