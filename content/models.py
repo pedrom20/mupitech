@@ -19,8 +19,36 @@ def detect_file_type(filename):
 
 
 class MediaFolder(models.Model):
+    """A content-library folder — optionally nested (parent), and
+    optionally scoped to a location/group so an editor whose
+    access.models.UserAccessScope restricts them to that location/group
+    only sees folders (and the files inside them) relevant to their own
+    area. See content/scoping.py for how that filtering is actually
+    applied; this model only stores the scope, it doesn't enforce it.
+
+    Scope and the "common" flag both cascade down from the nearest
+    ancestor that sets them (effective_location/effective_group/
+    effective_is_common below) — so only a folder's top-level ancestor
+    usually needs to be scoped/marked common; every subfolder under it
+    inherits that automatically unless it overrides its own.
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
+    parent = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.CASCADE, related_name='subfolders',
+    )
+    location = models.ForeignKey(
+        'locations.Location', null=True, blank=True, on_delete=models.SET_NULL, related_name='media_folders',
+    )
+    group = models.ForeignKey(
+        'groups.Group', null=True, blank=True, on_delete=models.SET_NULL, related_name='media_folders',
+    )
+    is_common = models.BooleanField(
+        default=False,
+        help_text='Visible to every editor regardless of their own location/group scope — '
+                   'set from Settings > Content Library, not directly editable here.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -29,6 +57,28 @@ class MediaFolder(models.Model):
 
     def __str__(self):
         return self.name
+
+    def _walk_ancestors(self):
+        """Yields self, then each parent up to the root — guards against
+        a cyclic parent chain (shouldn't be reachable via the API, but
+        this is the one place that would infinite-loop if it ever were)."""
+        node, seen = self, set()
+        while node is not None and node.pk not in seen:
+            yield node
+            seen.add(node.pk)
+            node = node.parent
+
+    @property
+    def effective_location(self):
+        return next((n.location for n in self._walk_ancestors() if n.location_id), None)
+
+    @property
+    def effective_group(self):
+        return next((n.group for n in self._walk_ancestors() if n.group_id), None)
+
+    @property
+    def effective_is_common(self):
+        return any(n.is_common for n in self._walk_ancestors())
 
 
 class MediaFile(models.Model):

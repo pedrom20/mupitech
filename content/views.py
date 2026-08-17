@@ -8,10 +8,11 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsEditorOrReadOnly, IsSuperAdmin, user_can_delete_content
+from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly, IsSuperAdmin, user_can_delete_content
 from history.logging import log_action
 
 from .models import MediaFile, MediaFolder, ScheduledDeployment, detect_file_type
+from .scoping import filter_folders, filter_media_files
 from .serializers import MediaFileSerializer, MediaFolderSerializer, ScheduledDeploymentSerializer
 from .tasks import _is_safe_url, fetch_og_image_task, generate_image_thumbnail, transcode_video
 
@@ -20,9 +21,17 @@ logger = logging.getLogger(__name__)
 
 class MediaFolderViewSet(viewsets.ModelViewSet):
     """ViewSet for managing media folders."""
-    queryset = MediaFolder.objects.annotate(file_count=Count('files'))
+    # Unfiltered — only here for the router's automatic basename
+    # inference (content/urls.py registers this without an explicit
+    # basename=). Every real request is served through get_queryset()
+    # below, which applies the actual scoping filter.
+    queryset = MediaFolder.objects.all()
     serializer_class = MediaFolderSerializer
     permission_classes = [IsEditorOrReadOnly]
+
+    def get_queryset(self):
+        qs = MediaFolder.objects.select_related('location', 'group').annotate(file_count=Count('files'))
+        return filter_folders(qs, self.request.user)
 
     def perform_create(self, serializer):
         folder = serializer.save()
@@ -35,6 +44,26 @@ class MediaFolderViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         log_action(self.request, 'delete', 'folder', target_id=instance.id, target_name=instance.name)
         instance.delete()
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin], url_path='set-common')
+    def set_common(self, request, pk=None):
+        """Admin-only — mark/unmark a folder (and, per MediaFolder.
+        effective_is_common, everything nested under it) as visible to
+        every editor regardless of their own location/group scope. The
+        one write path for is_common; the regular create/update
+        endpoint above deliberately can't touch it (see the
+        serializer's read_only_fields)."""
+        folder = MediaFolder.objects.filter(pk=pk).first()
+        if not folder:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        is_common = bool(request.data.get('is_common'))
+        folder.is_common = is_common
+        folder.save(update_fields=['is_common'])
+        log_action(
+            request, 'update', 'folder', target_id=folder.id, target_name=folder.name,
+            details={'is_common': is_common},
+        )
+        return Response(self.get_serializer(folder).data)
 
 
 class MediaFileViewSet(viewsets.ModelViewSet):
@@ -57,7 +86,7 @@ class MediaFileViewSet(viewsets.ModelViewSet):
         file_type = self.request.query_params.get('file_type')
         if file_type:
             qs = qs.filter(file_type=file_type)
-        return qs
+        return filter_media_files(qs, self.request.user)
 
     def perform_destroy(self, instance):
         """Soft-delete a MediaFile — hides it from normal use but keeps it
