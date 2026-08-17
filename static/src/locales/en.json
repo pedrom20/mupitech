@@ -761,6 +761,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "emailLogoOutlookFix": "Fixed the MupiTech logo not showing at all in emails opened in classic Outlook (it now travels as a real inline attachment instead of a data: URI, which classic Outlook doesn't render)",
       "folderCountFix": "Fixed a folder's content count including files sitting in the recycle bin — it now matches what's actually visible, and updates correctly on delete",
       "brandedLogoBadgeFix": "Fixed the small MupiTech credit badge never showing in the corner of a branded device's boot/splash screen",
       "emailViaGraph": "Email sending (offline alerts, email 2FA codes, password resets) can now go through Microsoft Graph as an alternative to SMTP — Settings > Alerts",

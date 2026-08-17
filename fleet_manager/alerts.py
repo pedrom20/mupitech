@@ -157,28 +157,42 @@ def _get_graph_access_token(conf):
     return token
 
 
-def _send_via_graph(conf, to, subject, text_body, html_body, from_email):
+def _send_via_graph(conf, to, subject, text_body, html_body, from_email, images):
+    import base64
+
     import requests
 
     token = _get_graph_access_token(conf)
+    message = {
+        'subject': subject,
+        'body': {'contentType': 'HTML', 'content': html_body or text_body},
+        'toRecipients': [{'emailAddress': {'address': addr}} for addr in to],
+    }
+    if images:
+        message['attachments'] = [
+            {
+                '@odata.type': '#microsoft.graph.fileAttachment',
+                'name': f'{content_id}.{mimetype.split("/")[-1]}',
+                'contentType': mimetype,
+                'contentBytes': base64.b64encode(data).decode(),
+                'contentId': content_id,
+                'isInline': True,
+            }
+            for content_id, mimetype, data in images
+        ]
     resp = requests.post(
         f'https://graph.microsoft.com/v1.0/users/{conf["graph_sender"]}/sendMail',
         headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
-        json={
-            'message': {
-                'subject': subject,
-                'body': {'contentType': 'HTML', 'content': html_body or text_body},
-                'toRecipients': [{'emailAddress': {'address': addr}} for addr in to],
-            },
-            'saveToSentItems': False,
-        },
+        json={'message': message, 'saveToSentItems': False},
         timeout=15,
     )
     if resp.status_code >= 300:
         raise EmailSendError(f'Microsoft Graph sendMail failed ({resp.status_code}): {resp.text[:300]}')
 
 
-def _send_via_smtp(conf, to, subject, text_body, html_body, from_email):
+def _send_via_smtp(conf, to, subject, text_body, html_body, from_email, images):
+    from email.mime.image import MIMEImage
+
     from django.core.mail import EmailMultiAlternatives
 
     connection = get_alert_connection()
@@ -191,24 +205,39 @@ def _send_via_smtp(conf, to, subject, text_body, html_body, from_email):
     )
     if html_body:
         message.attach_alternative(html_body, 'text/html')
+    if images:
+        # multipart/related (not the default multipart/mixed) is what
+        # makes a mail client resolve <img src="cid:..."> to the
+        # attached part in place, rather than showing it as a separate
+        # regular attachment.
+        message.mixed_subtype = 'related'
+        for content_id, mimetype, data in images:
+            image = MIMEImage(data, _subtype=mimetype.split('/')[-1])
+            image.add_header('Content-ID', f'<{content_id}>')
+            image.add_header('Content-Disposition', 'inline', filename=content_id)
+            message.attach(image)
     message.send()
 
 
-def send_email(to, subject, text_body, html_body='', from_email=None):
+def send_email(to, subject, text_body, html_body='', from_email=None, images=None):
     """Send an email through whichever mode (SMTP or Microsoft Graph)
     is currently configured — the one path OTP/password-reset/alerts
-    all share. `to` is a list of addresses. Raises ValueError if email
-    isn't configured at all, or whatever the underlying transport
-    raises on a genuine send failure (smtplib exceptions for SMTP,
-    EmailSendError for Graph) — callers that want a non-raising
-    "did it work" check should call is_email_configured() first."""
+    all share. `to` is a list of addresses; `images` is an optional
+    list of (content_id, mimetype, bytes) tuples embedded as inline
+    cid: images (see fleet_manager/email_branding.py) — every
+    <img src="cid:X"> in html_body needs a matching entry here or it
+    renders as a broken image. Raises ValueError if email isn't
+    configured at all, or whatever the underlying transport raises on
+    a genuine send failure (smtplib exceptions for SMTP, EmailSendError
+    for Graph) — callers that want a non-raising "did it work" check
+    should call is_email_configured() first."""
     conf = get_alert_settings()
     if not is_email_configured(conf):
         raise ValueError('Email is not configured (Settings > Alerts).')
     if conf['mode'] == 'graph':
-        _send_via_graph(conf, to, subject, text_body, html_body, from_email)
+        _send_via_graph(conf, to, subject, text_body, html_body, from_email, images)
     else:
-        _send_via_smtp(conf, to, subject, text_body, html_body, from_email)
+        _send_via_smtp(conf, to, subject, text_body, html_body, from_email, images)
 
 
 def get_alert_recipients():
@@ -252,8 +281,8 @@ def _offline_alert_content(offline_players, sample_notice=''):
             f'<p style="margin:0 0 12px 0;padding:10px 12px;background:#fff7e0;border:1px solid #f0d98c;'
             f'border-radius:6px;font-size:13px;color:#7a5c00;">{sample_notice}</p>' + intro_html
         )
-    html_body = branded_email_html(subject, intro_html, offline_players_table_html(offline_players))
-    return subject, text_body, html_body
+    html_body, images = branded_email_html(subject, intro_html, offline_players_table_html(offline_players))
+    return subject, text_body, html_body, images
 
 
 def send_offline_alert_emails(offline_players):
@@ -270,9 +299,9 @@ def send_offline_alert_emails(offline_players):
         logger.warning('Offline alert: email is not configured, skipping.')
         return
 
-    subject, text_body, html_body = _offline_alert_content(offline_players)
+    subject, text_body, html_body, images = _offline_alert_content(offline_players)
     try:
-        send_email(recipients, subject, text_body, html_body)
+        send_email(recipients, subject, text_body, html_body, images=images)
         logger.info('Offline alert email sent to %d recipient(s) for %d device(s).', len(recipients), len(offline_players))
     except Exception:
         logger.exception('Failed to send offline alert email.')
@@ -317,11 +346,11 @@ def send_test_offline_alert_email(to_email):
             'fictícios para mostrar o formato real deste email.'
         )
 
-    subject, text_body, html_body = _offline_alert_content(offline_players, sample_notice=sample_notice)
+    subject, text_body, html_body, images = _offline_alert_content(offline_players, sample_notice=sample_notice)
     if is_sample:
         subject = f'[MupiTech] (exemplo) {subject}'
         text_body = f'(Exemplo — nenhum dispositivo está offline neste momento)\n\n{text_body}'
-    send_email([to_email], subject, text_body, html_body)
+    send_email([to_email], subject, text_body, html_body, images=images)
 
 
 def send_test_email(to_email):
@@ -344,5 +373,5 @@ def send_test_email(to_email):
         'Este é um email de teste das definições de email do MupiTech Gestor de Mupis Digitais. '
         'Se recebeu este email, está tudo configurado corretamente.</p>'
     )
-    html_body = branded_email_html(subject, intro_html, '')
-    send_email([to_email], subject, text_body, html_body)
+    html_body, images = branded_email_html(subject, intro_html, '')
+    send_email([to_email], subject, text_body, html_body, images=images)

@@ -761,6 +761,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "emailLogoOutlookFix": "Corrigido o logo da MupiTech não aparecer de todo nos emails abertos no Outlook clássico (passa agora a viajar como anexo embutido em vez de URI data:, que o Outlook clássico não representa)",
       "folderCountFix": "Corrigida a contagem de conteúdos de uma pasta, que incluía ficheiros na reciclagem — agora corresponde ao que se vê realmente, e atualiza corretamente ao apagar",
       "brandedLogoBadgeFix": "Corrigido o pequeno crédito da MupiTech nunca aparecer no canto do ecrã de arranque de um device com marca personalizada",
       "emailViaGraph": "O envio de emails (alertas offline, códigos de 2FA por email, recuperação de password) já pode passar pelo Microsoft Graph como alternativa ao SMTP — Definições > Alertas",

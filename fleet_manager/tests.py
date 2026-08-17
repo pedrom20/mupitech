@@ -234,18 +234,23 @@ class OfflineAlertEmailTests(TestCase):
         from fleet_manager import alerts
 
         players = [alerts._SamplePlayer('Loja Centro', timezone.now())]
-        subject, _text_body, html = alerts._offline_alert_content(players)
+        subject, _text_body, html, images = alerts._offline_alert_content(players)
 
         self.assertIn('dispositivo(s) offline', subject)
         self.assertIn('Loja Centro', html)
         self.assertIn('MupiTech', html)
-        self.assertIn('data:image/svg+xml;base64,', html)  # logo actually embedded, not a broken/missing src
+        # Logo is a cid: inline attachment (not a data: URI — classic
+        # Outlook renders neither data: URIs nor SVG), so the HTML only
+        # carries a reference; the actual bytes travel via `images`,
+        # which the caller must attach with matching Content-IDs.
+        self.assertIn('cid:mupitech-logo', html)
+        self.assertTrue(any(content_id == 'mupitech-logo' for content_id, _mime, _data in images))
 
     def test_device_name_is_html_escaped_in_table(self):
         from fleet_manager import alerts
 
         players = [alerts._SamplePlayer('<script>alert(1)</script>', None)]
-        _subject, _text_body, html = alerts._offline_alert_content(players)
+        _subject, _text_body, html, _images = alerts._offline_alert_content(players)
 
         self.assertNotIn('<script>alert(1)</script>', html)
         self.assertIn('&lt;script&gt;', html)
@@ -268,12 +273,37 @@ class OfflineAlertEmailTests(TestCase):
             alerts._SamplePlayer('Exemplo — Receção', None),
             alerts._SamplePlayer('Exemplo — Balcão 1', None),
         ]
-        _subject, _text_body, html = alerts._offline_alert_content(
+        _subject, _text_body, html, _images = alerts._offline_alert_content(
             sample_players,
             sample_notice='Nenhum dispositivo está offline neste momento.',
         )
         self.assertIn('Nenhum dispositivo está offline', html)
         self.assertIn('Exemplo — Receção', html)
+
+    def test_logo_is_attached_as_inline_cid_image_not_data_uri(self):
+        """Classic Outlook (Word-rendering-engine desktop, still common
+        in this app's actual municipal/corporate audience) renders
+        neither `data:` image sources nor SVG — a real test email built
+        the old way showed no MupiTech logo at all there. cid: is the
+        one embedding method essentially every mail client has always
+        supported, so the logo now travels as a real inline attachment
+        instead — this confirms that attachment actually lands on the
+        outgoing message with the right Content-ID and disposition,
+        not just that the HTML *references* one (see
+        test_offline_alert_message_has_html_alternative_in_portuguese
+        for that half)."""
+        from django.core.mail.backends.smtp import EmailBackend
+        from fleet_manager import alerts
+
+        with mock.patch.object(EmailBackend, 'send_messages', autospec=True, return_value=1) as mock_send:
+            alerts.send_test_email('admin@example.com')
+
+        sent = mock_send.call_args[0][1][0]
+        self.assertEqual(sent.mixed_subtype, 'related')
+        image_parts = [p for p in sent.attachments if hasattr(p, 'get') and p.get_content_maintype() == 'image']
+        self.assertEqual(len(image_parts), 1)
+        self.assertEqual(image_parts[0]['Content-ID'], '<mupitech-logo>')
+        self.assertEqual(image_parts[0].get_content_disposition(), 'inline')
 
 
 class DeviceLoginMFATests(TestCase):

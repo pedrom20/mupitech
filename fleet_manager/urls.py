@@ -560,13 +560,13 @@ def _send_password_reset_email(request, user):
         f'<p style="margin:0;font-size:12px;color:#8a8f98;">Se não foi você, pode ignorar este email — '
         f'a sua password mantém-se inalterada.</p>'
     )
-    html_body = branded_email_html(
+    html_body, images = branded_email_html(
         subject, intro_html, '',
         footer_html='Este é um email automático do MupiTech Gestor de Mupis Digitais.',
     )
 
     try:
-        send_email([user.email], subject, text_body, html_body)
+        send_email([user.email], subject, text_body, html_body, images=images)
     except Exception:
         logger.exception('Failed to send password reset email to %s.', user.username)
 

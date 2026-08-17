@@ -71,13 +71,13 @@ def send_code_email(user, code):
         f'<p style="margin:0;font-size:12px;color:#8a8f98;">Válido por {CODE_TTL_SECONDS // 60} minutos. '
         'Se não pediu este código, pode ignorar este email.</p>'
     )
-    html_body = branded_email_html(
+    html_body, images = branded_email_html(
         'Código de verificação', intro_html, body_html,
         footer_html='Este é um email automático do MupiTech Gestor de Mupis Digitais.',
     )
 
     try:
-        send_email([user.email], subject, text_body, html_body)
+        send_email([user.email], subject, text_body, html_body, images=images)
     except Exception:
         logger.exception('Failed to send email OTP to %s.', user.username)
         return False
