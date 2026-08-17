@@ -753,6 +753,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "appsCatalog": "New \"Apps\" tab when adding content — browse the same public signage-app catalog the device itself offers, configure it, and add it straight to your library",
+      "sidebarButtonFix": "Fixed the sidebar's collapse button being clipped off at the edge",
       "contentLibraryScoping": "Content library: folders can now have subfolders, be scoped to a location/group, or marked common (Settings > Content Library) — an editor with restricted access only sees folders/files relevant to their own area, plus common ones",
       "sidebarPolish": "Sidebar layout: the Fleet section is now a collapsible accordion, the whole-sidebar collapse button moved to an always-visible spot on the edge, and both now animate smoothly",
       "fmManagedBadge": "A device paired with a Fleet Manager now shows a \"Managed by Fleet Manager\" badge on its own local dashboard after login",

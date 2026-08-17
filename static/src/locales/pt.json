@@ -753,6 +753,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "appsCatalog": "Nova tab \"Apps\" ao adicionar conteúdo — navegue o mesmo catálogo público de apps que o próprio device já oferece, configure e adicione diretamente à sua biblioteca",
+      "sidebarButtonFix": "Corrigido o botão de colapsar a sidebar que aparecia cortado na borda",
       "contentLibraryScoping": "Biblioteca de conteúdos: pastas passam a poder ter subpastas, ser associadas a uma localização/grupo, ou marcadas como comuns (Definições > Biblioteca de Conteúdos) — um editor com acesso restrito só vê pastas/ficheiros da sua própria área, mais os comuns",
       "sidebarPolish": "Layout de sidebar: a secção Parque passa a accordion colapsável, o botão de colapsar a sidebar inteira passa para um local sempre visível na borda, e ambos animam suavemente",
       "fmManagedBadge": "Um device emparelhado com uma Fleet Manager passa a mostrar um chip \"Gerido pelo Gestor de Mupis Digitais\" na sua própria gestão local após login",
