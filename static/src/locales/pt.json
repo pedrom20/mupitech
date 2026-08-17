@@ -324,7 +324,9 @@
     "loadingApps": "A carregar apps…",
     "noAppsAvailable": "Não há apps disponíveis neste momento.",
     "storeUnreachable": "Não foi possível contactar a loja de apps. Verifique a sua ligação e tente novamente.",
-    "selectDefault": "Predefinido"
+    "selectDefault": "Predefinido",
+    "locationSearchPlaceholder": "Procurar um local…",
+    "locationSearchNoResults": "Sem resultados."
   },
   "content": {
     "title": "Conteúdo",

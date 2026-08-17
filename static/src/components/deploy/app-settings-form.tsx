@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { widgetFor } from '@/apps/widget-for'
 import { selectOptionLabel } from '@/apps/select-label'
 import type { AppManifest, SettingValue, SettingValues } from '@/apps/types'
+import LocationSearchField from './location-search-field'
 
 interface AppSettingsFormProps {
   manifest: AppManifest
@@ -13,12 +14,13 @@ interface AppSettingsFormProps {
 /** Renders a form from an app manifest's JSON-Schema-ish settings
  * (manifest.settings.properties), same contract mupitech-player's own
  * Add → Apps tab renders from (see static/src/apps/widget-for.ts,
- * ported alongside this). 'location-map' renders as plain lat/lng
- * number inputs here instead of the device's Leaflet map widget —
- * same values end up in the launch URL either way, just without
- * pulling a mapping library into the Fleet Manager for one widget
- * type. 'unsupported' (a generic object/array with no known shape)
- * is silently skipped, matching the device's own graceful degrade. */
+ * ported alongside this). 'location-map' renders as a type-to-search
+ * address field (see location-search-field.tsx) instead of the
+ * device's draggable Leaflet map — same {lat, lng} value ends up in
+ * the launch URL either way, just without pulling a mapping library
+ * into the Fleet Manager for one widget type. 'unsupported' (a
+ * generic object/array with no known shape) is silently skipped,
+ * matching the device's own graceful degrade. */
 const AppSettingsForm: React.FC<AppSettingsFormProps> = ({ manifest, values, onChange }) => {
   const { t } = useTranslation()
   const properties = manifest.settings?.properties ?? {}
@@ -88,24 +90,10 @@ const AppSettingsForm: React.FC<AppSettingsFormProps> = ({ manifest, values, onC
             )}
 
             {widget === 'location-map' && (
-              <div className="d-flex gap-2">
-                <input
-                  type="number"
-                  step="any"
-                  className="form-control form-control-sm"
-                  placeholder="lat"
-                  value={location.lat ?? ''}
-                  onChange={(e) => setField(key, { ...location, lat: e.target.value === '' ? undefined : Number(e.target.value) })}
-                />
-                <input
-                  type="number"
-                  step="any"
-                  className="form-control form-control-sm"
-                  placeholder="lng"
-                  value={location.lng ?? ''}
-                  onChange={(e) => setField(key, { ...location, lng: e.target.value === '' ? undefined : Number(e.target.value) })}
-                />
-              </div>
+              <LocationSearchField
+                value={location}
+                onChange={(next) => setField(key, next)}
+              />
             )}
 
             {widget === 'text' && (

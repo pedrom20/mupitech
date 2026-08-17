@@ -324,7 +324,9 @@
     "loadingApps": "Loading apps…",
     "noAppsAvailable": "No apps are available right now.",
     "storeUnreachable": "Couldn't reach the app store. Check your network connection and try again.",
-    "selectDefault": "Default"
+    "selectDefault": "Default",
+    "locationSearchPlaceholder": "Search for a place…",
+    "locationSearchNoResults": "No matches found."
   },
   "content": {
     "title": "Content",
