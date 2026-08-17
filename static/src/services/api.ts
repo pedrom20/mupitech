@@ -938,7 +938,7 @@ export interface BrandingImage {
 
 export const brandingLibrary = {
   list(kind: 'logo' | 'standby'): Promise<BrandingImage[]> {
-    return apiRequest('GET', `/players/branding-library/?kind=${kind}`)
+    return apiRequest('GET', `/branding-library/?kind=${kind}`)
   },
 
   upload(kind: 'logo' | 'standby', file: File, name?: string): Promise<BrandingImage> {
@@ -946,23 +946,23 @@ export const brandingLibrary = {
     data.append('kind', kind)
     data.append('file', file)
     data.append('name', name || file.name)
-    return apiRequest('POST', '/players/branding-library/', data)
+    return apiRequest('POST', '/branding-library/', data)
   },
 
   delete(id: string): Promise<void> {
-    return apiRequest('DELETE', `/players/branding-library/${id}/`)
+    return apiRequest('DELETE', `/branding-library/${id}/`)
   },
 
   listDeleted(): Promise<BrandingImage[]> {
-    return apiRequest('GET', '/players/branding-library/?deleted=1')
+    return apiRequest('GET', '/branding-library/?deleted=1')
   },
 
   restore(id: string): Promise<BrandingImage> {
-    return apiRequest('POST', `/players/branding-library/${id}/restore/`)
+    return apiRequest('POST', `/branding-library/${id}/restore/`)
   },
 
   purge(id: string): Promise<void> {
-    return apiRequest('DELETE', `/players/branding-library/${id}/purge/`)
+    return apiRequest('DELETE', `/branding-library/${id}/purge/`)
   },
 }
 

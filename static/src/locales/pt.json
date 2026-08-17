@@ -761,6 +761,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "brandingLibraryUrlFix": "Corrigido o envio para a biblioteca partilhada de logos/imagens de repouso, que falhava com erro \"POST não permitido\"",
       "sidebarNavbarShorter": "A barra superior fica agora mais estreita quando a disposição em sidebar está ativa, já que a navegação principal vive na sidebar",
       "bootSplashProvision": "A instalação de raiz de um Pi através do Fleet Manager já instala também a animação de arranque MupiTech (antes só vinha em imagens construídas de raiz) — visível a partir do próximo reinício do dispositivo",
       "standbyPushFix": "Corrigido a imagem/vídeo de repouso personalizado não fazer efeito no dispositivo depois de enviado pelas Definições",
