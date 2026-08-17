@@ -77,6 +77,12 @@ $spacer: 1rem;
 // Layout
 // -----------------------------------------------------------------------------
 $navbar-height:    85px;
+// The sidebar layout (SidebarNav) already carries the primary nav —
+// the top bar there only holds the logo + language switcher + user
+// menu, so it doesn't need the full-height navbar's room. 72px, not
+// something tighter, because .navbar-brand's logo img is already 60px
+// tall — anything much shorter clips it edge-to-edge.
+$navbar-height-sidebar: 72px;
 $footer-height:    44px;
 $sidebar-width:    260px;
 $sidebar-width-collapsed: 64px;

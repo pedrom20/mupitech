@@ -761,6 +761,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "sidebarNavbarShorter": "The top bar is now shorter when the sidebar layout is on, since navigation already lives in the sidebar",
       "bootSplashProvision": "Fresh Pi installs via the Fleet Manager now install the animated MupiTech boot splash too (previously only baked into a from-scratch image build) — visible from the device's next reboot",
       "standbyPushFix": "Fixed the custom standby image/video not taking effect on the device after being pushed from Settings",
       "navbarSidebarFix": "Fixed the top-bar logo floating mid-screen instead of sitting flush left when the sidebar layout is on",

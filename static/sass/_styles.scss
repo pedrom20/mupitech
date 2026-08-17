@@ -298,7 +298,7 @@ body {
 // -----------------------------------------------------------------------------
 .fm-sidebar {
   position: fixed;
-  top: $navbar-height;
+  top: $navbar-height-sidebar;
   left: 0;
   bottom: 0;
   width: $sidebar-width;
@@ -484,6 +484,19 @@ body {
   .fm-navbar--with-sidebar > .container-fluid {
     max-width: none;
     margin-left: 0;
+  }
+
+  // The sidebar carries the primary nav, so its own top bar can be
+  // shorter than the full navbar-with-nav-items bar. body's
+  // padding-top has to shrink by the same amount (see the
+  // fm-sidebar-mode class app.tsx toggles on <body>), or content
+  // starts with a leftover gap sized for the taller bar.
+  .fm-navbar--with-sidebar {
+    height: $navbar-height-sidebar;
+  }
+
+  body.fm-sidebar-mode {
+    padding-top: $navbar-height-sidebar;
   }
 }
 

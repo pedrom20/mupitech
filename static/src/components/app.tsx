@@ -212,6 +212,18 @@ const App: React.FC = () => {
   }, [sidebarCollapsed])
 
   useEffect(() => {
+    // Mirrors the exact condition SidebarNav/.fm-content--with-sidebar
+    // render under — the shorter navbar-height-sidebar CSS (see
+    // _variables.scss) only applies while this class is present, so
+    // body's own padding-top (which nothing else in this component
+    // tree controls) shrinks to match.
+    document.body.classList.toggle(
+      'fm-sidebar-mode', checked && !!user && sidebarNavEnabled,
+    )
+    return () => document.body.classList.remove('fm-sidebar-mode')
+  }, [checked, user, sidebarNavEnabled])
+
+  useEffect(() => {
     refresh()
     systemApi.getSetupRequired()
       .then((res) => setSetupRequired(res.required))
