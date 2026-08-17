@@ -761,6 +761,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "migratePi4Pi5": "Migrar/reinstalar para a imagem MupiTech já está disponível também para dispositivos Raspberry Pi 4/5 (era só x86) — aberto para testes em hardware real",
       "weatherWidget": "Nova app própria \"Meteorologia\" (Adicionar conteúdo > Apps > MupiTech) — um widget de tempo animado e totalmente traduzido, sem depender de nenhum serviço externo",
       "locationSearchField": "Apps com definição de localização passam a oferecer um campo de pesquisa por morada, além dos campos manuais de latitude/longitude",
       "appsCatalog": "Nova tab \"Apps\" ao adicionar conteúdo — navegue o mesmo catálogo público de apps que o próprio device já oferece, configure e adicione diretamente à sua biblioteca",
@@ -1205,7 +1206,7 @@
   },
   "migrateImage": {
     "title": "Migrar para imagem MupiTech",
-    "desc": "Move este dispositivo para a imagem escolhida, substituindo o que corre atualmente. O docker-compose.yml anterior é guardado como .bak antes de qualquer alteração. Por agora, só x86.",
+    "desc": "Move este dispositivo para a imagem escolhida, substituindo o que corre atualmente. O docker-compose.yml anterior é guardado como .bak antes de qualquer alteração.",
     "targetLabel": "Imagem alvo",
     "targetMupitech": "MupiTech",
     "targetOfficial": "Anthias oficial",
@@ -1258,7 +1259,7 @@
       "no_container": "Não foi encontrado nenhum contentor do servidor Anthias em execução neste dispositivo.",
       "no_compose_context": "Não foi possível determinar a pasta do projeto docker-compose deste dispositivo (pode não ser gerido pelo docker compose).",
       "no_backup": "Não foi encontrado nenhum backup em {{backup_path}} — não há nada para restaurar. Só é criado um backup da primeira vez que um dispositivo é migrado para a imagem MupiTech.",
-      "unsupported_device_type": "A migração para a imagem MupiTech só é suportada em devices x86 por agora (este dispositivo é \"{{device_type}}\"). As imagens Pi4/Pi5 já existem mas ainda não foram validadas em hardware real.",
+      "unsupported_device_type": "A migração para a imagem MupiTech não é suportada para este tipo de dispositivo (\"{{device_type}}\").",
       "unrecognized_image": "Imagem não reconhecida neste dispositivo (\"{{image}}\") — a recusar migrar automaticamente. Este dispositivo precisa de inspeção manual primeiro.",
       "unexpected": "Erro inesperado: {{detail}}",
       "unknown_target": "Imagem alvo desconhecida \"{{target}}\"."

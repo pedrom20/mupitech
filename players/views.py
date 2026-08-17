@@ -455,7 +455,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         ssh_user = request.data.get('ssh_user') or player.ssh_username or 'pi'
         ssh_port = _safe_int(request.data.get('ssh_port') or player.ssh_port, 22, 'ssh_port')
 
-        from .migrate_image import MigrationError, discover_image_source
+        from .migrate_image import _MIGRATABLE_DEVICE_TYPES, MigrationError, discover_image_source
         try:
             source, image, has_backup = discover_image_source(player, ssh_user, ssh_password, ssh_port)
         except MigrationError as exc:
@@ -465,7 +465,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             )
         return Response({
             'source': source, 'image': image, 'has_backup': has_backup,
-            'can_migrate': player.device_type == 'x86' and source != 'unknown',
+            'can_migrate': player.device_type in _MIGRATABLE_DEVICE_TYPES and source != 'unknown',
         })
 
     @action(detail=True, methods=['post'], url_path='migrate-image')
@@ -476,7 +476,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         re-provisioned onto our compose template (previous compose file
         backed up as .bak first), pointed at the requested target's
         registry; a device already on the requested image just gets
-        pulled/updated. x86 only for now — see players/migrate_image.py."""
+        pulled/updated. See players/migrate_image.py."""
         player = self.get_object()
         ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
         if not ssh_password:
@@ -530,8 +530,8 @@ class PlayerViewSet(viewsets.ModelViewSet):
         scratch — every container, named volume and the host-side
         config/assets directories all get deleted, then a fresh compose
         file is rendered and started clean. A genuine factory reset for a
-        device stuck in a bad state, not a lighter update/migrate. x86
-        only for now — see players/migrate_image.py's rebuild_player."""
+        device stuck in a bad state, not a lighter update/migrate. See
+        players/migrate_image.py's rebuild_player."""
         player = self.get_object()
         ssh_password = request.data.get('ssh_password') or (player.get_ssh_password() if player.has_ssh_credentials else '')
         if not ssh_password:

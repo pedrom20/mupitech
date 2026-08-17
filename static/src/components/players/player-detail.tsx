@@ -204,8 +204,8 @@ const PlayerDetail: React.FC = () => {
   const [showDeviceLogoPicker, setShowDeviceLogoPicker] = useState(false)
   const [showDeviceStandbyPicker, setShowDeviceStandbyPicker] = useState(false)
 
-  // Migrate to MupiTech Anthias image (x86 only for now) — lives in the
-  // Settings modal's "image" tab (settingsActiveTab), see handleOpenSettings.
+  // Migrate to MupiTech Anthias image — lives in the Settings modal's
+  // "image" tab (settingsActiveTab), see handleOpenSettings.
   const [checkingImageSource, setCheckingImageSource] = useState(false)
   const [imageSourceResult, setImageSourceResult] = useState<{ source: string; image: string; can_migrate: boolean; has_backup: boolean } | null>(null)
   const [restoringImage, setRestoringImage] = useState(false)

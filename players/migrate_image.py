@@ -13,12 +13,10 @@ x86 template and current official upstream Anthias now share the same
     compose template, with the previous compose file backed up first.
   - anything else: refused — needs manual inspection.
 
-Only x86 is enabled as a migration target today. Pi4/Pi5 builds of our
-own image exist and publish (Phase 5 of the custom-image plan), but
-haven't been validated against real Pi4/Pi5 hardware yet — pushing this
-onto a real deployed device before that validation would be risky.
-Extend _MIGRATABLE_DEVICE_TYPES once that's done (see MAINTENANCE.md in
-the mupitech-player fork).
+Pi4/Pi5 builds of our own image exist and publish (Phase 5 of the
+custom-image plan); enabled here as a migration target for real-hardware
+validation (Phase 6 follow-up) — see MAINTENANCE.md in the
+mupitech-player fork.
 """
 
 import logging
@@ -43,7 +41,7 @@ IMAGE_SOURCE_OFFICIAL = 'official'
 IMAGE_SOURCE_FORK = 'fork'
 IMAGE_SOURCE_UNKNOWN = 'unknown'
 
-_MIGRATABLE_DEVICE_TYPES = ('x86',)
+_MIGRATABLE_DEVICE_TYPES = ('x86', 'pi4', 'pi5')
 
 
 class MigrationError(Exception):
@@ -139,7 +137,8 @@ def _detect_and_save_device_type(player, ssh, timeout):
     """A device added via "Add existing" (plain URL, no SSH provisioning
     step) never gets its device_type probed — it stays 'unknown' forever,
     which silently hides the migrate-to-MupiTech-image option since
-    that's gated on device_type == 'x86'. Piggyback on the SSH session
+    that's gated on device_type being one of _MIGRATABLE_DEVICE_TYPES.
+    Piggyback on the SSH session
     this module already opens (for image-source/migrate/restore) to run
     the same probe provision.py uses for freshly-provisioned Pis, so an
     existing device's type gets filled in the first time it's checked."""
@@ -474,9 +473,8 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
 
         if player.device_type not in _MIGRATABLE_DEVICE_TYPES:
             raise MigrationError(
-                f'Migration to a chosen image is only supported for x86 devices right now '
-                f'(this device is "{player.device_type}"). Pi4/Pi5 images exist but haven\'t been '
-                f'validated on real hardware yet.',
+                f'Migration to a chosen image is not supported for this device type '
+                f'("{player.device_type}").',
                 code='unsupported_device_type', params={'device_type': player.device_type},
             )
 
@@ -644,8 +642,8 @@ def rebuild_player(player, ssh_user, ssh_password, ssh_port=22, timeout=30, pres
 
         if player.device_type not in _MIGRATABLE_DEVICE_TYPES:
             raise MigrationError(
-                f'Rebuild is only supported for x86 devices right now '
-                f'(this device is "{player.device_type}").',
+                f'Rebuild is not supported for this device type '
+                f'("{player.device_type}").',
                 code='unsupported_device_type', params={'device_type': player.device_type},
             )
 

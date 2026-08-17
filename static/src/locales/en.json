@@ -761,6 +761,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "migratePi4Pi5": "Migrate/rebuild to the MupiTech image is now available for Raspberry Pi 4/5 devices too (was x86-only) — open for real-hardware testing",
       "weatherWidget": "New first-party \"Weather\" app (Add content > Apps > MupiTech) — a fully translated, animated weather widget, no external service required",
       "locationSearchField": "Apps with a location setting now offer a type-to-search address field alongside the manual latitude/longitude inputs",
       "appsCatalog": "New \"Apps\" tab when adding content — browse the same public signage-app catalog the device itself offers, configure it, and add it straight to your library",
@@ -1205,7 +1206,7 @@
   },
   "migrateImage": {
     "title": "Migrate to MupiTech image",
-    "desc": "Moves this device onto a chosen image, replacing whatever it's running today. The previous docker-compose.yml is backed up as .bak before anything is written. x86 only for now.",
+    "desc": "Moves this device onto a chosen image, replacing whatever it's running today. The previous docker-compose.yml is backed up as .bak before anything is written.",
     "targetLabel": "Target image",
     "targetMupitech": "MupiTech",
     "targetOfficial": "Official Anthias",
@@ -1258,7 +1259,7 @@
       "no_container": "No running Anthias server container was found on this device.",
       "no_compose_context": "Could not determine the docker-compose project directory for this device (it may not be managed by docker compose).",
       "no_backup": "No backup found at {{backup_path}} — there's nothing to restore. A backup is only created the first time a device is migrated to the MupiTech image.",
-      "unsupported_device_type": "Migration to the MupiTech image is only supported for x86 devices right now (this device is \"{{device_type}}\"). Pi4/Pi5 images exist but haven't been validated on real hardware yet.",
+      "unsupported_device_type": "Migration to the MupiTech image is not supported for this device type (\"{{device_type}}\").",
       "unrecognized_image": "Unrecognized image on this device (\"{{image}}\") — refusing to migrate automatically. This device needs manual inspection first.",
       "unexpected": "Unexpected error: {{detail}}",
       "unknown_target": "Unknown target image \"{{target}}\"."
