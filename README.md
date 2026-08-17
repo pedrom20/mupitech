@@ -104,6 +104,37 @@ Cada funcionalidade opcional (como o CCTV) é controlada por uma flag em `FEATUR
 
 ## Instalação rápida
 
+### Acesso ao repositório (é privado)
+
+O repositório é privado — `git clone` sem autenticação falha com
+"Repository not found". Num servidor novo, a opção mais simples de
+manter (não fica associada a uma conta pessoal, é só de leitura, e
+serve para todos os servidores que precisares de instalar) é uma
+**deploy key** SSH dedicada:
+
+```bash
+ssh-keygen -t ed25519 -C "mupiteck-deploy" -f ~/.ssh/mupiteck_deploy -N ""
+cat ~/.ssh/mupiteck_deploy.pub
+```
+
+Copiar a saída e adicionar em GitHub → repositório `mupiteck` →
+**Settings → Deploy keys → Add deploy key** (sem marcar "Allow write
+access" — só precisa de ler). Depois:
+
+```bash
+GIT_SSH_COMMAND="ssh -i ~/.ssh/mupiteck_deploy -o IdentitiesOnly=yes" \
+  git clone git@github.com:pedrom20/mupiteck.git
+```
+
+Alternativa mais rápida para um único uso pontual, mas o acesso fica
+ligado à tua conta pessoal — um Personal Access Token (fine-grained,
+com acesso só a este repo, só "Contents: Read-only", gerado em GitHub
+→ Settings → Developer settings → Personal access tokens):
+
+```bash
+git clone https://<TOKEN>@github.com/pedrom20/mupiteck.git
+```
+
 ### Automática (Ubuntu/Debian, servidor limpo)
 
 Não é preciso instalar Docker nem nada antes — o script trata de tudo
@@ -111,7 +142,6 @@ Não é preciso instalar Docker nem nada antes — o script trata de tudo
 stack):
 
 ```bash
-git clone https://github.com/pedrom20/mupiteck.git
 cd mupiteck
 ./install.sh
 ```
@@ -127,10 +157,10 @@ script: `MUPITECH_HOST=fleet.exemplo.pt ./install.sh`.
 
 ### Manual (outras distribuições, ou Docker já preparado)
 
-Pré-requisitos: Docker e Docker Compose, Git.
+Pré-requisitos: Docker e Docker Compose, Git (ver acima para o acesso
+ao repositório privado).
 
 ```bash
-git clone https://github.com/pedrom20/mupiteck.git
 cd mupiteck
 cp .env.example .env
 docker compose up -d --build
