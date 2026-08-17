@@ -168,6 +168,20 @@ docker compose up -d --build
 
 A aplicação fica disponível em `http://localhost:9000`.
 
+### Atualizar
+
+Para uma instalação feita por `git clone` (via `install.sh` ou manual):
+
+```bash
+cd mupiteck
+./update.sh
+```
+
+Isto faz `git pull` + `docker compose pull` + `docker compose up -d
+--build` e mostra a versão em execução no final. Não se aplica a uma
+stack criada no Portainer por upload/colar — ver a nota mais abaixo
+sobre esse caso.
+
 ### Primeira conta
 
 Não há credenciais por omissão — ao abrir a aplicação pela primeira vez
