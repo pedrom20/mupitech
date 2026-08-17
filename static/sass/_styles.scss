@@ -306,12 +306,20 @@ body {
   z-index: $z-fixed - 1;
   flex-direction: column;
   padding: 1rem 0;
-  overflow-y: auto;
-  overflow-x: hidden;
   transition: width 0.2s ease;
 
   &.is-collapsed {
     width: $sidebar-width-collapsed;
+  }
+
+  // Scroll/clip only the nav list, not the whole sidebar — the collapse
+  // button below is deliberately positioned half outside the sidebar's
+  // own right edge, and an overflow-x: hidden up on .fm-sidebar itself
+  // clipped it clean off instead of just containing the list's own
+  // width transition.
+  > ul {
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .fm-sidebar-link {
