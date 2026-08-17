@@ -326,7 +326,13 @@
     "storeUnreachable": "Não foi possível contactar a loja de apps. Verifique a sua ligação e tente novamente.",
     "selectDefault": "Predefinido",
     "locationSearchPlaceholder": "Procurar um local…",
-    "locationSearchNoResults": "Sem resultados."
+    "locationSearchNoResults": "Sem resultados.",
+    "firstPartyBadge": "MupiTech",
+    "weatherName": "Meteorologia",
+    "weatherDescription": "Widget de meteorologia animado com as condições atuais e previsão para um local à sua escolha.",
+    "weatherSummary": "Condições atuais, totalmente traduzido, sem serviço externo",
+    "weatherLocationLabel": "Localização",
+    "weatherPlaceLabel": "Nome do local (apresentado no ecrã)"
   },
   "content": {
     "title": "Conteúdo",
@@ -755,6 +761,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "weatherWidget": "Nova app própria \"Meteorologia\" (Adicionar conteúdo > Apps > MupiTech) — um widget de tempo animado e totalmente traduzido, sem depender de nenhum serviço externo",
+      "locationSearchField": "Apps com definição de localização passam a oferecer um campo de pesquisa por morada, além dos campos manuais de latitude/longitude",
       "appsCatalog": "Nova tab \"Apps\" ao adicionar conteúdo — navegue o mesmo catálogo público de apps que o próprio device já oferece, configure e adicione diretamente à sua biblioteca",
       "sidebarButtonFix": "Corrigido o botão de colapsar a sidebar que aparecia cortado na borda",
       "contentLibraryScoping": "Biblioteca de conteúdos: pastas passam a poder ter subpastas, ser associadas a uma localização/grupo, ou marcadas como comuns (Definições > Biblioteca de Conteúdos) — um editor com acesso restrito só vê pastas/ficheiros da sua própria área, mais os comuns",

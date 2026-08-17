@@ -326,7 +326,13 @@
     "storeUnreachable": "Couldn't reach the app store. Check your network connection and try again.",
     "selectDefault": "Default",
     "locationSearchPlaceholder": "Search for a place…",
-    "locationSearchNoResults": "No matches found."
+    "locationSearchNoResults": "No matches found.",
+    "firstPartyBadge": "MupiTech",
+    "weatherName": "Weather",
+    "weatherDescription": "Animated weather widget with the current conditions and forecast for a place of your choosing.",
+    "weatherSummary": "Current conditions, fully translated, no external service",
+    "weatherLocationLabel": "Location",
+    "weatherPlaceLabel": "Place name (shown on screen)"
   },
   "content": {
     "title": "Content",
@@ -755,6 +761,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "weatherWidget": "New first-party \"Weather\" app (Add content > Apps > MupiTech) — a fully translated, animated weather widget, no external service required",
+      "locationSearchField": "Apps with a location setting now offer a type-to-search address field alongside the manual latitude/longitude inputs",
       "appsCatalog": "New \"Apps\" tab when adding content — browse the same public signage-app catalog the device itself offers, configure it, and add it straight to your library",
       "sidebarButtonFix": "Fixed the sidebar's collapse button being clipped off at the edge",
       "contentLibraryScoping": "Content library: folders can now have subfolders, be scoped to a location/group, or marked common (Settings > Content Library) — an editor with restricted access only sees folders/files relevant to their own area, plus common ones",

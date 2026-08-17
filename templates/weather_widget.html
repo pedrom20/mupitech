@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tempo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    font-family: 'Segoe UI', 'Plus Jakarta Sans', Arial, sans-serif;
+    overflow: hidden;
+    color: #fff;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 1s ease;
+  }
+
+  /* --- Backgrounds per condition --- */
+  body.clear { background: linear-gradient(160deg, #3a8dde 0%, #7fc4ff 60%, #ffe08a 100%); }
+  body.clear-night { background: linear-gradient(160deg, #0b1030 0%, #1c2454 55%, #2f3a7a 100%); }
+  body.partly-cloudy { background: linear-gradient(160deg, #5a9bdc 0%, #9cc3e8 100%); }
+  body.partly-cloudy-night { background: linear-gradient(160deg, #131a3a 0%, #232d5e 55%, #34407a 100%); }
+  body.cloudy { background: linear-gradient(160deg, #6b7688 0%, #97a3b5 100%); }
+  body.fog { background: linear-gradient(160deg, #8b93a0 0%, #c3c9d2 100%); }
+  body.drizzle { background: linear-gradient(160deg, #4c5b70 0%, #7c8ea3 100%); }
+  body.rain { background: linear-gradient(160deg, #33465c 0%, #566f8a 100%); }
+  body.snow { background: linear-gradient(160deg, #7f97ad 0%, #d6e4ef 100%); }
+  body.thunderstorm { background: linear-gradient(160deg, #171d2c 0%, #3a4258 100%); }
+
+  .scene {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    margin-bottom: 1.5rem;
+  }
+
+  /* --- Sun --- */
+  .sun {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 120px; height: 120px;
+    margin: -60px 0 0 -60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff6d5, #ffd35c 60%, #ffb92e);
+    box-shadow: 0 0 60px 10px rgba(255, 200, 80, 0.55);
+    animation: pulse 4s ease-in-out infinite;
+  }
+  .sun-rays {
+    position: absolute;
+    inset: 0;
+    animation: spin 40s linear infinite;
+  }
+  .sun-rays::before, .sun-rays::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 4px; height: 260px;
+    margin: -130px 0 0 -2px;
+    background: linear-gradient(to bottom, transparent 10%, rgba(255,220,140,0.55) 50%, transparent 90%);
+  }
+  .sun-rays::after { transform: rotate(45deg); }
+  .sun-rays span { position: absolute; inset: 0; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+  /* --- Moon + stars --- */
+  .moon {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100px; height: 100px;
+    margin: -50px 0 0 -50px;
+    border-radius: 50%;
+    background: #f4f2ea;
+    box-shadow: inset -24px -8px 0 0 #cfd2e6, 0 0 45px 8px rgba(230,230,255,0.4);
+    animation: pulse 6s ease-in-out infinite;
+  }
+  .stars span {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle 2.4s ease-in-out infinite;
+  }
+  @keyframes twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+  /* --- Clouds --- */
+  .cloud {
+    position: absolute;
+    background: #fff;
+    border-radius: 50px;
+    opacity: 0.92;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: inherit;
+    border-radius: 50%;
+  }
+  .cloud-main {
+    width: 150px; height: 55px;
+    top: 55%; left: 50%;
+    margin-left: -75px;
+    animation: drift 8s ease-in-out infinite;
+  }
+  .cloud-main::before { width: 70px; height: 70px; top: -38px; left: 15px; }
+  .cloud-main::after { width: 55px; height: 55px; top: -28px; left: 75px; }
+  .cloud-back {
+    width: 100px; height: 40px;
+    top: 40%; left: 30%;
+    opacity: 0.55;
+    animation: drift 10s ease-in-out infinite reverse;
+  }
+  .cloud-back::before { width: 45px; height: 45px; top: -22px; left: 10px; }
+  .cloud-back::after { width: 35px; height: 35px; top: -16px; left: 48px; }
+  body.cloudy .cloud-main { top: 50%; }
+  body.partly-cloudy .cloud-main { width: 120px; opacity: 0.85; }
+  @keyframes drift { 0%, 100% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
+
+  /* --- Fog --- */
+  .fog-band {
+    position: absolute;
+    left: 10%;
+    width: 80%;
+    height: 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.65);
+    animation: fogdrift 6s ease-in-out infinite;
+  }
+  @keyframes fogdrift { 0%, 100% { transform: translateX(-14px); opacity: 0.5; } 50% { transform: translateX(14px); opacity: 0.9; } }
+
+  /* --- Rain / drizzle --- */
+  .drop {
+    position: absolute;
+    width: 3px;
+    background: linear-gradient(to bottom, transparent, #cfe6ff);
+    border-radius: 2px;
+    animation: fall linear infinite;
+  }
+  @keyframes fall {
+    0% { transform: translateY(0); opacity: 0; }
+    15% { opacity: 1; }
+    100% { transform: translateY(160px); opacity: 0; }
+  }
+
+  /* --- Snow --- */
+  .flake {
+    position: absolute;
+    color: #eaf6ff;
+    font-size: 16px;
+    text-shadow: 0 1px 4px rgba(30, 60, 90, 0.35);
+    animation: snowfall linear infinite;
+  }
+  @keyframes snowfall {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(170px) translateX(14px) rotate(180deg); opacity: 0; }
+  }
+
+  /* --- Lightning --- */
+  .bolt {
+    position: absolute;
+    top: 58%; left: 50%;
+    margin-left: -10px;
+    width: 20px; height: 45px;
+    background: #ffe97a;
+    clip-path: polygon(50% 0%, 20% 55%, 45% 55%, 10% 100%, 80% 40%, 50% 40%);
+    animation: flash 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px #ffe97a);
+  }
+  @keyframes flash { 0%, 92%, 100% { opacity: 0; } 94%, 97% { opacity: 1; } }
+  body.thunderstorm.flashing { animation: bgflash 0.15s; }
+  @keyframes bgflash { from { background-color: rgba(255,255,255,0.25); } to { background-color: transparent; } }
+
+  /* --- Readout --- */
+  .temp {
+    font-size: 6rem;
+    font-weight: 300;
+    line-height: 1;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+  .temp sup { font-size: 2.5rem; vertical-align: 1.6rem; font-weight: 300; }
+  .range {
+    margin-top: 0.5rem;
+    font-size: 1.3rem;
+    opacity: 0.85;
+    display: flex;
+    gap: 1rem;
+  }
+  .place {
+    margin-top: 1rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    opacity: 0.95;
+  }
+  .error-note {
+    position: absolute;
+    bottom: 1.5rem;
+    font-size: 0.85rem;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body class="{{ condition }}">
+  <div class="scene">
+    {% if condition == 'clear' %}
+      <div class="sun-rays"></div>
+      <div class="sun"></div>
+    {% elif condition == 'clear-night' %}
+      <div class="stars">
+        <span style="top:15%; left:20%; animation-delay:0s;"></span>
+        <span style="top:25%; left:70%; animation-delay:0.6s;"></span>
+        <span style="top:10%; left:55%; animation-delay:1.2s;"></span>
+        <span style="top:35%; left:10%; animation-delay:1.8s;"></span>
+        <span style="top:60%; left:80%; animation-delay:0.3s;"></span>
+        <span style="top:70%; left:15%; animation-delay:0.9s;"></span>
+        <span style="top:20%; left:85%; animation-delay:1.5s;"></span>
+      </div>
+      <div class="moon"></div>
+    {% elif condition == 'partly-cloudy' %}
+      <div class="sun-rays"></div>
+      <div class="sun"></div>
+      <div class="cloud cloud-main"></div>
+    {% elif condition == 'partly-cloudy-night' %}
+      <div class="stars">
+        <span style="top:12%; left:75%; animation-delay:0s;"></span>
+        <span style="top:18%; left:15%; animation-delay:0.8s;"></span>
+        <span style="top:8%; left:45%; animation-delay:1.4s;"></span>
+      </div>
+      <div class="moon" style="width:80px; height:80px; margin:-40px 0 0 -20px; top:38%; left:38%;"></div>
+      <div class="cloud cloud-main"></div>
+    {% elif condition == 'cloudy' %}
+      <div class="cloud cloud-back"></div>
+      <div class="cloud cloud-main"></div>
+    {% elif condition == 'fog' %}
+      <div class="fog-band" style="top:30%; animation-delay:0s;"></div>
+      <div class="fog-band" style="top:48%; animation-delay:0.7s;"></div>
+      <div class="fog-band" style="top:66%; animation-delay:1.4s;"></div>
+    {% elif condition == 'drizzle' or condition == 'rain' %}
+      <div class="cloud cloud-main"></div>
+      {% for i in "12345678" %}
+        <div class="drop" style="left: calc(25% + {% widthratio forloop.counter0 7 50 %}%); top: 130px; height: {{ drop_height }}; animation-duration: {{ drop_duration }}; animation-delay: -{{ forloop.counter0 }}00ms;"></div>
+      {% endfor %}
+    {% elif condition == 'snow' %}
+      <div class="cloud cloud-main"></div>
+      {% for i in "1234567" %}
+        <div class="flake" style="left: calc(25% + {% widthratio forloop.counter0 6 50 %}%); top: 145px; animation-duration: 3.{{ forloop.counter }}s; animation-delay: -{{ forloop.counter0 }}00ms;">❄</div>
+      {% endfor %}
+    {% elif condition == 'thunderstorm' %}
+      <div class="cloud cloud-main"></div>
+      <div class="bolt"></div>
+      {% for i in "123456" %}
+        <div class="drop" style="left: calc(25% + {% widthratio forloop.counter0 5 50 %}%); top: 130px; height: 14px; animation-duration: 0.7s; animation-delay: -{{ forloop.counter0 }}00ms;"></div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {% if temp is not None %}
+    <div class="temp">{{ temp }}<sup>°C</sup></div>
+    {% if temp_min is not None and temp_max is not None %}
+      <div class="range"><span>▼ {{ temp_min }}°</span><span>▲ {{ temp_max }}°</span></div>
+    {% endif %}
+  {% endif %}
+  {% if place %}<div class="place">{{ place }}</div>{% endif %}
+  {% if error %}<div class="error-note">Sem dados em tempo real — a mostrar a última previsão conhecida.</div>{% endif %}
+</body>
+</html>

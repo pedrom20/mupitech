@@ -60,6 +60,7 @@ from fleet_manager.system_views import (
     tailscale_settings,
 )
 from fleet_manager.user_views import UserViewSet
+from fleet_manager.weather_view import weather_widget
 
 user_router = DefaultRouter()
 user_router.register('users', UserViewSet)
@@ -734,6 +735,7 @@ urlpatterns = [
     path('api/', include('mfa.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     path('cctv/<uuid:config_id>/', cctv_player_view, name='cctv-player'),
+    path('tools/weather/', weather_widget, name='weather-widget'),
     path('', TemplateView.as_view(template_name='index.html'), name='index'),
     path('<path:path>', TemplateView.as_view(template_name='index.html')),
 ]

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaAppStore, FaArrowLeft, FaCheck, FaExclamationTriangle } from 'react-icons/fa'
+import { FaAppStore, FaArrowLeft, FaCheck } from 'react-icons/fa'
 import { loadCatalog } from '@/apps/catalog'
 import { buildLaunchUrl } from '@/apps/launch-url'
 import { suggestedName } from '@/apps/suggested-name'
@@ -23,6 +23,55 @@ const defaultValues = (app: CatalogApp): SettingValues => {
   return values
 }
 
+const WEATHER_ICON =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<circle cx="24" cy="22" r="13" fill="%23FFB020"/>' +
+      '<path d="M14 46c-6 0-11-5-11-11 0-5.5 4.2-10 9.6-10.9C14.3 17.8 20.5 13 28 13c8.3 0 15 6.4 15.7 14.5C49 28.6 53 33.4 53 39c0 6.1-4.9 11-11 11H14z" fill="%23fff"/>' +
+      '</svg>',
+  )
+
+/** Built in-app (no manifest fetch, no external launch host) rather
+ * than pulled from signage-apps.com — see fleet_manager/weather_view.py.
+ * Presented in the same picker/settings-form flow as the external
+ * catalog so installing it is identical from the operator's side. */
+const firstPartyApps = (t: (key: string, fallback: string) => string): CatalogApp[] => [
+  {
+    id: 'mupitech-weather',
+    manifestUrl: '',
+    manifest: {
+      manifestVersion: '1.0',
+      id: 'mupitech-weather',
+      name: t('apps.weatherName', 'Weather'),
+      description: t('apps.weatherDescription', 'Animated weather widget with the current conditions and forecast for a place of your choosing.'),
+      summary: t('apps.weatherSummary', 'Current conditions, fully translated, no external service'),
+      vendor: 'MupiTech',
+      icon: WEATHER_ICON,
+      settings: {
+        type: 'object',
+        properties: {
+          location: {
+            type: 'object',
+            title: t('apps.weatherLocationLabel', 'Location'),
+            properties: { lat: { type: 'number' }, lng: { type: 'number' } },
+            default: { lat: 38.7223, lng: -9.1393 },
+          },
+          place: {
+            type: 'string',
+            title: t('apps.weatherPlaceLabel', 'Place name (shown on screen)'),
+            default: 'Lisboa',
+          },
+        },
+      },
+      launch: {
+        baseUrl: `${window.location.origin}/tools/weather/`,
+        template: '{?location*,place}',
+      },
+    },
+  },
+]
+
 /** Browse the same public signage-app store catalog mupitech-player's
  * own device-side Add → Apps tab reads (see static/src/apps/catalog.ts,
  * ported from there), configure an app, and install it as a normal
@@ -32,7 +81,6 @@ const AppsTab: React.FC<AppsTabProps> = ({ onInstall }) => {
   const { t } = useTranslation()
   const [apps, setApps] = useState<CatalogApp[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [selected, setSelected] = useState<CatalogApp | null>(null)
   const [values, setValues] = useState<SettingValues>({})
   const [name, setName] = useState('')
@@ -44,13 +92,14 @@ const AppsTab: React.FC<AppsTabProps> = ({ onInstall }) => {
     const controller = new AbortController()
     abortRef.current = controller
     setLoading(true)
-    setError('')
     loadCatalog(undefined, controller.signal)
       .then((result) => {
-        setApps(result)
-        if (result.length === 0) setError(t('apps.noAppsAvailable'))
+        setApps([...firstPartyApps(t), ...result])
       })
-      .catch(() => setError(t('apps.storeUnreachable')))
+      .catch(() => {
+        // Store unreachable is not fatal — the first-party apps still work.
+        setApps(firstPartyApps(t))
+      })
       .finally(() => setLoading(false))
     return () => controller.abort()
   }, [t])
@@ -100,15 +149,6 @@ const AppsTab: React.FC<AppsTabProps> = ({ onInstall }) => {
     )
   }
 
-  if (error && apps.length === 0) {
-    return (
-      <div className="text-center py-4 text-muted">
-        <FaExclamationTriangle className="mb-2" size={24} />
-        <p className="mb-0">{error}</p>
-      </div>
-    )
-  }
-
   if (!selected) {
     return (
       <div className="d-flex flex-wrap gap-2">
@@ -126,7 +166,14 @@ const AppsTab: React.FC<AppsTabProps> = ({ onInstall }) => {
               <FaAppStore style={{ width: 28, height: 28, flexShrink: 0 }} />
             )}
             <span className="flex-grow-1" style={{ minWidth: 0 }}>
-              <span className="d-block fw-semibold" style={{ fontSize: '0.85rem' }}>{app.manifest.name}</span>
+              <span className="d-block fw-semibold" style={{ fontSize: '0.85rem' }}>
+                {app.manifest.name}
+                {app.manifest.vendor === 'MupiTech' && (
+                  <span className="badge bg-primary-subtle text-primary-emphasis ms-2" style={{ fontSize: '0.65rem' }}>
+                    {t('apps.firstPartyBadge')}
+                  </span>
+                )}
+              </span>
               <span className="d-block text-muted text-truncate" style={{ fontSize: '0.75rem' }}>
                 {app.manifest.summary || app.manifest.description}
               </span>
