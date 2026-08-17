@@ -234,13 +234,9 @@ class OfflineAlertEmailTests(TestCase):
         from fleet_manager import alerts
 
         players = [alerts._SamplePlayer('Loja Centro', timezone.now())]
-        conf = alerts.get_alert_settings()
-        message = alerts._offline_alert_message(players, conf, ['admin@example.com'])
+        subject, _text_body, html = alerts._offline_alert_content(players)
 
-        self.assertIn('dispositivo(s) offline', message.subject)
-        self.assertEqual(len(message.alternatives), 1)
-        html, mimetype = message.alternatives[0]
-        self.assertEqual(mimetype, 'text/html')
+        self.assertIn('dispositivo(s) offline', subject)
         self.assertIn('Loja Centro', html)
         self.assertIn('MupiTech', html)
         self.assertIn('data:image/svg+xml;base64,', html)  # logo actually embedded, not a broken/missing src
@@ -249,9 +245,7 @@ class OfflineAlertEmailTests(TestCase):
         from fleet_manager import alerts
 
         players = [alerts._SamplePlayer('<script>alert(1)</script>', None)]
-        conf = alerts.get_alert_settings()
-        message = alerts._offline_alert_message(players, conf, ['admin@example.com'])
-        html = message.alternatives[0][0]
+        _subject, _text_body, html = alerts._offline_alert_content(players)
 
         self.assertNotIn('<script>alert(1)</script>', html)
         self.assertIn('&lt;script&gt;', html)
@@ -266,20 +260,18 @@ class OfflineAlertEmailTests(TestCase):
 
     def test_send_test_offline_alert_email_builds_sample_when_none_offline(self):
         """No real device is offline in this test DB — confirms the
-        sample-data fallback path (not send()'s actual SMTP call, which
-        this test doesn't reach) builds without crashing."""
+        sample-data fallback path (not send_email()'s actual delivery,
+        which this test doesn't reach) builds without crashing."""
         from fleet_manager import alerts
 
-        conf = alerts.get_alert_settings()
         sample_players = [
             alerts._SamplePlayer('Exemplo — Receção', None),
             alerts._SamplePlayer('Exemplo — Balcão 1', None),
         ]
-        message = alerts._offline_alert_message(
-            sample_players, conf, ['admin@example.com'],
+        _subject, _text_body, html = alerts._offline_alert_content(
+            sample_players,
             sample_notice='Nenhum dispositivo está offline neste momento.',
         )
-        html = message.alternatives[0][0]
         self.assertIn('Nenhum dispositivo está offline', html)
         self.assertIn('Exemplo — Receção', html)
 
@@ -672,3 +664,100 @@ class SidebarNavSettingTests(TestCase):
         self.client.force_authenticate(User.objects.create_user(username='u2', password='pw123456'))
         response = self.client.get('/api/system/settings/')
         self.assertTrue(response.data['experimental_sidebar_nav'])
+
+
+class EmailGraphModeTests(TestCase):
+    """Microsoft Graph as an alternative to SMTP for every email the app
+    sends (alerts, email-OTP, password reset) — see fleet_manager/alerts.py.
+    Mode selection and configured-ness; the actual HTTP calls are mocked,
+    real delivery is out of scope for a unit test."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        from fleet_manager import alerts
+        self.cache = cache
+        self.alerts = alerts
+
+    def tearDown(self):
+        for key in (
+            self.alerts.EMAIL_MODE_KEY, self.alerts.ALERTS_SMTP_HOST_KEY,
+            self.alerts.EMAIL_GRAPH_TENANT_ID_KEY, self.alerts.EMAIL_GRAPH_CLIENT_ID_KEY,
+            self.alerts.EMAIL_GRAPH_CLIENT_SECRET_KEY, self.alerts.EMAIL_GRAPH_SENDER_KEY,
+            self.alerts._EMAIL_GRAPH_TOKEN_CACHE_KEY,
+        ):
+            self.cache.delete(key)
+
+    def test_defaults_to_smtp_mode(self):
+        self.assertEqual(self.alerts.get_alert_settings()['mode'], 'smtp')
+
+    def test_graph_mode_unconfigured_until_all_four_fields_set(self):
+        self.cache.set(self.alerts.EMAIL_MODE_KEY, 'graph', None)
+        self.assertFalse(self.alerts.is_email_configured())
+
+        self.cache.set(self.alerts.EMAIL_GRAPH_TENANT_ID_KEY, 'tenant-1', None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_CLIENT_ID_KEY, 'client-1', None)
+        self.assertFalse(self.alerts.is_email_configured())  # secret + sender still missing
+
+        encrypted = self.alerts._get_fernet().encrypt(b'shh').decode()
+        self.cache.set(self.alerts.EMAIL_GRAPH_CLIENT_SECRET_KEY, encrypted, None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_SENDER_KEY, 'noreply@example.com', None)
+        self.assertTrue(self.alerts.is_email_configured())
+
+    def test_smtp_mode_ignores_graph_fields(self):
+        """A tenant with Graph fields left over from a prior config
+        shouldn't count as configured while mode is 'smtp' — only
+        smtp_host matters in that mode."""
+        self.cache.set(self.alerts.EMAIL_MODE_KEY, 'smtp', None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_TENANT_ID_KEY, 'tenant-1', None)
+        self.assertFalse(self.alerts.is_email_configured())
+        self.cache.set(self.alerts.ALERTS_SMTP_HOST_KEY, 'localhost', None)
+        self.assertTrue(self.alerts.is_email_configured())
+
+    def test_send_email_dispatches_to_graph_when_configured(self):
+        self.cache.set(self.alerts.EMAIL_MODE_KEY, 'graph', None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_TENANT_ID_KEY, 'tenant-1', None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_CLIENT_ID_KEY, 'client-1', None)
+        encrypted = self.alerts._get_fernet().encrypt(b'shh').decode()
+        self.cache.set(self.alerts.EMAIL_GRAPH_CLIENT_SECRET_KEY, encrypted, None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_SENDER_KEY, 'noreply@example.com', None)
+
+        token_response = mock.Mock(ok=True)
+        token_response.json.return_value = {'access_token': 'tok-123', 'expires_in': 3600}
+        send_response = mock.Mock(status_code=202, text='')
+
+        with mock.patch('requests.post', side_effect=[token_response, send_response]) as mock_post:
+            self.alerts.send_email(['user@example.com'], 'Subject', 'text', '<p>html</p>')
+
+        self.assertEqual(mock_post.call_count, 2)
+        token_call, send_call = mock_post.call_args_list
+        self.assertIn('login.microsoftonline.com/tenant-1', token_call.args[0])
+        self.assertIn('graph.microsoft.com/v1.0/users/noreply@example.com/sendMail', send_call.args[0])
+        self.assertEqual(send_call.kwargs['headers']['Authorization'], 'Bearer tok-123')
+        self.assertEqual(
+            send_call.kwargs['json']['message']['toRecipients'][0]['emailAddress']['address'],
+            'user@example.com',
+        )
+
+    def test_send_email_raises_when_nothing_configured(self):
+        with self.assertRaises(ValueError):
+            self.alerts.send_email(['user@example.com'], 'Subject', 'text', '')
+
+    def test_graph_token_is_cached_across_sends(self):
+        """A second send within the token's lifetime must not re-hit the
+        token endpoint — see _get_graph_access_token's caching."""
+        self.cache.set(self.alerts.EMAIL_MODE_KEY, 'graph', None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_TENANT_ID_KEY, 'tenant-1', None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_CLIENT_ID_KEY, 'client-1', None)
+        encrypted = self.alerts._get_fernet().encrypt(b'shh').decode()
+        self.cache.set(self.alerts.EMAIL_GRAPH_CLIENT_SECRET_KEY, encrypted, None)
+        self.cache.set(self.alerts.EMAIL_GRAPH_SENDER_KEY, 'noreply@example.com', None)
+
+        token_response = mock.Mock(ok=True)
+        token_response.json.return_value = {'access_token': 'tok-123', 'expires_in': 3600}
+        send_response = mock.Mock(status_code=202, text='')
+
+        with mock.patch('requests.post', side_effect=[token_response, send_response, send_response]) as mock_post:
+            self.alerts.send_email(['a@example.com'], 'S1', 't1', '')
+            self.alerts.send_email(['b@example.com'], 'S2', 't2', '')
+
+        self.assertEqual(mock_post.call_count, 3)  # 1 token + 2 sends, not 2 tokens + 2 sends

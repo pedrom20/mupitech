@@ -192,12 +192,17 @@ export interface TailscaleSettings {
 export interface AlertSettings {
   enabled: boolean
   threshold_minutes: number
+  mode: 'smtp' | 'graph'
   smtp_host: string
   smtp_port: number
   smtp_username: string
   has_password: boolean
   use_tls: boolean
   from_email: string
+  graph_tenant_id: string
+  graph_client_id: string
+  has_graph_client_secret: boolean
+  graph_sender: string
 }
 
 export interface RegistryMirrorSettings {

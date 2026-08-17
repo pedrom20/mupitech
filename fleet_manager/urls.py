@@ -529,19 +529,16 @@ def auth_status(request):
 
 def _send_password_reset_email(request, user):
     from django.contrib.auth.tokens import default_token_generator
-    from django.core.mail import EmailMultiAlternatives
     from django.utils.encoding import force_bytes
     from django.utils.http import urlsafe_base64_encode
 
-    from fleet_manager.alerts import get_alert_connection, get_alert_settings
+    from fleet_manager.alerts import is_email_configured, send_email
     from fleet_manager.email_branding import branded_email_html
 
-    connection = get_alert_connection()
-    if connection is None:
-        logger.warning('Password reset requested for %s but SMTP is not configured.', user.username)
+    if not is_email_configured():
+        logger.warning('Password reset requested for %s but email is not configured.', user.username)
         return
 
-    conf = get_alert_settings()
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     origin = f'{request.scheme}://{request.get_host()}'
@@ -568,14 +565,8 @@ def _send_password_reset_email(request, user):
         footer_html='Este é um email automático do MupiTech Gestor de Mupis Digitais.',
     )
 
-    message = EmailMultiAlternatives(
-        subject=subject, body=text_body,
-        from_email=conf['from_email'] or conf['smtp_username'],
-        to=[user.email], connection=connection,
-    )
-    message.attach_alternative(html_body, 'text/html')
     try:
-        message.send()
+        send_email([user.email], subject, text_body, html_body)
     except Exception:
         logger.exception('Failed to send password reset email to %s.', user.username)
 

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.2.12.0'
+export const APP_VERSION = '1.2.13.0'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.2.13.0',
+    date: '2026-08-17',
+    changeKeys: [
+      'emailViaGraph',
+      'navbarLogoSpacing',
+    ],
+  },
   {
     version: '1.2.12.0',
     date: '2026-08-17',

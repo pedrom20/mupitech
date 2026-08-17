@@ -761,6 +761,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "emailViaGraph": "Email sending (offline alerts, email 2FA codes, password resets) can now go through Microsoft Graph as an alternative to SMTP — Settings > Alerts",
+      "navbarLogoSpacing": "Tightened the gap between the MupiTech logo and the partner-logo divider in the top bar",
       "brandingLibraryUrlFix": "Fixed uploading to the shared logo/standby image library failing with a \"POST not allowed\" error",
       "sidebarNavbarShorter": "The top bar is now shorter when the sidebar layout is on, since navigation already lives in the sidebar",
       "bootSplashProvision": "Fresh Pi installs via the Fleet Manager now install the animated MupiTech boot splash too (previously only baked into a from-scratch image build) — visible from the device's next reboot",
@@ -1103,11 +1105,12 @@
   },
   "alerts": {
     "title": "Email Alerts",
-    "description": "Send admins an email when a device has been offline for longer than the threshold below. Needs an SMTP server to send through.",
+    "description": "Send admins an email when a device has been offline for longer than the threshold below. Needs email sending configured below (SMTP or Microsoft Graph).",
     "enable": "Enable offline alert emails",
     "threshold": "Offline threshold",
     "thresholdDesc": "How long a device must stay offline before an alert is sent.",
-    "smtpTitle": "SMTP server",
+    "smtpTitle": "Email sending",
+    "emailModeDesc": "Used to send this alert, the email-based two-factor code, and password resets — pick how the app actually sends email.",
     "smtpHost": "SMTP host",
     "smtpPort": "Port",
     "smtpUsername": "Username",
@@ -1115,11 +1118,17 @@
     "passwordSet": "Password is configured",
     "fromEmail": "From address",
     "useTls": "Use TLS",
+    "graphDesc": "For Microsoft 365 tenants that block classic SMTP AUTH. Needs an Entra ID app registration with the application (not delegated) Mail.Send permission, admin-consented — ideally scoped to the sending mailbox via an Application Access Policy.",
+    "graphTenantId": "Tenant ID",
+    "graphClientId": "Application (client) ID",
+    "graphClientSecret": "Client secret",
+    "graphSender": "Sender mailbox",
+    "graphSenderHint": "The mailbox Graph sends as — needs a real Microsoft 365 mailbox (a shared mailbox works well) and the Mail.Send permission scoped to it.",
     "sendTest": "Send test email",
     "sendTestOffline": "Send real alert sample",
     "sendTestOfflineHint": "Uses the real offline-devices alert template (with currently offline devices, or a sample if none are offline), instead of the generic text from the test above.",
     "testSent": "Test email sent — check your inbox.",
-    "testFailed": "Could not send the test email. Check the SMTP settings."
+    "testFailed": "Could not send the test email. Check the email settings."
   },
   "registryMirror": {
     "title": "Registry Mirror",

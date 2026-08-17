@@ -761,6 +761,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "emailViaGraph": "O envio de emails (alertas offline, códigos de 2FA por email, recuperação de password) já pode passar pelo Microsoft Graph como alternativa ao SMTP — Definições > Alertas",
+      "navbarLogoSpacing": "Reduzido o espaço entre o logo MupiTech e o separador do logo de parceiro na barra superior",
       "brandingLibraryUrlFix": "Corrigido o envio para a biblioteca partilhada de logos/imagens de repouso, que falhava com erro \"POST não permitido\"",
       "sidebarNavbarShorter": "A barra superior fica agora mais estreita quando a disposição em sidebar está ativa, já que a navegação principal vive na sidebar",
       "bootSplashProvision": "A instalação de raiz de um Pi através do Fleet Manager já instala também a animação de arranque MupiTech (antes só vinha em imagens construídas de raiz) — visível a partir do próximo reinício do dispositivo",
@@ -1103,11 +1105,12 @@
   },
   "alerts": {
     "title": "Alertas por Email",
-    "description": "Envia um email aos administradores quando um dispositivo está offline há mais tempo do que o limite abaixo. Precisa de um servidor SMTP para enviar.",
+    "description": "Envia um email aos administradores quando um dispositivo está offline há mais tempo do que o limite abaixo. Precisa do envio de email configurado abaixo (SMTP ou Microsoft Graph).",
     "enable": "Ativar alertas por email",
     "threshold": "Limite de tempo offline",
     "thresholdDesc": "Quanto tempo um dispositivo tem de estar offline antes de um alerta ser enviado.",
-    "smtpTitle": "Servidor SMTP",
+    "smtpTitle": "Envio de email",
+    "emailModeDesc": "Usado para enviar este alerta, o código de dois fatores por email, e recuperações de password — escolhe como a aplicação envia mesmo os emails.",
     "smtpHost": "Servidor SMTP",
     "smtpPort": "Porta",
     "smtpUsername": "Utilizador",
@@ -1115,11 +1118,17 @@
     "passwordSet": "Palavra-passe configurada",
     "fromEmail": "Endereço de origem",
     "useTls": "Usar TLS",
+    "graphDesc": "Para inquilinos Microsoft 365 que bloqueiam o SMTP AUTH clássico. Precisa de um registo de aplicação no Entra ID com a permissão Mail.Send do tipo aplicação (não delegada), com consentimento de administrador — idealmente restrita à caixa de correio de envio através de uma Application Access Policy.",
+    "graphTenantId": "Tenant ID",
+    "graphClientId": "ID da aplicação (client)",
+    "graphClientSecret": "Segredo da aplicação (client secret)",
+    "graphSender": "Caixa de correio de envio",
+    "graphSenderHint": "A caixa de correio em nome da qual o Graph envia — precisa de ser uma caixa de correio Microsoft 365 real (uma caixa partilhada funciona bem) com a permissão Mail.Send restrita a ela.",
     "sendTest": "Enviar email de teste",
     "sendTestOffline": "Enviar exemplo de alerta real",
     "sendTestOfflineHint": "Usa o template real do alerta de devices offline (com os devices offline atuais, ou um exemplo se nenhum estiver offline), em vez do texto genérico do teste acima.",
     "testSent": "Email de teste enviado — verifique a sua caixa de entrada.",
-    "testFailed": "Não foi possível enviar o email de teste. Verifique as definições SMTP."
+    "testFailed": "Não foi possível enviar o email de teste. Verifique as definições de email."
   },
   "registryMirror": {
     "title": "Registo Espelho",

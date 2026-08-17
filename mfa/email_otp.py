@@ -1,10 +1,12 @@
 """Email-delivered one-time-code second factor.
 
-Reuses the alerts system's own SMTP connection (fleet_manager/alerts.py)
-rather than adding a separate credential to configure — if an admin has
-already set up SMTP for offline-device alerts, email OTP just works;
-if not, it's reported as unconfigured the same way Duo/privacyIDEA are
-when their own credentials are missing (see mfa/providers.py).
+Reuses the app's shared email settings (fleet_manager/alerts.py — SMTP
+or Microsoft Graph, whichever an admin configured under Settings >
+Alerts) rather than adding a separate credential to configure — if
+email is already set up (for offline-device alerts, say), email OTP
+just works; if not, it's reported as unconfigured the same way
+Duo/privacyIDEA are when their own credentials are missing (see
+mfa/providers.py).
 
 Codes are generated fresh per use and never stored in the clear —
 callers get back the raw code once (to email it) and a hash (via
@@ -24,11 +26,12 @@ CODE_TTL_SECONDS = 300
 
 
 def email_otp_configured():
-    """Whether SMTP is set up at all (Settings > Alerts) — an email
-    code obviously can't be delivered without it. Unlike Duo/privacyIDEA
-    there's no provider-specific credential of its own to check."""
-    from fleet_manager.alerts import get_alert_connection
-    return get_alert_connection() is not None
+    """Whether email sending is set up at all (Settings > Alerts,
+    either SMTP or Microsoft Graph) — an email code obviously can't be
+    delivered without it. Unlike Duo/privacyIDEA there's no
+    provider-specific credential of its own to check."""
+    from fleet_manager.alerts import is_email_configured
+    return is_email_configured()
 
 
 def generate_code():
@@ -45,20 +48,16 @@ def code_matches(code, code_hash):
 
 def send_code_email(user, code):
     """Emails `code` to the user's account email. Returns True if a
-    send was attempted (SMTP configured and the send didn't raise),
+    send was attempted (email configured and the send didn't raise),
     False otherwise — callers should treat False as "can't use this
     method right now", not silently pretend it worked."""
-    from django.core.mail import EmailMultiAlternatives
-
-    from fleet_manager.alerts import get_alert_connection, get_alert_settings
+    from fleet_manager.alerts import is_email_configured, send_email
     from fleet_manager.email_branding import branded_email_html
 
-    connection = get_alert_connection()
-    if connection is None:
-        logger.warning('Email OTP requested for %s but SMTP is not configured.', user.username)
+    if not is_email_configured():
+        logger.warning('Email OTP requested for %s but email is not configured.', user.username)
         return False
 
-    conf = get_alert_settings()
     subject = '[MupiTech] O seu código de verificação'
     text_body = (
         f'O seu código de verificação é: {code}\n\n'
@@ -77,14 +76,8 @@ def send_code_email(user, code):
         footer_html='Este é um email automático do MupiTech Gestor de Mupis Digitais.',
     )
 
-    message = EmailMultiAlternatives(
-        subject=subject, body=text_body,
-        from_email=conf['from_email'] or conf['smtp_username'],
-        to=[user.email], connection=connection,
-    )
-    message.attach_alternative(html_body, 'text/html')
     try:
-        message.send()
+        send_email([user.email], subject, text_body, html_body)
     except Exception:
         logger.exception('Failed to send email OTP to %s.', user.username)
         return False
