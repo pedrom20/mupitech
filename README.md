@@ -104,12 +104,30 @@ Cada funcionalidade opcional (como o CCTV) é controlada por uma flag em `FEATUR
 
 ## Instalação rápida
 
-### Pré-requisitos
+### Automática (Ubuntu/Debian, servidor limpo)
 
-- Docker e Docker Compose
-- Git
+Não é preciso instalar Docker nem nada antes — o script trata de tudo
+(dependências, Docker, geração de segredos, firewall, arranque da
+stack):
 
-### Passos
+```bash
+git clone https://github.com/pedrom20/mupiteck.git
+cd mupiteck
+./install.sh
+```
+
+No fim, mostra o URL para aceder. É seguro correr `./install.sh` outra
+vez (ex.: depois de editar o `.env`) — não apaga segredos já gerados
+nem configuração já personalizada, só preenche o que ainda estiver por
+omissão.
+
+Para correr sem nenhum prompt (ex.: provisioning automatizado), define
+`MUPITECH_HOST` com o IP ou domínio do servidor antes de chamar o
+script: `MUPITECH_HOST=fleet.exemplo.pt ./install.sh`.
+
+### Manual (outras distribuições, ou Docker já preparado)
+
+Pré-requisitos: Docker e Docker Compose, Git.
 
 ```bash
 git clone https://github.com/pedrom20/mupiteck.git
