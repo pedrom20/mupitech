@@ -381,9 +381,15 @@
     "deleteFolder": "Eliminar pasta",
     "renameFolder": "Renomear pasta",
     "folderCreated": "Pasta criada",
+    "folderUpdated": "Pasta atualizada",
     "folderDeleted": "Pasta eliminada",
     "fileMoved": "Ficheiro movido",
     "confirmDeleteFolder": "Eliminar pasta? Os ficheiros permanecem na biblioteca.",
+    "rootFolder": "Biblioteca",
+    "inheritScope": "— Herdar da pasta-mãe —",
+    "scopedLocation": "Localização",
+    "scopedGroup": "Grupo",
+    "commonFolder": "Comum a todos",
     "totalPlayTime": "Tempo total de reprodução",
     "viewGrid": "Grelha",
     "viewList": "Lista",
@@ -1097,6 +1103,12 @@
     "status_pushing": "A enviar...",
     "status_done": "Concluído",
     "status_failed": "Falhou"
+  },
+  "contentLibrary": {
+    "title": "Biblioteca de Conteúdos",
+    "description": "Marque pastas como comuns para ficarem (e tudo o que estiver dentro) visíveis a todos os editores, independentemente do seu próprio acesso por localização/grupo. Qualquer outra pasta só é visível a editores cujo acesso cubra a sua localização/grupo.",
+    "empty": "Ainda não há pastas.",
+    "inheritedCommon": "Comum (herdado)"
   },
   "mfaProviders": {
     "title": "Providers MFA",

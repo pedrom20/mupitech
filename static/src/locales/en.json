@@ -381,9 +381,15 @@
     "deleteFolder": "Delete folder",
     "renameFolder": "Rename folder",
     "folderCreated": "Folder created",
+    "folderUpdated": "Folder updated",
     "folderDeleted": "Folder deleted",
     "fileMoved": "File moved",
     "confirmDeleteFolder": "Delete folder? Files will remain in library.",
+    "rootFolder": "Library",
+    "inheritScope": "— Inherit from parent folder —",
+    "scopedLocation": "Location",
+    "scopedGroup": "Group",
+    "commonFolder": "Common to everyone",
     "totalPlayTime": "Total play time",
     "viewGrid": "Grid",
     "viewList": "List",
@@ -1097,6 +1103,12 @@
     "status_pushing": "Pushing...",
     "status_done": "Done",
     "status_failed": "Failed"
+  },
+  "contentLibrary": {
+    "title": "Content Library",
+    "description": "Mark folders as common to make them (and everything nested inside) visible to every editor, regardless of their own location/group access. Every other folder is only visible to editors whose access covers its location/group.",
+    "empty": "No folders yet.",
+    "inheritedCommon": "Common (inherited)"
   },
   "mfaProviders": {
     "title": "MFA Providers",

@@ -632,22 +632,36 @@ export const schedules = {
   },
 }
 
+export interface FolderCreateData {
+  name: string
+  parent?: string | null
+  location?: string | null
+  group?: string | null
+  [key: string]: unknown
+}
+
 export const folders = {
   async list(): Promise<MediaFolder[]> {
     const data = await apiRequest<{ results: MediaFolder[] } | MediaFolder[]>('GET', '/folders/')
     return Array.isArray(data) ? data : data.results
   },
 
-  create(name: string): Promise<MediaFolder> {
-    return apiRequest<MediaFolder>('POST', '/folders/', { name })
+  create(data: FolderCreateData): Promise<MediaFolder> {
+    return apiRequest<MediaFolder>('POST', '/folders/', data)
   },
 
-  update(id: string, name: string): Promise<MediaFolder> {
-    return apiRequest<MediaFolder>('PATCH', `/folders/${id}/`, { name })
+  update(id: string, data: Partial<FolderCreateData>): Promise<MediaFolder> {
+    return apiRequest<MediaFolder>('PATCH', `/folders/${id}/`, data)
   },
 
   delete(id: string): Promise<void> {
     return apiRequest<void>('DELETE', `/folders/${id}/`)
+  },
+
+  /** Admin-only — see content/views.py::MediaFolderViewSet.set_common.
+   * The regular update() above can't touch is_common at all. */
+  setCommon(id: string, isCommon: boolean): Promise<MediaFolder> {
+    return apiRequest<MediaFolder>('POST', `/folders/${id}/set-common/`, { is_common: isCommon })
   },
 }
 

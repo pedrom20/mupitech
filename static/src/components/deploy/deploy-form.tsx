@@ -40,7 +40,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { FileTypeIcon, FilePreview, getDomain, isImageUrl } from '@/components/shared/media-preview'
 import { showToast } from '@/utils/toast'
-import { RoleContext, isSuperAdminRole } from '@/components/app'
+import { RoleContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import type { MediaFile, MediaFolder, CctvConfig } from '@/types'
 
 function formatFileSize(bytes: number): string {
@@ -448,9 +448,17 @@ const ContentPage: React.FC = () => {
 
   // Folders
   const [folders, setFolders] = useState<MediaFolder[]>([])
-  const [activeFolder, setActiveFolder] = useState<string | null>(null) // null = all, 'none' = no folder, uuid = specific
+  const [activeFolder, setActiveFolder] = useState<string | null>(null) // null = all, 'none' = no folder, uuid = specific — filters the FILE list only
+  // Which level of the folder tree the grid below is showing — separate
+  // from activeFolder above: navigating into a folder always sets both,
+  // but clearing the file filter (the "x Folder Name" chip) doesn't
+  // need to also back out of the folder you're browsing.
+  const [browsingFolderId, setBrowsingFolderId] = useState<string | null>(null)
   const [showNewFolder, setShowNewFolder] = useState(false)
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
   const [newFolderName, setNewFolderName] = useState('')
+  const [newFolderLocation, setNewFolderLocation] = useState('')
+  const [newFolderGroup, setNewFolderGroup] = useState('')
 
   // Playback stats
   const [playbackStats, setPlaybackStats] = useState<Record<string, number>>({})
@@ -710,14 +718,44 @@ const ContentPage: React.FC = () => {
   }
 
   // --- Folder operations ---
-  const handleCreateFolder = async () => {
+  const closeFolderForm = () => {
+    setShowNewFolder(false)
+    setEditingFolderId(null)
+    setNewFolderName('')
+    setNewFolderLocation('')
+    setNewFolderGroup('')
+  }
+
+  const handleOpenEditFolder = (e: React.MouseEvent, folder: MediaFolder) => {
+    e.stopPropagation()
+    setEditingFolderId(folder.id)
+    setNewFolderName(folder.name)
+    setNewFolderLocation(folder.location || '')
+    setNewFolderGroup(folder.group || '')
+    setShowNewFolder(true)
+  }
+
+  const handleSaveFolder = async () => {
     if (!newFolderName.trim()) return
     try {
-      await foldersApi.create(newFolderName.trim())
-      setNewFolderName('')
-      setShowNewFolder(false)
+      const data = {
+        name: newFolderName.trim(),
+        location: newFolderLocation || null,
+        group: newFolderGroup || null,
+      }
+      if (editingFolderId) {
+        await foldersApi.update(editingFolderId, data)
+      } else {
+        await foldersApi.create({ ...data, parent: browsingFolderId })
+      }
+      closeFolderForm()
       loadFolders()
-      Swal.fire({ icon: 'success', title: t('content.folderCreated'), timer: 1200, showConfirmButton: false })
+      Swal.fire({
+        icon: 'success',
+        title: editingFolderId ? t('content.folderUpdated') : t('content.folderCreated'),
+        timer: 1200,
+        showConfirmButton: false,
+      })
     } catch (err) {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
     }
@@ -738,6 +776,7 @@ const ContentPage: React.FC = () => {
       try {
         await foldersApi.delete(folder.id)
         if (activeFolder === folder.id) setActiveFolder(null)
+        if (browsingFolderId === folder.id) setBrowsingFolderId(folder.parent)
         loadFolders()
         loadFiles()
         Swal.fire({ icon: 'success', title: t('content.folderDeleted'), timer: 1200, showConfirmButton: false })
@@ -797,6 +836,20 @@ const ContentPage: React.FC = () => {
     if (activeFolder && activeFolder !== 'none' && f.folder !== activeFolder) return false
     return true
   })
+
+  // --- Folder tree navigation ---
+  // Only the current level's subfolders show in the grid — clicking one
+  // navigates into it (see the folder tile's onClick below). Root level
+  // is parent === null.
+  const visibleFolders = folders.filter((f) => f.parent === browsingFolderId)
+  const folderBreadcrumb: MediaFolder[] = []
+  {
+    let node = folders.find((f) => f.id === browsingFolderId)
+    while (node) {
+      folderBreadcrumb.unshift(node)
+      node = node.parent ? folders.find((f) => f.id === node!.parent) : undefined
+    }
+  }
 
   const filterButtons: { key: FilterType; icon: React.ReactNode; label: string }[] = [
     { key: 'all', icon: null, label: t('content.filterAll') },
@@ -920,13 +973,38 @@ const ContentPage: React.FC = () => {
             </div>
           )}
 
-          {/* Folders grid — Windows-style icons */}
+          {/* Folder breadcrumb — only shown once browsing into a folder */}
+          {folderBreadcrumb.length > 0 && (
+            <div className="d-flex align-items-center flex-wrap gap-1 mb-2" style={{ fontSize: '0.8rem' }}>
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 text-decoration-none"
+                onClick={() => setBrowsingFolderId(null)}
+              >
+                {t('content.rootFolder')}
+              </button>
+              {folderBreadcrumb.map((f) => (
+                <React.Fragment key={f.id}>
+                  <span className="text-muted">/</span>
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 text-decoration-none"
+                    onClick={() => setBrowsingFolderId(f.id)}
+                  >
+                    {f.name}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+
+          {/* Folders grid — Windows-style icons, showing the current level only */}
           <div className="mb-3">
               <div className="d-flex flex-wrap gap-3 align-items-start">
-                {folders.map((folder) => (
+                {visibleFolders.map((folder) => (
                   <div
                     key={folder.id}
-                    className="text-center"
+                    className="text-center position-relative"
                     style={{
                       width: '96px',
                       cursor: 'pointer',
@@ -936,13 +1014,29 @@ const ContentPage: React.FC = () => {
                       background: activeFolder === folder.id ? 'var(--bs-primary-bg-subtle)' : 'transparent',
                       transition: 'all 0.15s',
                     }}
-                    onClick={() => setActiveFolder(activeFolder === folder.id ? null : folder.id)}
+                    onClick={() => { setBrowsingFolderId(folder.id); setActiveFolder(folder.id) }}
                     onContextMenu={(e) => {
                       e.preventDefault()
                       handleDeleteFolder(e as unknown as React.MouseEvent, folder)
                     }}
-                    title={`${folder.name} (${folder.file_count})`}
+                    title={[
+                      `${folder.name} (${folder.file_count})`,
+                      folder.effective_location_name ? `${t('content.scopedLocation')}: ${folder.effective_location_name}` : '',
+                      folder.effective_group_name ? `${t('content.scopedGroup')}: ${folder.effective_group_name}` : '',
+                      folder.effective_is_common ? t('content.commonFolder') : '',
+                    ].filter(Boolean).join('\n')}
                   >
+                    {isAdminRole(role) && (
+                      <button
+                        type="button"
+                        className="btn btn-sm p-0 position-absolute"
+                        style={{ top: 0, right: 4, fontSize: '0.65rem', lineHeight: 1, background: 'transparent', border: 'none' }}
+                        onClick={(e) => handleOpenEditFolder(e, folder)}
+                        title={t('common.edit')}
+                      >
+                        <FaPen className="text-muted" />
+                      </button>
+                    )}
                     {activeFolder === folder.id ? (
                       <FaFolderOpen style={{ fontSize: '2.4rem', color: '#ffc107' }} />
                     ) : (
@@ -953,35 +1047,58 @@ const ContentPage: React.FC = () => {
                       style={{ fontSize: '0.75rem', lineHeight: '1.2', wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                     >
                       {folder.name}
+                      {folder.effective_is_common && <FaCheck className="ms-1 text-success" style={{ fontSize: '0.6rem' }} title={t('content.commonFolder')} />}
                     </div>
                     <small className="text-muted" style={{ fontSize: '0.62rem' }}>{folder.file_count}</small>
                   </div>
                 ))}
 
-                {/* Create new folder */}
+                {/* Create/edit folder */}
                 {showNewFolder ? (
-                  <div className="text-center" style={{ width: '130px', padding: '8px 4px' }}>
-                    <FaFolderPlus style={{ fontSize: '2.4rem', color: 'var(--bs-secondary)' }} />
-                    <div className="mt-1 d-flex gap-1 align-items-center">
+                  <div className="text-start" style={{ width: '210px', padding: '8px' }}>
+                    <div className="d-flex align-items-center gap-1 mb-1">
+                      <FaFolderPlus style={{ fontSize: '1.2rem', color: 'var(--bs-secondary)' }} />
                       <input
                         type="text"
                         className="form-control form-control-sm"
-                        style={{ fontSize: '0.72rem', padding: '2px 6px' }}
+                        style={{ fontSize: '0.75rem' }}
                         placeholder={t('content.folderName')}
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleCreateFolder()
-                          if (e.key === 'Escape') { setShowNewFolder(false); setNewFolderName('') }
+                          if (e.key === 'Enter') handleSaveFolder()
+                          if (e.key === 'Escape') closeFolderForm()
                         }}
                         autoFocus
                       />
                     </div>
-                    <div className="d-flex gap-1 justify-content-center mt-1">
-                      <button className="btn btn-sm btn-primary py-0 px-2" onClick={handleCreateFolder}>
+                    <select
+                      className="form-select form-select-sm mb-1"
+                      style={{ fontSize: '0.72rem' }}
+                      value={newFolderLocation}
+                      onChange={(e) => setNewFolderLocation(e.target.value)}
+                    >
+                      <option value="">{t('content.inheritScope')}</option>
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>{loc.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="form-select form-select-sm mb-1"
+                      style={{ fontSize: '0.72rem' }}
+                      value={newFolderGroup}
+                      onChange={(e) => setNewFolderGroup(e.target.value)}
+                    >
+                      <option value="">{t('content.inheritScope')}</option>
+                      {groups.map((g) => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
+                    <div className="d-flex gap-1 justify-content-end">
+                      <button className="btn btn-sm btn-primary py-0 px-2" onClick={handleSaveFolder}>
                         <FaCheck style={{ fontSize: '0.6rem' }} />
                       </button>
-                      <button className="btn btn-sm btn-secondary py-0 px-2" onClick={() => { setShowNewFolder(false); setNewFolderName('') }}>
+                      <button className="btn btn-sm btn-secondary py-0 px-2" onClick={closeFolderForm}>
                         <FaTimes style={{ fontSize: '0.6rem' }} />
                       </button>
                     </div>
@@ -1009,7 +1126,7 @@ const ContentPage: React.FC = () => {
                   </div>
                 )}
               </div>
-              {folders.length > 0 && <hr className="my-3" />}
+              {(visibleFolders.length > 0 || folderBreadcrumb.length > 0) && <hr className="my-3" />}
             </div>
 
           {/* File grid / list */}
