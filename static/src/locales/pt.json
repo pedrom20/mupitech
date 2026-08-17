@@ -745,6 +745,10 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "contentLibraryScoping": "Biblioteca de conteúdos: pastas passam a poder ter subpastas, ser associadas a uma localização/grupo, ou marcadas como comuns (Definições > Biblioteca de Conteúdos) — um editor com acesso restrito só vê pastas/ficheiros da sua própria área, mais os comuns",
+      "sidebarPolish": "Layout de sidebar: a secção Parque passa a accordion colapsável, o botão de colapsar a sidebar inteira passa para um local sempre visível na borda, e ambos animam suavemente",
+      "fmManagedBadge": "Um device emparelhado com uma Fleet Manager passa a mostrar um chip \"Gerido pelo Gestor de Mupis Digitais\" na sua própria gestão local após login",
+      "duoIpFix": "Corrigido o push do Duo não reportar o IP real do pedido (aparecia como 0.0.0.0 na consola de admin do Duo)",
       "sidebarNavLayout": "Novo layout experimental (Definições > Gerais, só superadmin): barra lateral esquerda colapsável em vez do menu da navbar superior — opt-in e reversível, não remove o layout atual",
       "devicePairingFeature": "Novo: pairing de devices — um device novo, sem credenciais prévias, pode agora pedir para se juntar à sua frota (Dispositivos > aguardar aprovação), sem precisar de SSH nem de conhecer o IP do device antecipadamente",
       "accountTabsRedesign": "\"O Meu Perfil\" e Definições > Providers de MFA passam a ter navegação lateral/por separadores em vez de mostrar tudo empilhado numa só página",

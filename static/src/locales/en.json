@@ -745,6 +745,10 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "contentLibraryScoping": "Content library: folders can now have subfolders, be scoped to a location/group, or marked common (Settings > Content Library) — an editor with restricted access only sees folders/files relevant to their own area, plus common ones",
+      "sidebarPolish": "Sidebar layout: the Fleet section is now a collapsible accordion, the whole-sidebar collapse button moved to an always-visible spot on the edge, and both now animate smoothly",
+      "fmManagedBadge": "A device paired with a Fleet Manager now shows a \"Managed by Fleet Manager\" badge on its own local dashboard after login",
+      "duoIpFix": "Fixed Duo push notifications not reporting the real request IP (showed as 0.0.0.0 in Duo's own admin console)",
       "sidebarNavLayout": "New experimental layout (Settings > General, superadmin-only): a collapsible left sidebar instead of the top navbar's menu — opt-in and reversible, doesn't remove the current layout",
       "devicePairingFeature": "New: device pairing — a fresh device with no prior credentials can now request to join your fleet (Players > Devices awaiting approval), instead of needing SSH access or the device's IP known up front",
       "accountTabsRedesign": "\"My Profile\" and Settings > MFA Providers now use side/tab navigation instead of stacking everything on one page",
