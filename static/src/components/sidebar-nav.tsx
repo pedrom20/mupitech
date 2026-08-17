@@ -53,6 +53,10 @@ const SidebarNav: React.FC = () => {
     { to: '/settings', icon: FaCog, label: t('nav.settings'), end: false },
   ]
 
+  // Labels always render (never conditionally unmounted) — the
+  // sidebar-collapsed state hides them with a CSS opacity/width
+  // transition (see .fm-sidebar-label in _styles.scss) instead of a
+  // hard cut, so collapsing/expanding reads as one smooth motion.
   const renderItem = ({ to, icon: Icon, label, end }: { to: string; icon: typeof FaThLarge; label: string; end: boolean }) => (
     <li key={to}>
       <NavLink
@@ -62,13 +66,25 @@ const SidebarNav: React.FC = () => {
         title={collapsed ? label : undefined}
       >
         <Icon className="fm-sidebar-icon" />
-        {!collapsed && <span className="fm-sidebar-label">{label}</span>}
+        <span className="fm-sidebar-label">{label}</span>
       </NavLink>
     </li>
   )
 
   return (
     <nav className={`fm-sidebar d-none d-lg-flex ${collapsed ? 'is-collapsed' : ''}`}>
+      {/* Edge-pinned so it's always in the same, always-visible spot
+          regardless of how long the nav list is or how far it's
+          scrolled — a button at the bottom of a long list turned out
+          to be easy to miss entirely. */}
+      <button
+        type="button"
+        className="fm-sidebar-collapse-btn"
+        onClick={toggleCollapsed}
+        title={collapsed ? t('nav.sidebarExpand') : t('nav.sidebarCollapse')}
+      >
+        {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
+      </button>
       <ul className="list-unstyled mb-0 flex-grow-1">
         {topItems.map(renderItem)}
         {collapsed ? (
@@ -86,20 +102,20 @@ const SidebarNav: React.FC = () => {
                 <FaChevronDown className={`fm-sidebar-section-chevron ${fleetExpanded ? '' : 'is-collapsed'}`} />
               </button>
             </li>
-            {fleetExpanded && fleetItems.map(renderItem)}
+            {/* grid-template-rows 0fr↔1fr is what actually animates —
+                a plain height:auto can't transition, and a fixed max-
+                height either clips a taller list or leaves dead space
+                on a shorter one. */}
+            <li className={`fm-sidebar-accordion ${fleetExpanded ? 'is-expanded' : ''}`}>
+              <ul className="list-unstyled mb-0">
+                {fleetItems.map(renderItem)}
+              </ul>
+            </li>
           </>
         )}
         {!collapsed && <hr className="fm-sidebar-divider" />}
         {bottomItems.map(renderItem)}
       </ul>
-      <button
-        type="button"
-        className="fm-sidebar-collapse-btn"
-        onClick={toggleCollapsed}
-        title={collapsed ? t('nav.sidebarExpand') : t('nav.sidebarCollapse')}
-      >
-        {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
-      </button>
     </nav>
   )
 }

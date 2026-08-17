@@ -69,6 +69,19 @@ export interface PlayerInfo {
 export interface MediaFolder {
   id: string
   name: string
+  parent: string | null
+  location: string | null
+  location_name: string | null
+  group: string | null
+  group_name: string | null
+  is_common: boolean
+  // "Effective" = this folder's own location/group/is_common, or (if
+  // unset) its nearest ancestor's — see content/models.py::MediaFolder.
+  // Read-only; a subfolder inherits by leaving its own fields unset,
+  // not by these being copied onto it.
+  effective_location_name: string | null
+  effective_group_name: string | null
+  effective_is_common: boolean
   file_count: number
   created_at: string
 }

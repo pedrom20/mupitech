@@ -324,7 +324,7 @@ body {
     font-size: $font-size-sm;
     text-decoration: none;
     white-space: nowrap;
-    transition: $transition-fast;
+    transition: background-color 0.15s ease, color 0.15s ease;
 
     &:hover {
       color: $white;
@@ -345,6 +345,24 @@ body {
   .fm-sidebar-icon {
     font-size: 1.1rem;
     flex-shrink: 0;
+  }
+
+  // Always rendered (see the component) — collapsing the sidebar fades
+  // + shrinks these instead of an instant unmount, so the width
+  // transition above and the label's own disappearance read as one
+  // motion instead of text popping out a beat before/after the rail
+  // finishes resizing.
+  .fm-sidebar-label {
+    opacity: 1;
+    max-width: 160px;
+    transition: opacity 0.15s ease, max-width 0.2s ease, margin 0.2s ease;
+  }
+
+  &.is-collapsed .fm-sidebar-label {
+    opacity: 0;
+    max-width: 0;
+    margin: 0;
+    overflow: hidden;
   }
 
   .fm-sidebar-section-label {
@@ -379,25 +397,58 @@ body {
     }
   }
 
+  // grid-template-rows 0fr↔1fr is what actually animates the reveal —
+  // height:auto can't transition, and a fixed max-height either clips
+  // a taller list or leaves dead space on a shorter one.
+  .fm-sidebar-accordion {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.2s ease;
+
+    &.is-expanded {
+      grid-template-rows: 1fr;
+    }
+
+    > ul {
+      overflow: hidden;
+      min-height: 0;
+    }
+  }
+
   .fm-sidebar-divider {
     border-color: rgba($white, 0.1);
     margin: 0.75rem 1.25rem;
   }
 
+  // Edge-pinned to the sidebar's own right border rather than sitting
+  // in-flow at the bottom of the nav list — a long list (Fleet expanded
+  // + every other route) could push an in-flow button below the fold,
+  // where it read as "there's no collapse option at all" rather than
+  // "just scroll down". Fixed position relative to .fm-sidebar means
+  // it's in the same spot regardless of list length or scroll offset.
   .fm-sidebar-collapse-btn {
-    background: transparent;
-    border: none;
-    color: rgba($white, 0.6);
-    padding: 0.75rem;
+    position: absolute;
+    top: 1.25rem;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: $anthias-purple-1;
+    border: 1px solid rgba($white, 0.2);
+    color: rgba($white, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.7rem;
     cursor: pointer;
+    z-index: 1;
     transition: $transition-fast;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 
     &:hover {
       color: $white;
-      background-color: rgba($white, 0.08);
+      background-color: $anthias-purple-2;
+      border-color: rgba($white, 0.4);
     }
   }
 }
