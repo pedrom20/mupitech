@@ -305,3 +305,105 @@ class PairingTests(TestCase):
 
         status_resp = self.client.get(f"/api/pairing/{data['pairing_id']}/status/?poll_token={data['poll_token']}")
         self.assertEqual(status_resp.json()['status'], 'expired')
+
+
+class PlayerEditorPermissionTests(TestCase):
+    """Editors manage *content* on devices, not the devices themselves —
+    see PlayerViewSet.get_permissions(). An editor may assign/update/
+    remove assets on a device or clone another device's content, but
+    adding/editing/removing the device record, its credentials, OS
+    image, power state, or branding is admin-only. These only assert on
+    the permission boundary (403 vs. anything else) — a downstream
+    400/502 from a mocked-away Anthias API call still proves the
+    request got *past* the permission check, which is all a permission
+    test needs to confirm."""
+
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        for name in ('admin', 'editor', 'viewer', 'superadmin'):
+            Group.objects.get_or_create(name=name)
+        self.client = APIClient()
+        self.editor = User.objects.create_user(username='editor1', password='pw123456')
+        Group.objects.get(name='editor').user_set.add(self.editor)
+        self.client.force_authenticate(self.editor)
+        self.player = Player.objects.create(name='P1', url='http://10.0.0.1')
+
+    def test_editor_cannot_create_player(self):
+        resp = self.client.post('/api/players/', {
+            'name': 'New', 'url': 'http://10.0.0.2',
+        }, format='json')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_editor_cannot_update_player(self):
+        resp = self.client.patch(f'/api/players/{self.player.id}/', {
+            'name': 'Renamed',
+        }, format='json')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_editor_cannot_delete_player(self):
+        resp = self.client.delete(f'/api/players/{self.player.id}/')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_editor_cannot_reboot(self):
+        resp = self.client.post(f'/api/players/{self.player.id}/reboot/')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_editor_cannot_shutdown(self):
+        resp = self.client.post(f'/api/players/{self.player.id}/shutdown/')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_editor_cannot_manage_ssh_credentials(self):
+        resp = self.client.post(f'/api/players/{self.player.id}/ssh-credentials/', {
+            'ssh_user': 'pi', 'ssh_password': 'raspberry',
+        }, format='json')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_editor_cannot_push_branding_logo_or_standby(self):
+        for url_path in ('push-branding', 'logo', 'standby'):
+            resp = self.client.post(f'/api/players/{self.player.id}/{url_path}/')
+            self.assertEqual(resp.status_code, 403, url_path)
+
+    def test_editor_cannot_manage_image(self):
+        for url_path in ('image-source', 'migrate-image', 'rebuild-image', 'restore-image'):
+            resp = self.client.post(f'/api/players/{self.player.id}/{url_path}/')
+            self.assertEqual(resp.status_code, 403, url_path)
+
+    def test_editor_can_update_content_asset(self):
+        """400 (missing asset_id) proves the permission check passed —
+        an admin-only action would 403 before ever reaching that
+        validation."""
+        resp = self.client.patch(f'/api/players/{self.player.id}/asset-update/', {}, format='json')
+        self.assertEqual(resp.status_code, 400)
+
+    def test_editor_can_delete_content_asset(self):
+        resp = self.client.post(f'/api/players/{self.player.id}/asset-delete/', {}, format='json')
+        self.assertNotEqual(resp.status_code, 403)
+
+    def test_editor_can_create_content_asset(self):
+        resp = self.client.post(f'/api/players/{self.player.id}/asset-create/', {}, format='json')
+        self.assertNotEqual(resp.status_code, 403)
+
+    def test_editor_can_clone_content(self):
+        """400 (missing source_player_id) proves the permission check
+        passed."""
+        resp = self.client.post(f'/api/players/{self.player.id}/clone-content/', {}, format='json')
+        self.assertEqual(resp.status_code, 400)
+
+    def test_editor_can_still_read(self):
+        resp = self.client.get('/api/players/')
+        self.assertEqual(resp.status_code, 200)
+        resp = self.client.get(f'/api/players/{self.player.id}/')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_can_still_manage_devices(self):
+        """Regression guard: an admin retains every ability an editor
+        just lost."""
+        from django.contrib.auth.models import Group
+        admin = User.objects.create_user(username='admin1', password='pw123456')
+        Group.objects.get(name='admin').user_set.add(admin)
+        self.client.force_authenticate(admin)
+
+        resp = self.client.post('/api/players/', {
+            'name': 'New', 'url': 'http://10.0.0.2',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)

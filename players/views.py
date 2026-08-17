@@ -137,8 +137,30 @@ class PlayerViewSet(viewsets.ModelViewSet):
         from access.scoping import filter_players
         return filter_players(super().get_queryset(), self.request.user)
 
+    # Editors manage *content* on devices (assign/update/remove assets,
+    # clone another device's content, skip/advance what's playing) —
+    # everything about the device itself (adding/editing/removing the
+    # device record, credentials, OS image, reboot/shutdown, branding)
+    # is admin-only. Every other action either only reads (already
+    # open to any authenticated user via IsEditorOrReadOnly's GET
+    # passthrough) or is one of the content actions listed in
+    # _CONTENT_ACTIONS below.
+    _CONTENT_ACTIONS = (
+        'asset_update', 'asset_delete', 'asset_create',
+        'clone_content', 'playback_control',
+    )
+
     def get_permissions(self):
-        if self.action in ('destroy', 'reveal_credentials', 'sso_login', 'push_sso_secret'):
+        if self.action in self._CONTENT_ACTIONS:
+            return super().get_permissions()
+        if self.action in (
+            'create', 'update', 'partial_update', 'destroy',
+            'test_connection', 'device_settings', 'reboot', 'shutdown',
+            'screenshot_sidecar', 'push_branding', 'image_source',
+            'migrate_image', 'rebuild_image', 'restore_image',
+            'ssh_credentials', 'reveal_credentials', 'sso_login',
+            'push_sso_secret', 'logo', 'standby', 'backup',
+        ):
             return [IsAdmin()]
         return super().get_permissions()
 
