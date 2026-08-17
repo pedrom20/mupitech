@@ -29,7 +29,7 @@ class ProvisionTask(models.Model):
     player_name = models.CharField(max_length=200, blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     current_step = models.IntegerField(default=0)
-    total_steps = models.IntegerField(default=12)
+    total_steps = models.IntegerField(default=14)
     steps = models.JSONField(default=list)
     error_message = models.CharField(max_length=1000, blank=True, default='')
     log_output = models.TextField(blank=True, default='')
@@ -930,6 +930,76 @@ touch "$FLAG"
                     _append_log(task, f'Silent boot setup failed (non-fatal): {e}')
                     _update_step(task, 12, 'silent_boot', 'skipped', f'Non-fatal: {e}')
 
+            # Step 13: Boot splash animation (non-fatal). Raspberry-Pi-only
+            # (Plymouth reads /boot/firmware/cmdline.txt, same as silent
+            # boot above — a BIOS/UEFI x86 box has no such concept). Ships
+            # the same animated Plymouth theme used when building a fresh
+            # Pi image from ansible/site.yml in the mupitech-player repo,
+            # normally only applied there — devices provisioned through
+            # this SSH flow used to boot with a blank screen instead
+            # (Plymouth was simply never installed on that path). Only
+            # takes visible effect after the device's next reboot,
+            # Plymouth being an initramfs-time thing.
+            task = ProvisionTask.objects.get(id=task_id)
+            if task.status == 'failed':
+                return
+            _update_step(task, 13, 'boot_splash', 'running', 'Installing boot splash animation...')
+            _append_log(task, '[Step 13] Installing boot splash animation (non-fatal)...')
+
+            if device_type == 'x86':
+                _append_log(task, 'Not applicable on x86, skipping.')
+                _update_step(task, 13, 'boot_splash', 'skipped', 'Not applicable on x86')
+            else:
+                try:
+                    tarball_local_path = os.path.join(
+                        settings.BASE_DIR, 'provision', 'assets', 'plymouth-mupitech-theme.tar.gz',
+                    )
+                    tarball_remote_path = f'{home}/mupitech-plymouth-theme.tar.gz'
+                    sftp.put(tarball_local_path, tarball_remote_path)
+
+                    boot_splash_script = '''#!/bin/bash
+set -e
+FLAG="$HOME/.screenly/.boot-splash-done"
+[ -f "$FLAG" ] && exit 0
+
+rm -rf /tmp/mupitech-plymouth-extract
+mkdir -p /tmp/mupitech-plymouth-extract
+tar xzf "$HOME/mupitech-plymouth-theme.tar.gz" -C /tmp/mupitech-plymouth-extract
+
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq plymouth plymouth-themes plymouth-label
+
+# Old themes (upstream Screenly + our own former Anthias-named theme)
+sudo rm -rf /usr/share/plymouth/themes/screenly /usr/share/plymouth/themes/anthias
+
+sudo mkdir -p /usr/share/plymouth/themes/mupitech
+sudo cp -r /tmp/mupitech-plymouth-extract/mupitech/. /usr/share/plymouth/themes/mupitech/
+sudo cp /tmp/mupitech-plymouth-extract/plymouthd.default /usr/share/plymouth/plymouthd.defaults
+sudo cp /tmp/mupitech-plymouth-extract/plymouthd.default /etc/plymouth/plymouthd.conf
+sudo plymouth-set-default-theme mupitech
+
+if [ -f /boot/firmware/cmdline.txt ]; then
+    sudo bash -c 'grep -q "splash" /boot/firmware/cmdline.txt || sed -i "s/$/ splash plymouth.ignore-serial-consoles/" /boot/firmware/cmdline.txt'
+fi
+
+# plymouthd reads its theme/config from the initramfs, not the rootfs —
+# inert until this runs (see plymouthd.default's own comment on why).
+sudo update-initramfs -u -k all
+
+rm -rf /tmp/mupitech-plymouth-extract "$HOME/mupitech-plymouth-theme.tar.gz"
+mkdir -p "$HOME/.screenly"
+touch "$FLAG"
+'''
+                    with sftp.file(f'{home}/setup-boot-splash.sh', 'w') as f:
+                        f.write(boot_splash_script)
+                    _ssh_run(ssh, f'chmod +x {home}/setup-boot-splash.sh && bash {home}/setup-boot-splash.sh',
+                             sudo_password=ssh_password, timeout=240, check=False)
+                    _append_log(task, 'Boot splash animation installed (visible from next reboot).')
+                    _update_step(task, 13, 'boot_splash', 'success', 'Boot splash installed')
+                except Exception as e:
+                    _append_log(task, f'Boot splash setup failed (non-fatal): {e}')
+                    _update_step(task, 13, 'boot_splash', 'skipped', f'Non-fatal: {e}')
+
             # All done — create Player record
             from .models import Player
             player_name = task.player_name or f'Player {task.ip_address}'
@@ -986,7 +1056,7 @@ touch "$FLAG"
             task.player = player
             task.save(update_fields=['player'])
 
-            # Step 13: push branding overrides. The blue palette/PT copy/
+            # Step 14: push branding overrides. The blue palette/PT copy/
             # default logo+standby are baked into the image itself now
             # (see players/branding.py's module docstring) — nothing to
             # push for those. What's left: a custom logo (only if this
@@ -996,8 +1066,8 @@ touch "$FLAG"
             # Best-effort — a device that provisioned fine but isn't ready
             # for a branding push yet shouldn't be reported as a failed
             # enrollment.
-            _update_step(task, 13, 'push_branding', 'running', 'Applying branding...')
-            _append_log(task, '[Step 13] Pushing branding to the new device...')
+            _update_step(task, 14, 'push_branding', 'running', 'Applying branding...')
+            _append_log(task, '[Step 14] Pushing branding to the new device...')
             try:
                 from .branding import (
                     BrandingPushError, push_device_label_to_player, push_splash_logo_to_player,
@@ -1007,11 +1077,11 @@ touch "$FLAG"
                 push_device_label_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
                 if get_standby_path(player):
                     push_standby_image_to_player(player, task.ssh_user, ssh_password, task.ssh_port)
-                _update_step(task, 13, 'push_branding', 'success', 'Branding applied')
+                _update_step(task, 14, 'push_branding', 'success', 'Branding applied')
             except BrandingPushError as e:
-                _update_step(task, 13, 'push_branding', 'skipped', f'Non-fatal: {e}')
+                _update_step(task, 14, 'push_branding', 'skipped', f'Non-fatal: {e}')
             except Exception as e:
-                _update_step(task, 13, 'push_branding', 'skipped', f'Non-fatal: {e}')
+                _update_step(task, 14, 'push_branding', 'skipped', f'Non-fatal: {e}')
 
             task.status = 'success'
             task.save(update_fields=['status'])

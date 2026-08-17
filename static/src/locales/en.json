@@ -761,6 +761,9 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "bootSplashProvision": "Fresh Pi installs via the Fleet Manager now install the animated MupiTech boot splash too (previously only baked into a from-scratch image build) — visible from the device's next reboot",
+      "standbyPushFix": "Fixed the custom standby image/video not taking effect on the device after being pushed from Settings",
+      "navbarSidebarFix": "Fixed the top-bar logo floating mid-screen instead of sitting flush left when the sidebar layout is on",
       "migratePi4Pi5": "Migrate/rebuild to the MupiTech image is now available for Raspberry Pi 4/5 devices too (was x86-only) — open for real-hardware testing",
       "weatherWidget": "New first-party \"Weather\" app (Add content > Apps > MupiTech) — a fully translated, animated weather widget, no external service required",
       "locationSearchField": "Apps with a location setting now offer a type-to-search address field alongside the manual latitude/longitude inputs",
@@ -1069,6 +1072,7 @@
     "stepPhonehome": "Register with FM",
     "stepTailscale": "Install Tailscale",
     "stepSilentBoot": "Configure Silent Boot",
+    "stepBootSplash": "Install Boot Splash",
     "stepPushBranding": "Apply Branding",
     "pushImageTitle": "Push MupiTech image?",
     "imagePushDesc": "This device was just added by URL, so its current software is unknown. Optionally check what it's running and push the MupiTech custom Anthias image now — or skip and leave it as-is.",

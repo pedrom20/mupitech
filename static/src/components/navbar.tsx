@@ -198,7 +198,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems 
   const isAuthenticated = checked && !!user
 
   return (
-      <nav className="fm-navbar">
+      <nav className={`fm-navbar ${hideDesktopNavItems ? 'fm-navbar--with-sidebar' : ''}`}>
         <div className="container-fluid d-flex align-items-center px-3 h-100">
           <NavLink to="/" className="navbar-brand" onClick={() => { closeMenu(); registerLogoTap() }}>
             <img src="/static/img/logo.svg" alt="MupiTech — Gestor de Mupis Digitais" className="logo-default" />

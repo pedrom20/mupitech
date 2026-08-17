@@ -761,6 +761,9 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "bootSplashProvision": "A instalação de raiz de um Pi através do Fleet Manager já instala também a animação de arranque MupiTech (antes só vinha em imagens construídas de raiz) — visível a partir do próximo reinício do dispositivo",
+      "standbyPushFix": "Corrigido a imagem/vídeo de repouso personalizado não fazer efeito no dispositivo depois de enviado pelas Definições",
+      "navbarSidebarFix": "Corrigido o logo da barra superior a ficar a meio do ecrã em vez de encostado à esquerda quando a disposição em sidebar está ativa",
       "migratePi4Pi5": "Migrar/reinstalar para a imagem MupiTech já está disponível também para dispositivos Raspberry Pi 4/5 (era só x86) — aberto para testes em hardware real",
       "weatherWidget": "Nova app própria \"Meteorologia\" (Adicionar conteúdo > Apps > MupiTech) — um widget de tempo animado e totalmente traduzido, sem depender de nenhum serviço externo",
       "locationSearchField": "Apps com definição de localização passam a oferecer um campo de pesquisa por morada, além dos campos manuais de latitude/longitude",
@@ -1069,6 +1072,7 @@
     "stepPhonehome": "Registar no FM",
     "stepTailscale": "Instalar Tailscale",
     "stepSilentBoot": "Configurar Arranque Silencioso",
+    "stepBootSplash": "Instalar Animação de Arranque",
     "stepPushBranding": "Aplicar Marca",
     "pushImageTitle": "Enviar imagem MupiTech?",
     "imagePushDesc": "Este dispositivo foi adicionado agora por URL, por isso não sabemos o que tem instalado. Pode verificar o que está a correr e enviar a imagem Anthias personalizada da MupiTech agora — ou saltar e deixar como está.",

@@ -50,13 +50,14 @@ const STEP_LABELS: Record<string, string> = {
   phonehome: 'provision.stepPhonehome',
   tailscale: 'provision.stepTailscale',
   silent_boot: 'provision.stepSilentBoot',
+  boot_splash: 'provision.stepBootSplash',
   push_branding: 'provision.stepPushBranding',
 }
 
 const ALL_STEPS = [
   'ssh_connect', 'prerequisites', 'install_docker', 'create_dirs',
   'upload_compose', 'upload_configs', 'docker_pull', 'docker_up',
-  'wait_ready', 'phonehome', 'tailscale', 'silent_boot', 'push_branding',
+  'wait_ready', 'phonehome', 'tailscale', 'silent_boot', 'boot_splash', 'push_branding',
 ]
 
 function StepIcon({ status }: { status: string }) {

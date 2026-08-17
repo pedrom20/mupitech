@@ -472,6 +472,19 @@ body {
       max-width: calc(#{$content-max-width} + #{$sidebar-width-collapsed});
     }
   }
+
+  // .fm-navbar's own .container-fluid centers itself with a max-width
+  // (see above) so the brand logo lands nicely centered-ish on a
+  // sidebar-less layout. With the sidebar on (.fm-sidebar sits below
+  // the navbar, left: 0 — see .fm-sidebar), that same centering makes
+  // the logo float in the middle of the *content* area instead of
+  // sitting flush above the sidebar where it visually belongs. Drop
+  // the centering here so it's flush left instead, same idea as
+  // .fm-content--with-sidebar's margin-left above.
+  .fm-navbar--with-sidebar > .container-fluid {
+    max-width: none;
+    margin-left: 0;
+  }
 }
 
 // -----------------------------------------------------------------------------

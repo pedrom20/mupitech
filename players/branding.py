@@ -237,7 +237,7 @@ def save_standby_upload(instance, uploaded_file):
 
 def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
                           local_path, remote_tmp_path, container_path,
-                          also_remove=None):
+                          also_remove=None, also_restart=None):
     import paramiko
 
     host = urlparse(player.url).hostname
@@ -288,6 +288,26 @@ def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
                 timeout=timeout, check=False,
             )
         _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
+
+        # anthias-viewer is a separate container/process from
+        # anthias-server — it resolves and caches which standby asset
+        # to show (image vs video) once, in its own memory, the first
+        # time the playlist goes empty (see _standby_target in
+        # anthias_viewer/__init__.py). Restarting anthias-server alone
+        # never invalidates that cache, so a newly-pushed standby
+        # override silently never appears until the device's next full
+        # reboot. Best-effort: a missing/stopped viewer container (or a
+        # push that doesn't need this, like the splash logo) is fine to
+        # skip, not fail the whole push over.
+        for extra_name in (also_restart or []):
+            out2, _, _ = _ssh_run(
+                ssh, f"docker ps --format '{{{{.Names}}}}' --filter name={_shell_quote(extra_name)}",
+                timeout=timeout, check=False,
+            )
+            extra_container = next((line for line in out2.strip().splitlines() if line.strip()), '')
+            if extra_container:
+                _ssh_run(ssh, f'docker restart {_shell_quote(extra_container)}', timeout=timeout, check=False)
+
         _ssh_run(ssh, f'rm -f {remote_tmp_path}', timeout=timeout, check=False)
     except BrandingPushError:
         raise
@@ -342,6 +362,7 @@ def push_standby_image_to_player(player, ssh_user, ssh_password, ssh_port=22, ti
         remote_tmp_path=remote_tmp_path,
         container_path=container_path,
         also_remove=also_remove,
+        also_restart=['anthias-viewer'],
     )
 
 
