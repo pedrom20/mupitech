@@ -320,6 +320,12 @@
       "expired": "Expirado"
     }
   },
+  "apps": {
+    "loadingApps": "A carregar apps…",
+    "noAppsAvailable": "Não há apps disponíveis neste momento.",
+    "storeUnreachable": "Não foi possível contactar a loja de apps. Verifique a sua ligação e tente novamente.",
+    "selectDefault": "Predefinido"
+  },
   "content": {
     "title": "Conteúdo",
     "subtitle": "Carregue ficheiros e adicione páginas web à biblioteca de conteúdo.",
@@ -369,6 +375,8 @@
     "add": "Adicionar",
     "tabFile": "Ficheiro",
     "tabUrl": "URL",
+    "tabApps": "Apps",
+    "addApp": "Adicionar app",
     "filterAll": "Todos",
     "filterVideo": "Vídeo",
     "filterImage": "Imagem",
@@ -385,7 +393,7 @@
     "folderDeleted": "Pasta eliminada",
     "fileMoved": "Ficheiro movido",
     "confirmDeleteFolder": "Eliminar pasta? Os ficheiros permanecem na biblioteca.",
-    "rootFolder": "Biblioteca",
+    "rootFolder": "Conteúdos",
     "inheritScope": "— Herdar da pasta-mãe —",
     "scopedLocation": "Localização",
     "scopedGroup": "Grupo",
@@ -1109,7 +1117,7 @@
     "status_failed": "Falhou"
   },
   "contentLibrary": {
-    "title": "Biblioteca de Conteúdos",
+    "title": "Pastas de Conteúdo",
     "description": "Marque pastas como comuns para ficarem (e tudo o que estiver dentro) visíveis a todos os editores, independentemente do seu próprio acesso por localização/grupo. Qualquer outra pasta só é visível a editores cujo acesso cubra a sua localização/grupo.",
     "empty": "Ainda não há pastas.",
     "inheritedCommon": "Comum (herdado)"

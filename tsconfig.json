@@ -22,7 +22,8 @@
       "@/types": ["static/src/types.ts"],
       "@/locales/*": ["static/src/locales/*"],
       "@/i18n": ["static/src/i18n.ts"],
-      "@/utils/*": ["static/src/utils/*"]
+      "@/utils/*": ["static/src/utils/*"],
+      "@/apps/*": ["static/src/apps/*"]
     }
   },
   "include": ["static/src/**/*"],

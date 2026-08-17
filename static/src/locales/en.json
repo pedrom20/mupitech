@@ -320,6 +320,12 @@
       "expired": "Expired"
     }
   },
+  "apps": {
+    "loadingApps": "Loading apps…",
+    "noAppsAvailable": "No apps are available right now.",
+    "storeUnreachable": "Couldn't reach the app store. Check your network connection and try again.",
+    "selectDefault": "Default"
+  },
   "content": {
     "title": "Content",
     "subtitle": "Upload files and add web pages to the content library.",
@@ -369,6 +375,8 @@
     "add": "Add",
     "tabFile": "File",
     "tabUrl": "URL",
+    "tabApps": "Apps",
+    "addApp": "Add app",
     "filterAll": "All",
     "filterVideo": "Video",
     "filterImage": "Image",
@@ -385,7 +393,7 @@
     "folderDeleted": "Folder deleted",
     "fileMoved": "File moved",
     "confirmDeleteFolder": "Delete folder? Files will remain in library.",
-    "rootFolder": "Library",
+    "rootFolder": "Content",
     "inheritScope": "— Inherit from parent folder —",
     "scopedLocation": "Location",
     "scopedGroup": "Group",
@@ -1109,7 +1117,7 @@
     "status_failed": "Failed"
   },
   "contentLibrary": {
-    "title": "Content Library",
+    "title": "Content Folders",
     "description": "Mark folders as common to make them (and everything nested inside) visible to every editor, regardless of their own location/group access. Every other folder is only visible to editors whose access covers its location/group.",
     "empty": "No folders yet.",
     "inheritedCommon": "Common (inherited)"

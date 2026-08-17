@@ -28,11 +28,13 @@ import {
   FaMapMarkerAlt,
   FaTrashRestore,
   FaBan,
+  FaAppStore,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { media as mediaApi, folders as foldersApi, playbackLog, cctv as cctvApi } from '@/services/api'
 import { CctvFormContent } from '@/components/cctv/cctv-form-modal'
 import CctvFormModal from '@/components/cctv/cctv-form-modal'
+import AppsTab from './apps-tab'
 import { useFeatures } from '@/context/features-context'
 import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchPlayers } from '@/store/playersSlice'
@@ -226,7 +228,7 @@ function AddContentModal({
 }) {
   const { t } = useTranslation()
   const { cctv: cctvEnabled } = useFeatures()
-  const [activeTab, setActiveTab] = useState<'file' | 'url' | 'cctv'>('file')
+  const [activeTab, setActiveTab] = useState<'file' | 'url' | 'apps' | 'cctv'>('file')
   const [dragOver, setDragOver] = useState(false)
   const [urlValue, setUrlValue] = useState('')
   const [urlName, setUrlName] = useState('')
@@ -298,6 +300,13 @@ function AddContentModal({
               >
                 <FaGlobe className="me-1" />
                 {t('content.tabUrl')}
+              </button>
+              <button
+                className={`btn btn-link flex-fill py-2 text-decoration-none rounded-0 ${activeTab === 'apps' ? 'fw-bold border-bottom border-2 border-primary text-primary' : 'text-muted'}`}
+                onClick={() => setActiveTab('apps')}
+              >
+                <FaAppStore className="me-1" />
+                {t('content.tabApps')}
               </button>
               {cctvEnabled && (
                 <button
@@ -376,6 +385,13 @@ function AddContentModal({
                     {addingUrl ? t('common.loading') : t('content.addUrl')}
                   </button>
                 </form>
+              ) : activeTab === 'apps' ? (
+                <AppsTab
+                  onInstall={async (url, appName) => {
+                    await onAddUrl(url, appName)
+                    onClose()
+                  }}
+                />
               ) : (
                 <CctvFormContent
                   onSave={handleCctvSave}
