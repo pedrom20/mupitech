@@ -57,6 +57,44 @@ class MediaAPITests(TestCase):
             self.assertEqual(mf.file_type, 'web')
 
 
+class FolderFileCountTests(TestCase):
+    """MediaFolderViewSet.get_queryset()'s file_count annotation must
+    match what an operator actually sees in the folder — a soft-deleted
+    file (recycle bin, is_deleted=True) is still FK-linked to its
+    folder forever (until purged), so an unfiltered Count('files')
+    over-counts by exactly the number of deleted-but-not-purged files
+    sitting in that folder, and never corrects itself on delete since
+    the FK never actually goes away."""
+
+    def setUp(self):
+        for name in ('admin', 'editor', 'viewer', 'superadmin'):
+            AuthGroup.objects.get_or_create(name=name)
+        self.client = APIClient()
+        admin = User.objects.create_user(username='admin1', password='pw123456')
+        admin.is_superuser = True
+        admin.save(update_fields=['is_superuser'])
+        self.client.force_authenticate(admin)
+
+        self.folder = MediaFolder.objects.create(name='Folder')
+        for i in range(4):
+            MediaFile.objects.create(name=f'file-{i}', folder=self.folder, source_url='https://example.com')
+
+    def _file_count(self):
+        resp = self.client.get('/api/folders/')
+        data = resp.json()
+        results = data['results'] if isinstance(data, dict) and 'results' in data else data
+        return next(f['file_count'] for f in results if f['id'] == str(self.folder.id))
+
+    def test_soft_deleted_files_are_not_counted(self):
+        self.assertEqual(self._file_count(), 4)
+
+        deleted = self.folder.files.first()
+        deleted.is_deleted = True
+        deleted.save(update_fields=['is_deleted'])
+
+        self.assertEqual(self._file_count(), 3)
+
+
 class FetchOgImageTests(TestCase):
     @patch('content.tasks._is_safe_url', return_value=True)
     @patch('content.tasks.urllib.request.urlopen')

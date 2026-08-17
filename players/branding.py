@@ -43,6 +43,11 @@ REMOTE_TMP_LOGO_PATH = '/tmp/mupitech-splash-logo.svg'
 # Bundled MupiTech logo, pushed when no custom one has been uploaded —
 # "remove custom logo" reverts to this rather than leaving nothing to push.
 DEFAULT_LOGO_PATH = os.path.join(settings.BASE_DIR, 'static', 'img', 'logo.svg')
+# Sentinel the device checks for its own "is this device branded right
+# now?" (mupitech-player's page_context.py::navbar) — see
+# push_splash_logo_to_player for why splash_logo_url itself can't be
+# used for that.
+CONTAINER_CUSTOM_LOGO_MARKER = '/usr/src/app/staticfiles/img/.custom-logo'
 
 STANDBY_FILENAME = 'standby-image.png'
 CONTAINER_STANDBY_PATH = '/usr/src/app/staticfiles/img/standby.png'
@@ -237,7 +242,8 @@ def save_standby_upload(instance, uploaded_file):
 
 def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
                           local_path, remote_tmp_path, container_path,
-                          also_remove=None, also_restart=None):
+                          also_remove=None, also_restart=None,
+                          marker_path=None, set_marker=None):
     import paramiko
 
     host = urlparse(player.url).hostname
@@ -287,6 +293,21 @@ def _push_file_to_player(player, ssh_user, ssh_password, ssh_port, timeout,
                 f'docker exec {_shell_quote(container)} rm -f {stale_path}',
                 timeout=timeout, check=False,
             )
+        # navbar()'s custom-logo detection on the device side (its own
+        # splash_logo_url setting is a fixed value that never changes —
+        # this push only ever overwrites the file it points at) checks
+        # for this sentinel's existence instead, since a plain string
+        # comparison there can never tell a pushed custom logo apart
+        # from the bundled default (see mupitech-player's
+        # page_context.py::navbar).
+        if marker_path is not None:
+            if set_marker:
+                _ssh_run(ssh, f'docker exec {_shell_quote(container)} touch {marker_path}',
+                         timeout=timeout, check=False)
+            else:
+                _ssh_run(ssh, f'docker exec {_shell_quote(container)} rm -f {marker_path}',
+                         timeout=timeout, check=False)
+
         _ssh_run(ssh, f'docker restart {_shell_quote(container)}', timeout=timeout)
 
         # anthias-viewer is a separate container/process from
@@ -323,11 +344,14 @@ def push_splash_logo_to_player(player, ssh_user, ssh_password, ssh_port=22, time
     Uses the most specific logo set for this player: its group's, else
     its location's, else the fleet-wide one, else the bundled default.
     """
+    logo_path = get_logo_path(player)
     _push_file_to_player(
         player, ssh_user, ssh_password, ssh_port, timeout,
-        local_path=get_logo_path(player),
+        local_path=logo_path,
         remote_tmp_path=REMOTE_TMP_LOGO_PATH,
         container_path=CONTAINER_LOGO_PATH,
+        marker_path=CONTAINER_CUSTOM_LOGO_MARKER,
+        set_marker=(logo_path != DEFAULT_LOGO_PATH),
     )
 
 

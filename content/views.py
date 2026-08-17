@@ -1,7 +1,7 @@
 import logging
 from urllib.parse import urlparse
 
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import parsers, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -30,7 +30,9 @@ class MediaFolderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsEditorOrReadOnly]
 
     def get_queryset(self):
-        qs = MediaFolder.objects.select_related('location', 'group').annotate(file_count=Count('files'))
+        qs = MediaFolder.objects.select_related('location', 'group').annotate(
+            file_count=Count('files', filter=Q(files__is_deleted=False)),
+        )
         return filter_folders(qs, self.request.user)
 
     def perform_create(self, serializer):
