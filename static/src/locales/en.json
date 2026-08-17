@@ -761,6 +761,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "folderCountFix": "Fixed a folder's content count including files sitting in the recycle bin — it now matches what's actually visible, and updates correctly on delete",
+      "brandedLogoBadgeFix": "Fixed the small MupiTech credit badge never showing in the corner of a branded device's boot/splash screen",
       "emailViaGraph": "Email sending (offline alerts, email 2FA codes, password resets) can now go through Microsoft Graph as an alternative to SMTP — Settings > Alerts",
       "navbarLogoSpacing": "Tightened the gap between the MupiTech logo and the partner-logo divider in the top bar",
       "brandingLibraryUrlFix": "Fixed uploading to the shared logo/standby image library failing with a \"POST not allowed\" error",

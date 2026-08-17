@@ -761,6 +761,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "folderCountFix": "Corrigida a contagem de conteúdos de uma pasta, que incluía ficheiros na reciclagem — agora corresponde ao que se vê realmente, e atualiza corretamente ao apagar",
+      "brandedLogoBadgeFix": "Corrigido o pequeno crédito da MupiTech nunca aparecer no canto do ecrã de arranque de um device com marca personalizada",
       "emailViaGraph": "O envio de emails (alertas offline, códigos de 2FA por email, recuperação de password) já pode passar pelo Microsoft Graph como alternativa ao SMTP — Definições > Alertas",
       "navbarLogoSpacing": "Reduzido o espaço entre o logo MupiTech e o separador do logo de parceiro na barra superior",
       "brandingLibraryUrlFix": "Corrigido o envio para a biblioteca partilhada de logos/imagens de repouso, que falhava com erro \"POST não permitido\"",
