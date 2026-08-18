@@ -83,9 +83,10 @@ def _connect(player, ssh_user, ssh_password, ssh_port, timeout):
     return ssh, host
 
 
-def _find_anthias_server_container(ssh, timeout):
+def _find_anthias_server_container(ssh, ssh_password, timeout):
     out, _, _ = _ssh_run(
-        ssh, "docker ps --format '{{.Names}}' --filter name=anthias-server", timeout=timeout,
+        ssh, "sudo docker ps --format '{{.Names}}' --filter name=anthias-server",
+        sudo_password=ssh_password, timeout=timeout,
     )
     container = next((line for line in out.strip().splitlines() if line.strip()), '')
     if not container:
@@ -106,23 +107,23 @@ def _classify_image(image):
     return IMAGE_SOURCE_UNKNOWN
 
 
-def _compose_label(ssh, container, label, timeout):
+def _compose_label(ssh, ssh_password, container, label, timeout):
     out, _, _ = _ssh_run(
         ssh,
-        f'docker inspect -f {_shell_quote("{{index .Config.Labels \"" + label + "\"}}")} '
+        f'sudo docker inspect -f {_shell_quote("{{index .Config.Labels \"" + label + "\"}}")} '
         f'{_shell_quote(container)}',
-        timeout=timeout, check=False,
+        sudo_password=ssh_password, timeout=timeout, check=False,
     )
     value = out.strip()
     return '' if value == '<no value>' else value
 
 
-def _get_compose_context(ssh, container, timeout):
+def _get_compose_context(ssh, ssh_password, container, timeout):
     """Read the docker-compose project dir/file this container was
     actually started from, via the labels Compose itself sets — robust
     regardless of how or where the device was originally provisioned."""
-    working_dir = _compose_label(ssh, container, 'com.docker.compose.project.working_dir', timeout)
-    config_files = _compose_label(ssh, container, 'com.docker.compose.project.config_files', timeout)
+    working_dir = _compose_label(ssh, ssh_password, container, 'com.docker.compose.project.working_dir', timeout)
+    config_files = _compose_label(ssh, ssh_password, container, 'com.docker.compose.project.config_files', timeout)
     if not working_dir or not config_files:
         raise MigrationError(
             'Could not determine the docker-compose project directory for this device '
@@ -212,13 +213,14 @@ def discover_image_source(player, ssh_user, ssh_password, ssh_port=22, timeout=1
     ssh, _ = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
     try:
         _detect_and_save_device_type(player, ssh, timeout)
-        container = _find_anthias_server_container(ssh, timeout)
+        container = _find_anthias_server_container(ssh, ssh_password, timeout)
         image, _, _ = _ssh_run(
-            ssh, f"docker inspect -f '{{{{.Config.Image}}}}' {_shell_quote(container)}", timeout=timeout,
+            ssh, f"sudo docker inspect -f '{{{{.Config.Image}}}}' {_shell_quote(container)}",
+            sudo_password=ssh_password, timeout=timeout,
         )
         image = image.strip()
         try:
-            _, compose_path = _get_compose_context(ssh, container, timeout)
+            _, compose_path = _get_compose_context(ssh, ssh_password, container, timeout)
             has_backup = _backup_exists(ssh, compose_path, timeout)
         except MigrationError:
             has_backup = False
@@ -238,8 +240,8 @@ def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeou
     """
     ssh, _ = _connect(player, ssh_user, ssh_password, ssh_port, timeout)
     try:
-        container = _find_anthias_server_container(ssh, timeout)
-        working_dir, compose_path = _get_compose_context(ssh, container, timeout)
+        container = _find_anthias_server_container(ssh, ssh_password, timeout)
+        working_dir, compose_path = _get_compose_context(ssh, ssh_password, container, timeout)
         backup_path = f'{compose_path}.bak'
 
         if not _backup_exists(ssh, compose_path, timeout):
@@ -259,9 +261,16 @@ def restore_previous_compose(player, ssh_user, ssh_password, ssh_port=22, timeou
 
         out, _, _ = _ssh_run(
             ssh,
-            f'cd {_shell_quote(working_dir)} && docker compose pull && '
+            # The literal "sudo " prefix on the *whole* string is what
+            # _ssh_run's sudo-password piping keys off — see its
+            # docstring. Sprinkling "sudo" in front of each docker
+            # sub-command instead (an earlier draft of this fix) doesn't
+            # trigger that at all, since the combined string no longer
+            # starts with "sudo ": those inner "sudo"s would just hang
+            # waiting on a password prompt with no stdin/tty attached.
+            'sudo ' + f'cd {_shell_quote(working_dir)} && docker compose pull && '
             f'docker compose up -d --remove-orphans 2>&1',
-            timeout=300,
+            sudo_password=ssh_password, timeout=300,
         )
         return {'backup_path': backup_path, 'output': out[-2000:]}
     except MigrationError:
@@ -482,9 +491,10 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
                 code='unsupported_device_type', params={'device_type': player.device_type},
             )
 
-        container = _find_anthias_server_container(ssh, timeout)
+        container = _find_anthias_server_container(ssh, ssh_password, timeout)
         image, _, _ = _ssh_run(
-            ssh, f"docker inspect -f '{{{{.Config.Image}}}}' {_shell_quote(container)}", timeout=timeout,
+            ssh, f"sudo docker inspect -f '{{{{.Config.Image}}}}' {_shell_quote(container)}",
+            sudo_password=ssh_password, timeout=timeout,
         )
         image = image.strip()
         source = _classify_image(image)
@@ -496,7 +506,7 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
                 code='unrecognized_image', params={'image': image},
             )
 
-        working_dir, compose_path = _get_compose_context(ssh, container, timeout)
+        working_dir, compose_path = _get_compose_context(ssh, ssh_password, container, timeout)
 
         if source == target:
             # Already on the requested image — just update/pull, not a migration.
@@ -508,9 +518,9 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
             bind_mount_removed = _strip_legacy_media_player_bind_mount(ssh, compose_path, timeout)
             out, _, _ = _ssh_run(
                 ssh,
-                f'cd {_shell_quote(working_dir)} && docker compose pull && '
+                'sudo ' + f'cd {_shell_quote(working_dir)} && docker compose pull && '
                 f'docker compose up -d 2>&1',
-                timeout=300,
+                sudo_password=ssh_password, timeout=300,
             )
             result = {
                 'action': 'updated', 'previous_source': source, 'previous_image': image,
@@ -573,9 +583,9 @@ def migrate_player_to_target_image(player, ssh_user, ssh_password, ssh_port=22, 
 
         out, _, _ = _ssh_run(
             ssh,
-            f'cd {_shell_quote(working_dir)} && docker compose pull && '
+            'sudo ' + f'cd {_shell_quote(working_dir)} && docker compose pull && '
             f'docker compose up -d --remove-orphans 2>&1',
-            timeout=300,
+            sudo_password=ssh_password, timeout=300,
         )
         result = {
             'action': 'migrated', 'previous_source': source, 'previous_image': image,
@@ -631,10 +641,16 @@ def rebuild_player(player, ssh_user, ssh_password, ssh_port=22, timeout=30, pres
     container config, a corrupted volume, a half-broken compose edit.
     Deliberately scoped to the Docker/Anthias layer only: it doesn't
     touch the underlying OS (Plymouth theme, system packages,
-    networking), so it only ever needs the device's normal SSH user
-    (docker group), never root. Always rebuilds onto the MupiTech
-    image — rebuilding onto "official Anthias" from scratch isn't a
-    real use case (that's what "Restore with image choice" is for).
+    networking). Docker commands run via sudo (ssh_password piped to
+    sudo -S — see _ssh_run) rather than assuming the SSH user is
+    already in the device's docker group: that's true for anything
+    provisioned through this Fleet Manager's own SSH flow (which adds
+    it explicitly — players/provision.py), but not for a device that
+    got its OS/Docker install some other way, which is exactly the
+    case migrate/rebuild exist to handle. Always rebuilds onto the
+    MupiTech image — rebuilding onto "official Anthias" from scratch
+    isn't a real use case (that's what "Restore with image choice" is
+    for).
 
     Raises MigrationError (never touching the device) if the device type
     isn't supported yet. Returns a dict describing what happened, same
@@ -651,8 +667,8 @@ def rebuild_player(player, ssh_user, ssh_password, ssh_port=22, timeout=30, pres
                 code='unsupported_device_type', params={'device_type': player.device_type},
             )
 
-        container = _find_anthias_server_container(ssh, timeout)
-        working_dir, compose_path = _get_compose_context(ssh, container, timeout)
+        container = _find_anthias_server_container(ssh, ssh_password, timeout)
+        working_dir, compose_path = _get_compose_context(ssh, ssh_password, container, timeout)
 
         content_snapshot = snapshot_assets(player) if preserve_content else None
 
@@ -665,8 +681,8 @@ def rebuild_player(player, ssh_user, ssh_password, ssh_port=22, timeout=30, pres
         # host-side bind-mount directories too, since `-v` only reaches
         # Docker-managed volumes, not these.
         _ssh_run(
-            ssh, f'cd {_shell_quote(working_dir)} && docker compose down -v --remove-orphans 2>&1',
-            timeout=120, check=False,
+            ssh, 'sudo ' + f'cd {_shell_quote(working_dir)} && docker compose down -v --remove-orphans 2>&1',
+            sudo_password=ssh_password, timeout=120, check=False,
         )
 
         layout = _home_layout(player.device_type)
@@ -696,9 +712,9 @@ def rebuild_player(player, ssh_user, ssh_password, ssh_port=22, timeout=30, pres
 
         out, _, _ = _ssh_run(
             ssh,
-            f'cd {_shell_quote(working_dir)} && docker compose pull && '
+            'sudo ' + f'cd {_shell_quote(working_dir)} && docker compose pull && '
             f'docker compose up -d --remove-orphans 2>&1',
-            timeout=300,
+            sudo_password=ssh_password, timeout=300,
         )
         result = {'action': 'rebuilt', 'backup_path': backup_path, 'output': out[-2000:]}
 

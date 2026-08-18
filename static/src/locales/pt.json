@@ -764,6 +764,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "migrateImageSudoFix": "Corrigido migrar/reconstruir um device por vezes falhar com \"permission denied\" ao ligar ao Docker — os comandos de gestão do device passam a correr com sudo em vez de assumir que o utilizador SSH já está no grupo docker do device",
       "phoneHomeInfoGuardFix": "Corrigido o IP/estado de um device por vezes nunca mais atualizar depois do primeiro heartbeat — o script de phone-home de uma instalação de raiz não tinha uma proteção (já existente no script de reinstalação manual) contra um caso limite que fazia todos os heartbeats seguintes falhar silenciosamente",
       "playlistOrderFix": "Corrigido o conteúdo de uma playlist reproduzir na ordem errada no device — a ordem pretendida é agora enviada explicitamente, em vez de depender da ordem de criação",
       "migrateImageTimeoutFix": "Corrigido migrar/reconstruir um device por vezes reportar timeout mesmo continuando a funcionar — o pedido tem agora tempo suficiente para esperar por um reinício do device",

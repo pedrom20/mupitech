@@ -764,6 +764,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "migrateImageSudoFix": "Fixed migrating/rebuilding a device sometimes failing with \"permission denied\" connecting to Docker — device management commands now run with sudo instead of assuming the SSH user is already in the device's docker group",
       "phoneHomeInfoGuardFix": "Fixed a device's IP/status sometimes never updating again after its first heartbeat — a fresh install's phone-home script was missing a safeguard (already present in the manual reinstall script) against an edge case that made every subsequent heartbeat fail silently",
       "playlistOrderFix": "Fixed playlist content playing back in the wrong order on the device — the intended order is now sent explicitly instead of relying on creation order",
       "migrateImageTimeoutFix": "Fixed migrating/rebuilding a device sometimes reporting a timeout even though it was still working — the underlying request now has enough time to wait through a device reboot",

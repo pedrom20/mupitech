@@ -600,3 +600,67 @@ class PhoneHomeScriptTests(TestCase):
             content_type='application/json',
         )
         self.assertEqual(guarded.status_code, 201)
+
+
+def _mock_ssh_exec(stdout_text='', exit_code=0):
+    """A paramiko-shaped ssh.exec_command() mock: returns (stdin, stdout,
+    stderr) file-like mocks whose .channel.recv_exit_status() and
+    .read() behave enough like the real thing for _ssh_run to work."""
+    channel = MagicMock()
+    channel.recv_exit_status.return_value = exit_code
+    stdout = MagicMock()
+    stdout.channel = channel
+    stdout.read.return_value = stdout_text.encode()
+    stderr = MagicMock()
+    stderr.read.return_value = b''
+    return MagicMock(), stdout, stderr
+
+
+class SshRunSudoTests(TestCase):
+    """migrate_image.py's docker/docker-compose commands used to assume
+    the SSH user was already in the device's docker group — true only
+    for devices provisioned through this Fleet Manager's own SSH flow
+    (provision.py explicitly adds it), not for one migrated in from
+    somewhere else, which is exactly what migrate/rebuild exist to
+    handle. Fixed by routing those commands through sudo, piping the
+    SSH password in via _ssh_run's existing mechanism (used elsewhere
+    for privileged provisioning steps) — these tests pin down that the
+    *entire* compound "cd X && docker compose ... && docker compose
+    ..." string gets the literal "sudo " marker _ssh_run keys off of,
+    not each docker sub-command individually (which would never
+    trigger the sudo-password piping at all, since the combined string
+    wouldn't start with "sudo ", and would hang on an interactive
+    password prompt with no stdin attached)."""
+
+    def test_sudo_prefixed_compound_command_is_piped_through_sudo(self):
+        from .provision import _ssh_run
+
+        ssh = MagicMock()
+        ssh.exec_command.return_value = _mock_ssh_exec('ok')
+
+        _ssh_run(
+            ssh, 'sudo ' + 'cd /home/pi/anthias && docker compose pull && docker compose up -d',
+            sudo_password='secret', timeout=30,
+        )
+
+        executed = ssh.exec_command.call_args[0][0]
+        self.assertIn('sudo -S bash -c', executed)
+        self.assertIn('docker compose pull && docker compose up -d', executed)
+        self.assertIn('secret', executed)
+
+    def test_docker_helpers_issue_sudo_wrapped_commands(self):
+        from .migrate_image import _compose_label, _find_anthias_server_container
+
+        ssh = MagicMock()
+        ssh.exec_command.return_value = _mock_ssh_exec('anthias-server-1')
+        _find_anthias_server_container(ssh, 'secret', 10)
+        executed = ssh.exec_command.call_args[0][0]
+        self.assertIn('sudo -S bash -c', executed)
+        self.assertIn('docker ps', executed)
+
+        ssh2 = MagicMock()
+        ssh2.exec_command.return_value = _mock_ssh_exec('/home/pi/anthias')
+        _compose_label(ssh2, 'secret', 'anthias-server-1', 'com.docker.compose.project.working_dir', 10)
+        executed2 = ssh2.exec_command.call_args[0][0]
+        self.assertIn('sudo -S bash -c', executed2)
+        self.assertIn('docker inspect', executed2)
