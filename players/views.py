@@ -1518,6 +1518,9 @@ def install_phonehome(request):
     if token:
         auth_header_line = f'\n  -H "Authorization: Bearer {token}" \\'
 
+    from .phonehome import build_phonehome_script
+    phonehome_inner_script = build_phonehome_script(server, auth_header_line)
+
     script = f'''#!/bin/bash
 set -e
 
@@ -1525,79 +1528,7 @@ SERVER="{server}"
 
 # Create phone-home script
 cat > /usr/local/bin/anthias-phonehome.sh << 'SCRIPT'
-#!/bin/bash
-SERVER="{server}"
-NAME="$(hostname)"
-INFO=$(curl -sf http://localhost/api/v2/info 2>/dev/null || echo '{{}}')
-# /api/v2/info requires a login when the device has local auth enabled
-# (auth_backend set) — this unauthenticated local curl then gets a 302
-# to /login/ instead of a 4xx/5xx, which `curl -f` does NOT treat as a
-# failure (only >=400 is), so it exits 0 with an empty body instead of
-# falling through to the '{{}}' default above. Left unguarded, that
-# empty $INFO produces `"info":` with no value in the JSON built below
-# — invalid JSON, so the Fleet Manager's own /api/players/register/
-# call rejects the whole heartbeat with a parse error. System stats
-# just won't populate via phone-home on such a device (view them from
-# its own dashboard once logged in, or via the SSH-based checks
-# elsewhere) — that's an accepted gap, but the heartbeat itself must
-# not break because of it.
-case "$INFO" in
-  '{{'*) ;;
-  *) INFO='{{}}' ;;
-esac
-
-# Resolve the LAN-facing interface once (whichever owns the default
-# route) and derive both the reported URL's IP and the MAC from it —
-# covers any interface naming scheme (systemd predictable names like
-# ens18/enp1s0 on VMs, eth0/end0 on Pis, wlan0, etc.) instead of a
-# hardcoded allowlist that found nothing on non-eth0-named hardware.
-# Deriving the IP this way (instead of `hostname -I`'s first token,
-# whose order isn't guaranteed and can shift once Docker creates its
-# own bridge networks — docker0, compose bridges — ahead of the real
-# LAN interface) avoids reporting a Docker-internal IP as this
-# device's URL, which register_player would then treat as a brand
-# new device instead of updating the existing one.
-DEFAULT_IFACE=$(ip route show default 2>/dev/null | awk '/^default/ {{print $5; exit}}')
-
-IP=""
-if [ -n "$DEFAULT_IFACE" ]; then
-  IP=$(ip -4 -o addr show dev "$DEFAULT_IFACE" 2>/dev/null | awk '{{print $4}}' | cut -d/ -f1 | head -1)
-fi
-if [ -z "$IP" ]; then
-  IP=$(hostname -I | awk '{{print $1}}')
-fi
-URL="http://$IP"
-
-MAC=""
-if [ -n "$DEFAULT_IFACE" ] && [ -f "/sys/class/net/$DEFAULT_IFACE/address" ]; then
-  MAC=$(cat "/sys/class/net/$DEFAULT_IFACE/address")
-fi
-if [ -z "$MAC" ]; then
-  for addr_file in /sys/class/net/*/address; do
-    iface=$(basename "$(dirname "$addr_file")")
-    [ "$iface" = "lo" ] && continue
-    MAC=$(cat "$addr_file")
-    [ -n "$MAC" ] && break
-  done
-fi
-MAC_FIELD=""
-if [ -n "$MAC" ]; then
-  MAC_FIELD=",\\"mac_address\\":\\"$MAC\\""
-fi
-
-# Detect Tailscale IP if available
-TS_IP=""
-if command -v tailscale >/dev/null 2>&1; then
-  TS_IP=$(tailscale ip -4 2>/dev/null || true)
-fi
-TS_FIELD=""
-if [ -n "$TS_IP" ]; then
-  TS_FIELD=",\\"tailscale_ip\\":\\"$TS_IP\\""
-fi
-
-curl -sf -X POST "${{SERVER}}/api/players/register/" \\
-  -H "Content-Type: application/json" \\{auth_header_line}
-  -d "{{\\"url\\":\\"${{URL}}\\",\\"name\\":\\"${{NAME}}\\",\\"info\\":${{INFO}}$MAC_FIELD$TS_FIELD}}"
+{phonehome_inner_script}
 SCRIPT
 chmod +x /usr/local/bin/anthias-phonehome.sh
 

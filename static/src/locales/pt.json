@@ -764,6 +764,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "phoneHomeInfoGuardFix": "Corrigido o IP/estado de um device por vezes nunca mais atualizar depois do primeiro heartbeat — o script de phone-home de uma instalação de raiz não tinha uma proteção (já existente no script de reinstalação manual) contra um caso limite que fazia todos os heartbeats seguintes falhar silenciosamente",
       "playlistOrderFix": "Corrigido o conteúdo de uma playlist reproduzir na ordem errada no device — a ordem pretendida é agora enviada explicitamente, em vez de depender da ordem de criação",
       "migrateImageTimeoutFix": "Corrigido migrar/reconstruir um device por vezes reportar timeout mesmo continuando a funcionar — o pedido tem agora tempo suficiente para esperar por um reinício do device",
       "playlistRemoveFromDevices": "Desmarcar um device/grupo/localização em \"Aplicar a\" de uma playlist remove agora também o seu conteúdo de lá, em vez de só deixar de o reaplicar no futuro",

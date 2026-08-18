@@ -548,3 +548,55 @@ class EditorCapabilityTests(TestCase):
         self.client.force_authenticate(self.admin)
         resp = self.client.get('/api/system/editor-permissions/')
         self.assertFalse(resp.data['power_control'])
+
+
+class PhoneHomeScriptTests(TestCase):
+    """build_phonehome_script (players/phonehome.py) is the single
+    source both provision.py's fresh-install flow and the
+    install_phonehome endpoint build their script from — used to be two
+    independently-copied versions that drifted: provision.py's copy was
+    missing the `case "$INFO" in ...` safeguard, so any device
+    provisioned that way sent invalid JSON on every heartbeat whenever
+    its own /api/v2/info didn't return a real JSON object, and its IP/
+    status silently never updated again. These tests pin down the
+    safeguard's presence and that register_player actually survives the
+    exact failure mode it guards against."""
+
+    def test_script_guards_against_empty_info(self):
+        from .phonehome import build_phonehome_script
+        script = build_phonehome_script('https://fm.example.com')
+        self.assertIn('case "$INFO" in', script)
+        self.assertIn("'{'*) ;;", script)
+        self.assertIn("*) INFO='{}' ;;", script)
+
+    def test_script_includes_auth_header_when_given(self):
+        from .phonehome import build_phonehome_script
+        script = build_phonehome_script('https://fm.example.com', '\n  -H "Authorization: Bearer tok123" \\')
+        self.assertIn('Authorization: Bearer tok123', script)
+
+    def test_install_phonehome_endpoint_uses_shared_script(self):
+        client = APIClient()
+        resp = client.get('/api/players/install-phonehome/?server=https://fm.example.com')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('case "$INFO" in', resp.content.decode())
+
+    def test_register_player_survives_empty_info_with_the_guard(self):
+        """Simulates exactly what an unguarded phone-home script used to
+        send (an empty $INFO producing a bare `"info":`), against what
+        the guard actually produces once it kicks in (`"info":{}`) —
+        the second must parse and update the player, the first must
+        400 with a JSON parse error (documenting the failure mode the
+        guard exists to prevent, not asserting a fix in register_player
+        itself)."""
+        client = APIClient()
+        unguarded = client.post(
+            '/api/players/register/', data='{"url":"http://10.0.0.5","name":"x","info":}',
+            content_type='application/json',
+        )
+        self.assertEqual(unguarded.status_code, 400)
+
+        guarded = client.post(
+            '/api/players/register/', data='{"url":"http://10.0.0.5","name":"x","info":{}}',
+            content_type='application/json',
+        )
+        self.assertEqual(guarded.status_code, 201)
