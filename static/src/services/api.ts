@@ -527,6 +527,10 @@ export const playlists = {
   deploy(id: string): Promise<{ success: boolean; target_count: number }> {
     return apiRequest('POST', `/playlists/${id}/deploy/`)
   },
+
+  removeFromDevices(id: string, data: { player_ids?: string[]; group_ids?: string[]; location_ids?: string[] }): Promise<Playlist> {
+    return apiRequest<Playlist>('POST', `/playlists/${id}/remove-from-devices/`, data)
+  },
 }
 
 export const media = {

@@ -73,12 +73,13 @@ def deploy_playlist(self, playlist_id, start_date=None, end_date=None, player_id
         item_results = []
         new_asset_ids = []
         player_ok = True
-        for item in items:
+        for play_order, item in enumerate(items):
             try:
                 asset = deploy_media_file_to_player(
                     player, item.media_file,
                     duration=item.duration or 10,
                     start_date=start_date, end_date=end_date,
+                    play_order=play_order,
                 )
                 if asset and asset.get('asset_id'):
                     new_asset_ids.append(asset['asset_id'])

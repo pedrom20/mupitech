@@ -22,7 +22,7 @@ import { fetchPlaylists, createPlaylist, updatePlaylist, deletePlaylist, deployP
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
-import { media as mediaApi } from '@/services/api'
+import { media as mediaApi, playlists as playlistsApi } from '@/services/api'
 import { FilePreview } from '@/components/shared/media-preview'
 import { showToast } from '@/utils/toast'
 import { RoleContext, canEditPlaylistTargets } from '@/components/app'
@@ -212,6 +212,22 @@ const PlaylistList: React.FC = () => {
     if (!applyingPlaylist) return
     setApplying(true)
     try {
+      // Anything unchecked relative to the playlist's previous targets
+      // goes through remove-from-devices first, so its already-deployed
+      // content is actually cleaned up from those devices — a plain
+      // PATCH of the (now smaller) target lists would just stop future
+      // redeploys there and leave the old content stranded forever.
+      const removedPlayers = (applyingPlaylist.target_players || []).filter((id) => !applyTargetPlayers.includes(id))
+      const removedGroups = (applyingPlaylist.target_groups || []).filter((id) => !applyTargetGroups.includes(id))
+      const removedLocations = (applyingPlaylist.target_locations || []).filter((id) => !applyTargetLocations.includes(id))
+      if (removedPlayers.length || removedGroups.length || removedLocations.length) {
+        await playlistsApi.removeFromDevices(applyingPlaylist.id, {
+          player_ids: removedPlayers,
+          group_ids: removedGroups,
+          location_ids: removedLocations,
+        })
+      }
+
       await dispatch(updatePlaylist({
         id: applyingPlaylist.id,
         data: {

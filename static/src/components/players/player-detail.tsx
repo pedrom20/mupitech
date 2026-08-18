@@ -917,6 +917,7 @@ const PlayerDetail: React.FC = () => {
       setTimeout(() => setMigrateProgressText(t('migrateImage.progressRestarting')), 30_000),
       setTimeout(() => setMigrateProgressText(t('migrateImage.progressBranding')), 45_000),
       setTimeout(() => setMigrateProgressText(t('migrateImage.progressSlow')), 90_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressReboot')), 150_000),
     ]
     try {
       const migrateResult = await playersApi.migrateImage(
@@ -1004,6 +1005,7 @@ const PlayerDetail: React.FC = () => {
       setTimeout(() => setMigrateProgressText(t('migrateImage.progressRestarting')), 45_000),
       setTimeout(() => setMigrateProgressText(t('migrateImage.progressBranding')), 60_000),
       setTimeout(() => setMigrateProgressText(t('migrateImage.progressSlow')), 100_000),
+      setTimeout(() => setMigrateProgressText(t('migrateImage.progressReboot')), 160_000),
     ]
     try {
       const rebuildResult = await playersApi.rebuildImage(
@@ -2125,7 +2127,7 @@ const PlayerDetail: React.FC = () => {
                   </div>
                 </div>
               ) : screenshotUrl ? (
-                <div style={{ position: 'relative', textAlign: isPortraitDevice ? 'center' : undefined }}>
+                <div style={{ position: 'relative', textAlign: 'center' }}>
                   <img
                     src={screenshotUrl}
                     alt="Player screenshot"
@@ -2138,9 +2140,16 @@ const PlayerDetail: React.FC = () => {
                       cursor: 'pointer',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                     } : {
-                      width: '100%',
-                      maxHeight: '260px',
-                      objectFit: 'cover',
+                      // width: 100% + object-fit: cover forced the image
+                      // to fill the full (often much wider than 16:9)
+                      // card width at a fixed 260px height, cropping the
+                      // top/bottom instead of showing the whole frame —
+                      // same height-driven, auto-width sizing as the
+                      // portrait branch above avoids that entirely.
+                      height: '260px',
+                      maxWidth: '100%',
+                      width: 'auto',
+                      objectFit: 'contain',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',

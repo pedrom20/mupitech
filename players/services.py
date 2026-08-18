@@ -374,13 +374,22 @@ def resolve_players_from_targets(player_ids=None, group_ids=None, location_ids=N
 
 
 def deploy_media_file_to_player(player, media_file, name=None, duration=10,
-                                 start_date=None, end_date=None, base_url=''):
+                                 start_date=None, end_date=None, base_url='', play_order=None):
     """Create an asset on `player` from a content.MediaFile.
 
     Shared by the single-item "asset upload" endpoint and playlist
     deployment: uploads the file to the player first (local media), or
     uses the source URL directly (web pages, CCTV streams). Raises
     PlayerConnectionError on failure.
+
+    play_order: the device's own Asset.play_order (defaults to 0 for
+    every asset if omitted — see anthias_viewer/scheduling.py::
+    generate_asset_list, which orders strictly by this field before
+    optionally shuffling). Every asset in a playlist landing on the
+    device with play_order=0 meant device-side ordering fell back to
+    whatever the DB happened to return for a tie, ignoring the
+    playlist's own item order entirely — pass the intended position
+    explicitly for anything where order matters (playlist deploys).
     """
     from django.utils import timezone
     from datetime import timedelta
@@ -437,6 +446,9 @@ def deploy_media_file_to_player(player, media_file, name=None, duration=10,
             'duration': duration,
             'skip_asset_check': False,
         }
+
+    if play_order is not None:
+        asset_data['play_order'] = play_order
 
     return client.create_asset(asset_data)
 

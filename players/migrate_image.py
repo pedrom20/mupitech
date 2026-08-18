@@ -356,9 +356,13 @@ def snapshot_assets(player):
     return snapshot
 
 
-def wait_for_player_ready(player, timeout_seconds=90):
+def wait_for_player_ready(player, timeout_seconds=180):
     """Poll the device's own API until it responds again after the compose
-    swap restarts its containers, or give up after timeout_seconds."""
+    swap restarts its containers, or give up after timeout_seconds. 180s
+    (was 90s) — a real device pulling a fresh image and rebooting can
+    reasonably take longer than that to come back up, and the nginx
+    proxy_read_timeout in front of the migrate/rebuild endpoints now has
+    the matching headroom (see nginx.conf) to actually wait this long."""
     import time as _time
 
     from .services import AnthiasAPIClient, PlayerConnectionError

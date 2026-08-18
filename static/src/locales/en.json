@@ -217,7 +217,7 @@
     "appliedTo": "Applied to",
     "apply": "Apply",
     "applyTitle": "Apply \"{{name}}\" to",
-    "applyDesc": "Choose which players, groups or locations this playlist plays on.",
+    "applyDesc": "Choose which players, groups or locations this playlist plays on. Unchecking one removes the playlist's content from it too.",
     "deploy": "Deploy",
     "deployStarted": "Deployment started",
     "deployStartedDesc": "Pushing this playlist to {{count}} player(s).",
@@ -764,6 +764,10 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "playlistOrderFix": "Fixed playlist content playing back in the wrong order on the device — the intended order is now sent explicitly instead of relying on creation order",
+      "migrateImageTimeoutFix": "Fixed migrating/rebuilding a device sometimes reporting a timeout even though it was still working — the underlying request now has enough time to wait through a device reboot",
+      "playlistRemoveFromDevices": "Unchecking a device/group/location in a playlist's \"Apply to\" now also removes its content from there, instead of only stopping future redeploys",
+      "screenshotCanvasFix": "Fixed a landscape device's screenshot being cropped top and bottom by an overly wide canvas",
       "editorSimplificadoRole": "The playlist-target restriction is now a dedicated role — Simplified Editor (Settings > Users) — instead of an admin toggle affecting every editor",
       "playerDetailBackButtonLayout": "Fixed the back button on a device's details page dropping to its own line — it now sits on the same line as the name, status and location",
       "navbarLogoSpacingTighter": "Reduced the gap between the MupiTech logo and the navbar divider",
@@ -1324,6 +1328,7 @@
     "progressRestarting": "Restarting containers…",
     "progressBranding": "Re-applying MupiTech branding (logo, theme, language)…",
     "progressSlow": "Still going — a slow connection or a large image pull can take several minutes. This isn't stuck.",
+    "progressReboot": "Still waiting for the device to come back after restarting — this can take a couple more minutes on some hardware. Still not stuck.",
     "errors": {
       "no_host": "Could not determine the device's host from its URL ({{url}}).",
       "ssh_connect_failed": "Could not connect over SSH: {{detail}}",

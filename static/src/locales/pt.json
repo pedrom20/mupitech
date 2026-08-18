@@ -217,7 +217,7 @@
     "appliedTo": "Aplicada a",
     "apply": "Aplicar",
     "applyTitle": "Aplicar \"{{name}}\" a",
-    "applyDesc": "Escolha em que dispositivos, grupos ou localizações esta lista reproduz.",
+    "applyDesc": "Escolha em que dispositivos, grupos ou localizações esta lista reproduz. Desmarcar um remove também o conteúdo da playlist dele.",
     "deploy": "Publicar",
     "deployStarted": "Publicação iniciada",
     "deployStartedDesc": "A publicar esta lista em {{count}} dispositivo(s).",
@@ -764,6 +764,10 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "playlistOrderFix": "Corrigido o conteúdo de uma playlist reproduzir na ordem errada no device — a ordem pretendida é agora enviada explicitamente, em vez de depender da ordem de criação",
+      "migrateImageTimeoutFix": "Corrigido migrar/reconstruir um device por vezes reportar timeout mesmo continuando a funcionar — o pedido tem agora tempo suficiente para esperar por um reinício do device",
+      "playlistRemoveFromDevices": "Desmarcar um device/grupo/localização em \"Aplicar a\" de uma playlist remove agora também o seu conteúdo de lá, em vez de só deixar de o reaplicar no futuro",
+      "screenshotCanvasFix": "Corrigido o screenshot de um device horizontal ficar cortado em cima e em baixo por um canvas demasiado largo",
       "editorSimplificadoRole": "A restrição de alvos de playlists passa a ser um papel dedicado — Editor Simplificado (Definições > Utilizadores) — em vez de um interruptor de admin que afetava todos os editores",
       "playerDetailBackButtonLayout": "Corrigido o botão de voltar atrás na página de detalhes do device cair para a sua própria linha — passa a ficar na mesma linha que o nome, estado e localização",
       "navbarLogoSpacingTighter": "Reduzido o espaço entre o logo da MupiTech e o separador da barra de navegação",
@@ -1324,6 +1328,7 @@
     "progressRestarting": "A reiniciar os contentores…",
     "progressBranding": "A voltar a aplicar a personalização MupiTech (logótipo, tema, idioma)…",
     "progressSlow": "Ainda a decorrer — uma ligação lenta ou uma imagem grande podem demorar vários minutos. Não está parado.",
+    "progressReboot": "Ainda à espera que o device volte depois de reiniciar — em alguns equipamentos isto pode demorar mais um ou dois minutos. Continua sem estar parado.",
     "errors": {
       "no_host": "Não foi possível determinar o servidor do dispositivo a partir do seu URL ({{url}}).",
       "ssh_connect_failed": "Não foi possível ligar por SSH: {{detail}}",
