@@ -283,7 +283,7 @@ class PairingTests(TestCase):
     def test_list_requires_admin(self):
         self._request_pairing()
         anon = self.client.get('/api/pairing/pending/')
-        self.assertEqual(anon.status_code, 403)
+        self.assertEqual(anon.status_code, 401)
 
         viewer = User.objects.create_user(username='viewer1', password='pw123456')
         self.client.force_authenticate(viewer)

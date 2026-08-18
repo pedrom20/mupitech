@@ -469,11 +469,20 @@ body {
   .fm-content--with-sidebar {
     margin-left: $sidebar-width;
     max-width: calc(#{$content-max-width} + #{$sidebar-width});
-    transition: margin-left 0.2s ease;
+    transition: margin-left 0.2s ease, max-width 0.2s ease;
 
+    // The expanded max-width above is deliberately offset by
+    // $sidebar-width so the rendered content column stays exactly
+    // $content-max-width wide either way — but doing the same
+    // collapsed-width offset here reproduces that same cap almost
+    // unchanged (content-max-width + a mere 64px), so collapsing the
+    // sidebar just slides the same-width column left and leaves the
+    // freed space empty instead of letting content actually use it.
+    // Dropping the cap here is the point of collapsing the sidebar in
+    // the first place — more room for content.
     &.fm-content--sidebar-collapsed {
       margin-left: $sidebar-width-collapsed;
-      max-width: calc(#{$content-max-width} + #{$sidebar-width-collapsed});
+      max-width: none;
     }
   }
 

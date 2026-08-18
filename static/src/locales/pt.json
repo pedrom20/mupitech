@@ -310,6 +310,7 @@
     "chooseContent": "Escolher conteúdo",
     "choosePlaylist": "Escolher playlist",
     "playlistTargetsHint": "Enviado para os destinos já configurados nesta playlist (página de Playlists) — não são escolhidos aqui.",
+    "playlistTargetsOverrideHint": "Opcional — escolha devices/grupos/localizações abaixo para aplicar esta playlist num sítio diferente do que está configurado nela, só para este agendamento. Deixe vazio para usar os destinos já configurados.",
     "noTargets": "Escolha pelo menos um dispositivo, grupo ou localização.",
     "startDate": "Início",
     "endDate": "Fim",
@@ -763,6 +764,10 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "playlistTargetRestriction": "Os admins podem agora restringir os editores de alterar a que devices uma playlist se aplica (Definições > Permissões do Editor) — os editores mantêm controlo total sobre o conteúdo e sobre aplicá-lo",
+      "playlistScheduleAdHocTargets": "Um agendamento de playlist pode agora aplicar-se a devices/grupos/localizações diferentes da configuração da própria playlist, em vez de reutilizar sempre a mesma",
+      "sessionExpiryRedirectFix": "Corrigido uma sessão expirada por vezes não reencaminhar de volta para o login — um problema na ordem de autenticação do backend fazia \"não tem sessão\" e \"tem sessão mas sem permissão\" parecerem a mesma coisa para a aplicação",
+      "sidebarCollapsedWidthFix": "Encolher a barra lateral passa agora a alargar mesmo a área de conteúdo para ocupar o espaço libertado, em vez de o deixar vazio",
       "cecStatusFalsePositive": "Corrigido o estado do CEC aparecer como disponível (com os botões de ligar/desligar ativos mas sem funcionar) num monitor comum sem suporte a CEC — uma resposta real de \"sem display CEC\" do device não estava a ser reconhecida como tal",
       "navbarPartnerLogoPolish": "O logo do parceiro na barra de navegação passa a ficar espaçado de forma simétrica à volta do separador e é clicável, tal como o logo da MupiTech",
       "editorButtonsRespectCapabilities": "Os botões de gestão de devices (eliminar, reiniciar, editar, terminal SSH, separadores de marca/imagem) ficam agora escondidos para editores sem a capacidade correspondente, em vez de aparecerem e falharem",
@@ -1167,7 +1172,10 @@
     "credentials": "Credenciais SSH",
     "credentialsDesc": "Gerir as credenciais SSH de um device e revelar o seu login do dashboard local.",
     "sso": "SSO",
-    "ssoDesc": "Login SSO num device e envio do seu segredo SSO."
+    "ssoDesc": "Login SSO num device e envio do seu segredo SSO.",
+    "playlistTargetsTitle": "Playlists",
+    "restrictPlaylistTargets": "Restringir alvos de playlists a admins",
+    "restrictPlaylistTargetsDesc": "Os editores continuam a poder escolher o conteúdo de uma playlist e aplicá-lo — vai para os devices onde a playlist já está configurada. Só um admin pode alterar quais são esses devices/grupos/localizações."
   },
   "registryMirror": {
     "title": "Registo Espelho",

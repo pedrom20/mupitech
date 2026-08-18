@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaCalendarAlt, FaPlus, FaTrash, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaPhotoVideo } from 'react-icons/fa'
 import Swal from 'sweetalert2'
@@ -7,13 +7,17 @@ import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { fetchPlaylists } from '@/store/playlistsSlice'
-import { schedules as schedulesApi, media as mediaApi } from '@/services/api'
+import { schedules as schedulesApi, media as mediaApi, playlists as playlistsApi } from '@/services/api'
 import { showToast } from '@/utils/toast'
+import { RoleContext, isAdminRole } from '@/components/app'
 import type { ScheduledDeployment, MediaFile } from '@/types'
 
 const SchedulingPage: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const role = useContext(RoleContext)
+  const [restrictPlaylistTargets, setRestrictPlaylistTargets] = useState(false)
+  const canEditPlaylistTargets = isAdminRole(role) || !restrictPlaylistTargets
   const { players } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
   const { locations } = useAppSelector((state) => state.locations)
@@ -47,6 +51,7 @@ const SchedulingPage: React.FC = () => {
     dispatch(fetchGroups())
     dispatch(fetchLocations())
     dispatch(fetchPlaylists())
+    playlistsApi.getSettings().then((res) => setRestrictPlaylistTargets(res.restrict_targets_to_admin)).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch])
 
@@ -66,6 +71,13 @@ const SchedulingPage: React.FC = () => {
     setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
   }
 
+  // Playlist schedules can optionally override the playlist's own
+  // targets with an ad-hoc set (see content/views.py::
+  // ScheduledDeploymentViewSet.perform_create) — same admin-only gate
+  // as the Playlists page's own "Apply to" picker, so this can't be
+  // used as a back door around that restriction.
+  const showPlaylistTargetPicker = contentType === 'playlist' && canEditPlaylistTargets
+
   const handleCreate = async () => {
     if (contentType === 'media' && !selectedMediaId) return
     if (contentType === 'playlist' && !selectedPlaylistId) return
@@ -75,12 +87,13 @@ const SchedulingPage: React.FC = () => {
     }
     setSaving(true)
     try {
+      const includeTargets = contentType === 'media' || showPlaylistTargetPicker
       await schedulesApi.create({
         media_file: contentType === 'media' ? selectedMediaId : undefined,
         playlist: contentType === 'playlist' ? selectedPlaylistId : undefined,
-        target_players: contentType === 'media' ? targetPlayers : undefined,
-        target_groups: contentType === 'media' ? targetGroups : undefined,
-        target_locations: contentType === 'media' ? targetLocations : undefined,
+        target_players: includeTargets ? targetPlayers : undefined,
+        target_groups: includeTargets ? targetGroups : undefined,
+        target_locations: includeTargets ? targetLocations : undefined,
         duration: contentType === 'media' ? duration : undefined,
         start_date: startDate ? new Date(startDate).toISOString() : null,
         end_date: endDate ? new Date(endDate).toISOString() : null,
@@ -235,11 +248,15 @@ const SchedulingPage: React.FC = () => {
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>
-                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('scheduling.playlistTargetsHint')}</div>
+                    {showPlaylistTargetPicker ? (
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('scheduling.playlistTargetsOverrideHint')}</div>
+                    ) : (
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('scheduling.playlistTargetsHint')}</div>
+                    )}
                   </div>
                 )}
 
-                {contentType === 'media' && (
+                {(contentType === 'media' || showPlaylistTargetPicker) && (
                   <>
                     <div className="mb-3">
                       <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>{t('nav.players')}</label>
@@ -271,10 +288,12 @@ const SchedulingPage: React.FC = () => {
                         ))}
                       </div>
                     </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>{t('assets.duration')}</label>
-                      <input type="number" className="form-control form-control-sm" style={{ maxWidth: '120px' }} value={duration} onChange={(e) => setDuration(Number(e.target.value))} min={1} />
-                    </div>
+                    {contentType === 'media' && (
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>{t('assets.duration')}</label>
+                        <input type="number" className="form-control form-control-sm" style={{ maxWidth: '120px' }} value={duration} onChange={(e) => setDuration(Number(e.target.value))} min={1} />
+                      </div>
+                    )}
                   </>
                 )}
 

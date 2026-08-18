@@ -310,6 +310,7 @@
     "chooseContent": "Choose content",
     "choosePlaylist": "Choose playlist",
     "playlistTargetsHint": "Deployed to this playlist's own configured targets (Playlists page) — not chosen here.",
+    "playlistTargetsOverrideHint": "Optional — pick devices/groups/locations below to deploy this playlist somewhere different from its own configured targets, just for this schedule. Leave empty to use its own targets.",
     "noTargets": "Choose at least one device, group or location.",
     "startDate": "Start",
     "endDate": "End",
@@ -763,6 +764,10 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "playlistTargetRestriction": "Admins can now restrict editors from changing which devices a playlist targets (Settings > Editor Permissions) — editors keep full control over its content and deploying it",
+      "playlistScheduleAdHocTargets": "A playlist schedule can now target different devices/groups/locations than the playlist's own configuration, instead of always reusing it",
+      "sessionExpiryRedirectFix": "Fixed an expired session sometimes not redirecting back to the login screen — a backend authentication ordering issue meant \"not logged in\" and \"logged in but not allowed\" looked identical to the app",
+      "sidebarCollapsedWidthFix": "Collapsing the sidebar now actually widens the content area to use the freed-up space, instead of leaving it empty",
       "cecStatusFalsePositive": "Fixed CEC status wrongly showing as available (with the power buttons enabled but not working) on a plain monitor without CEC support — a real \"no CEC display\" answer from the device wasn't being recognized as such",
       "navbarPartnerLogoPolish": "The partner logo in the navbar is now evenly spaced around the divider and clickable, same as the MupiTech logo",
       "editorButtonsRespectCapabilities": "Device-management buttons (delete, reboot, edit, SSH terminal, branding/image settings tabs) are now hidden for editors who don't have the matching capability, instead of showing and then failing",
@@ -1167,7 +1172,10 @@
     "credentials": "SSH credentials",
     "credentialsDesc": "Manage a device's SSH credentials and reveal its local dashboard login.",
     "sso": "SSO",
-    "ssoDesc": "SSO login into a device and push its SSO secret."
+    "ssoDesc": "SSO login into a device and push its SSO secret.",
+    "playlistTargetsTitle": "Playlists",
+    "restrictPlaylistTargets": "Restrict playlist targets to admins",
+    "restrictPlaylistTargetsDesc": "Editors can still pick a playlist's content and deploy it — it goes out to whichever devices the playlist is already configured for. Only an admin can change which devices/groups/locations that is."
   },
   "registryMirror": {
     "title": "Registry Mirror",

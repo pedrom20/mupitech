@@ -527,6 +527,14 @@ export const playlists = {
   deploy(id: string): Promise<{ success: boolean; target_count: number }> {
     return apiRequest('POST', `/playlists/${id}/deploy/`)
   },
+
+  getSettings(): Promise<{ restrict_targets_to_admin: boolean }> {
+    return apiRequest('GET', '/playlist-settings/')
+  },
+
+  updateSettings(data: { restrict_targets_to_admin: boolean }): Promise<{ restrict_targets_to_admin: boolean }> {
+    return apiRequest('PATCH', '/playlist-settings/', data)
+  },
 }
 
 export const media = {

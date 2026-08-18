@@ -257,12 +257,35 @@ class ScheduledDeploymentViewSet(viewsets.ModelViewSet):
         end_date = schedule.end_date.strftime('%Y-%m-%dT%H:%M:%S.000Z') if schedule.end_date else None
 
         if schedule.playlist_id:
+            from players.services import resolve_players_from_targets
             from playlists.tasks import deploy_playlist
-            deploy_playlist.delay(str(schedule.playlist_id), start_date, end_date)
+
+            # Ad-hoc targets on the schedule itself, if any, override the
+            # playlist's own configured targets — lets an admin apply a
+            # playlist somewhere other than where it's normally deployed
+            # without editing the playlist. No ad-hoc targets → falls
+            # back to the playlist's own targets, same as before.
+            has_ad_hoc_targets = (
+                schedule.target_players.exists()
+                or schedule.target_groups.exists()
+                or schedule.target_locations.exists()
+            )
+            player_ids = None
+            schedule_id = None
+            if has_ad_hoc_targets:
+                players = resolve_players_from_targets(
+                    [str(p.id) for p in schedule.target_players.all()],
+                    [str(g.id) for g in schedule.target_groups.all()],
+                    [str(loc.id) for loc in schedule.target_locations.all()],
+                )
+                player_ids = [str(p.id) for p in players]
+                schedule_id = str(schedule.id)
+
+            deploy_playlist.delay(str(schedule.playlist_id), start_date, end_date, player_ids, schedule_id)
             log_action(
                 self.request, 'schedule', 'playlist', target_id=schedule.playlist_id,
                 target_name=schedule.playlist.name,
-                details={'start_date': start_date, 'end_date': end_date},
+                details={'start_date': start_date, 'end_date': end_date, 'ad_hoc_targets': has_ad_hoc_targets},
             )
             return
 
@@ -301,9 +324,14 @@ class ScheduledDeploymentViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         """Cancel a schedule — best-effort removal of whatever it
-        deployed (media_file schedules only; a playlist schedule's
-        assets belong to the playlist itself and are managed by its own
-        deploy/re-deploy lifecycle, not this record)."""
+        deployed. Works generically off instance.deployed_assets, which
+        stays empty (nothing to clean up here) for a playlist schedule
+        using the playlist's own default targets — those assets belong
+        to the playlist itself and are managed by its own deploy/
+        re-deploy lifecycle. A playlist schedule with ad-hoc targets
+        (see perform_create) is the exception: its assets are tracked
+        on this record instead, since they're not part of the
+        playlist's own bookkeeping."""
         if instance.deployed_assets:
             from players.models import Player
             from players.services import AnthiasAPIClient

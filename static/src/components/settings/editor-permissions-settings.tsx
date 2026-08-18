@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaUserShield, FaSave } from 'react-icons/fa'
+import { FaUserShield, FaSave, FaListUl } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { system } from '@/services/api'
+import { system, playlists as playlistsApi } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import type { EditorCapabilities } from '@/types'
 
@@ -21,9 +21,12 @@ const EditorPermissionsSettings: React.FC = () => {
   const { t } = useTranslation()
   const [capabilities, setCapabilities] = useState<EditorCapabilities | null>(null)
   const [saving, setSaving] = useState(false)
+  const [restrictPlaylistTargets, setRestrictPlaylistTargets] = useState(false)
+  const [savingPlaylistSetting, setSavingPlaylistSetting] = useState(false)
 
   useEffect(() => {
     system.getEditorPermissions().then(setCapabilities).catch(() => {})
+    playlistsApi.getSettings().then((res) => setRestrictPlaylistTargets(res.restrict_targets_to_admin)).catch(() => {})
   }, [])
 
   const toggle = (key: keyof EditorCapabilities) => {
@@ -40,6 +43,16 @@ const EditorPermissionsSettings: React.FC = () => {
     }).catch((err) => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
     }).finally(() => setSaving(false))
+  }
+
+  const handleTogglePlaylistTargets = (checked: boolean) => {
+    setSavingPlaylistSetting(true)
+    playlistsApi.updateSettings({ restrict_targets_to_admin: checked }).then((res) => {
+      setRestrictPlaylistTargets(res.restrict_targets_to_admin)
+      showToast('success', t('common.success'))
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }).finally(() => setSavingPlaylistSetting(false))
   }
 
   return (
@@ -81,6 +94,33 @@ const EditorPermissionsSettings: React.FC = () => {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      </div>
+
+      <div className="col-12">
+        <div className="fm-card fm-card-accent h-100">
+          <div className="fm-card-header py-2">
+            <h5 className="card-title mb-0">
+              <FaListUl className="me-2" />
+              {t('editorPermissions.playlistTargetsTitle')}
+            </h5>
+          </div>
+          <div className="fm-card-body py-3">
+            <div className="form-check form-switch mb-0">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="restrict-playlist-targets"
+                checked={restrictPlaylistTargets}
+                disabled={savingPlaylistSetting}
+                onChange={(e) => handleTogglePlaylistTargets(e.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="restrict-playlist-targets">
+                <span className="fw-semibold d-block">{t('editorPermissions.restrictPlaylistTargets')}</span>
+                <span className="form-text" style={{ fontSize: '0.78rem' }}>{t('editorPermissions.restrictPlaylistTargetsDesc')}</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>

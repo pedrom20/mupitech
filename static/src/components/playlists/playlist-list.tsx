@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -22,9 +22,10 @@ import { fetchPlaylists, createPlaylist, updatePlaylist, deletePlaylist, deployP
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
-import { media as mediaApi } from '@/services/api'
+import { media as mediaApi, playlists as playlistsApi } from '@/services/api'
 import { FilePreview } from '@/components/shared/media-preview'
 import { showToast } from '@/utils/toast'
+import { RoleContext, isAdminRole } from '@/components/app'
 import type { Playlist, PlaylistItem, MediaFile } from '@/types'
 
 interface FormItem {
@@ -37,6 +38,9 @@ const PlaylistList: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const [searchParams, setSearchParams] = useSearchParams()
+  const role = useContext(RoleContext)
+  const [restrictTargets, setRestrictTargets] = useState(false)
+  const canEditTargets = isAdminRole(role) || !restrictTargets
   const { playlists, loading } = useAppSelector((state) => state.playlists)
   const { players } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
@@ -67,6 +71,7 @@ const PlaylistList: React.FC = () => {
     dispatch(fetchGroups())
     dispatch(fetchLocations())
     mediaApi.list().then(setMediaFiles).catch(() => {})
+    playlistsApi.getSettings().then((res) => setRestrictTargets(res.restrict_targets_to_admin)).catch(() => {})
   }, [dispatch])
 
   // Deep-link from other pages (e.g. a device's content list) — /playlists?edit=<id>
@@ -284,15 +289,17 @@ const PlaylistList: React.FC = () => {
                   <div className="mb-2">
                     <div className="d-flex justify-content-between align-items-center mb-1">
                       <span className="fw-semibold" style={{ fontSize: '0.78rem' }}>{t('playlists.appliedTo')}</span>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-secondary py-0 px-2"
-                        style={{ fontSize: '0.72rem' }}
-                        onClick={() => handleOpenApply(playlist)}
-                      >
-                        <FaShareSquare className="me-1" />
-                        {t('playlists.apply')}
-                      </button>
+                      {canEditTargets && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary py-0 px-2"
+                          style={{ fontSize: '0.72rem' }}
+                          onClick={() => handleOpenApply(playlist)}
+                        >
+                          <FaShareSquare className="me-1" />
+                          {t('playlists.apply')}
+                        </button>
+                      )}
                     </div>
                     {!playlist.target_players_detail?.length && !playlist.target_groups_detail?.length && !playlist.target_locations_detail?.length ? (
                       <span className="text-muted" style={{ fontSize: '0.78rem' }}>{t('playlists.noTargets')}</span>

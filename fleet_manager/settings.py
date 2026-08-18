@@ -213,9 +213,26 @@ CSRF_TRUSTED_ORIGINS = [
 
 # REST Framework
 REST_FRAMEWORK = {
+    # TokenAuthentication first, SessionAuthentication second — order
+    # matters here beyond which one actually authenticates a request
+    # (that part is unaffected: Token only engages when an Authorization
+    # header is present, so normal cookie-based frontend requests still
+    # authenticate via the session either way). DRF's
+    # APIView.handle_exception() coerces a NotAuthenticated (401) down
+    # to 403 whenever get_authenticate_header() — which only ever
+    # consults get_authenticators()[0] — returns falsy, and
+    # SessionAuthentication.authenticate_header() is unimplemented
+    # (returns None). With Session listed first, every anonymous
+    # request to any endpoint was silently coerced to 403, identical to
+    # an authenticated-but-forbidden response — the frontend's global
+    # 401 handler (services/api.ts) could never tell "not logged in"
+    # apart from "logged in, no permission" and had no reliable signal
+    # to redirect an expired session back to /login. TokenAuthentication.
+    # authenticate_header() returns 'Token' (truthy), so listing it
+    # first restores real 401s for the anonymous case.
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

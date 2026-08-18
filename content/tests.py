@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 
 from groups.models import Group as DeviceGroup
 from locations.models import Location
+from players.models import Player
 
 from .models import MediaFile, MediaFolder
 
@@ -282,3 +283,56 @@ class ContentLibraryScopingTests(TestCase):
             f'/api/folders/{self.folder_a.id}/', {'parent': str(self.subfolder_a.id)}, format='json',
         )
         self.assertEqual(resp.status_code, 400)
+
+
+class ScheduledPlaylistAdHocTargetTests(TestCase):
+    """A playlist schedule normally reuses the playlist's own configured
+    targets (see playlists/tasks.py::deploy_playlist), but can override
+    them with ad-hoc targets on the schedule itself — lets an admin
+    apply a playlist somewhere different from where it's normally
+    deployed without editing the playlist. Only the dispatch (what gets
+    passed to deploy_playlist.delay) is asserted here — the task's own
+    device-deploy logic is exercised for real in a live environment,
+    not worth mocking out AnthiasAPIClient for in a unit test."""
+
+    def setUp(self):
+        from playlists.models import Playlist
+
+        for name in ('admin', 'editor', 'viewer', 'superadmin'):
+            AuthGroup.objects.get_or_create(name=name)
+        self.client = APIClient()
+        self.admin = User.objects.create_user(username='admin3', password='pw123456')
+        self.admin.is_superuser = True
+        self.admin.save(update_fields=['is_superuser'])
+
+        self.default_player = Player.objects.create(name='Default', url='http://10.0.0.1')
+        self.adhoc_player = Player.objects.create(name='AdHoc', url='http://10.0.0.2')
+        self.playlist = Playlist.objects.create(name='Test playlist')
+        self.playlist.target_players.add(self.default_player)
+
+        self.client.force_authenticate(self.admin)
+
+    @patch('playlists.tasks.deploy_playlist.delay')
+    def test_no_ad_hoc_targets_falls_back_to_playlist_defaults(self, mock_delay):
+        resp = self.client.post('/api/schedules/', {
+            'playlist': str(self.playlist.id),
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        mock_delay.assert_called_once()
+        args = mock_delay.call_args[0]
+        self.assertEqual(args[0], str(self.playlist.id))
+        self.assertIsNone(args[3])  # player_ids
+        self.assertIsNone(args[4])  # schedule_id
+
+    @patch('playlists.tasks.deploy_playlist.delay')
+    def test_ad_hoc_targets_override_playlist_defaults(self, mock_delay):
+        resp = self.client.post('/api/schedules/', {
+            'playlist': str(self.playlist.id),
+            'target_players': [str(self.adhoc_player.id)],
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        mock_delay.assert_called_once()
+        args = mock_delay.call_args[0]
+        self.assertEqual(args[0], str(self.playlist.id))
+        self.assertEqual(args[3], [str(self.adhoc_player.id)])
+        self.assertIsNotNone(args[4])  # schedule_id
