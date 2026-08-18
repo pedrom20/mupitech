@@ -664,3 +664,33 @@ class SshRunSudoTests(TestCase):
         executed2 = ssh2.exec_command.call_args[0][0]
         self.assertIn('sudo -S bash -c', executed2)
         self.assertIn('docker inspect', executed2)
+
+
+class PreparePlayerDirectoriesTests(TestCase):
+    """_prepare_player_directories used to mkdir config_dir/assets_dir but
+    never project_dir itself (the .anthias/anthias_assets pair, not the
+    ~/anthias directory docker-compose.yml actually gets written into) —
+    Step 5 of provision_player then SFTP-writes straight into
+    {home}/{project_dir}/docker-compose.yml, which only ever worked
+    because that directory happened to already exist (e.g. left over
+    from a previous install). Provisioning a genuinely clean device (or
+    one whose ~/anthias was just wiped by hand) hit a bare
+    ``IOError: [Errno 2] No such file or directory`` on the SFTP open.
+    migrate_image.py's own inline directory prep already included
+    project_dir; this brings the shared provision.py helper in line."""
+
+    def test_project_dir_is_created(self):
+        from .provision import _prepare_player_directories
+
+        ssh = MagicMock()
+        ssh.exec_command.return_value = _mock_ssh_exec('ok')
+
+        _prepare_player_directories(ssh, '/home/pi', 'pi', 'pi4', 'secret', timeout=10)
+
+        mkdir_call = next(
+            call for call in ssh.exec_command.call_args_list
+            if 'mkdir -p' in call[0][0]
+        )
+        self.assertIn('/home/pi/anthias', mkdir_call[0][0])
+        self.assertIn('/home/pi/.anthias', mkdir_call[0][0])
+        self.assertIn('/home/pi/anthias_assets', mkdir_call[0][0])

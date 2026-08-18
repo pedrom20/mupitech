@@ -18,6 +18,7 @@ import FleetOverview from '@/components/fleet-overview/fleet-overview'
 import GroupList from '@/components/groups/group-list'
 import LocationList from '@/components/locations/location-list'
 import PlaylistList from '@/components/playlists/playlist-list'
+import FooterMessageList from '@/components/footer-messages/footer-message-list'
 import SchedulingPage from '@/components/scheduling/schedule-list'
 import ContentPage from '@/components/deploy/deploy-form'
 import DeployHistory from '@/components/deploy/deploy-history'
@@ -298,6 +299,7 @@ const App: React.FC = () => {
                 <Route path="/groups" element={<GroupList />} />
                 <Route path="/locations" element={<LocationList />} />
                 <Route path="/playlists" element={<PlaylistList />} />
+                <Route path="/footer-messages" element={<FooterMessageList />} />
                 <Route path="/scheduling" element={<SchedulingPage />} />
                 <Route path="/content" element={<ContentPage />} />
                 <Route path="/deploy/history" element={<DeployHistory />} />

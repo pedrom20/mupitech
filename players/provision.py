@@ -179,7 +179,11 @@ def _prepare_player_directories(ssh, home, ssh_user, device_type, sudo_password,
     migrating an existing device onto a new image/template)."""
     layout = _home_layout(device_type)
     media_player_path = f'{home}/{layout["media_player_rel"]}'
-    dirs = {f'{home}/{layout["config_dir"]}', f'{home}/{layout["assets_dir"]}'}
+    dirs = {
+        f'{home}/{layout["project_dir"]}',
+        f'{home}/{layout["config_dir"]}',
+        f'{home}/{layout["assets_dir"]}',
+    }
     if layout['needs_media_player_override']:
         dirs.add(os.path.dirname(media_player_path))
     dirs.update(f'{home}/{d}' for d in layout['extra_dirs'])

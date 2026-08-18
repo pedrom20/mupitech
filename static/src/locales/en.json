@@ -6,6 +6,7 @@
     "groups": "Groups",
     "locations": "Locations",
     "playlists": "Playlists",
+    "footerMessages": "Footer Messages",
     "scheduling": "Scheduling",
     "content": "Content",
     "history": "History",
@@ -223,6 +224,18 @@
     "deployStartedDesc": "Pushing this playlist to {{count}} player(s).",
     "lastDeployed": "Last deployed",
     "confirmDelete": "Are you sure you want to delete this playlist?"
+  },
+  "footerMessages": {
+    "title": "Footer Messages",
+    "subtitle": "Scrolling messages shown in a ticker bar at the bottom of the screen on selected devices.",
+    "addMessage": "Add Message",
+    "editMessage": "Edit Message",
+    "text": "Message text",
+    "order": "Order",
+    "active": "Active",
+    "inactive": "Inactive",
+    "targetsLockedHint": "Only an admin can change which devices show this message. You can still edit its text and ordering.",
+    "confirmDelete": "Are you sure you want to delete this message?"
   },
   "history": {
     "title": "Playback History",
@@ -765,6 +778,7 @@
     "subtitle": "Version history and release notes.",
     "changes": {
       "migrateImageSudoFix": "Fixed migrating/rebuilding a device sometimes failing with \"permission denied\" connecting to Docker — device management commands now run with sudo instead of assuming the SSH user is already in the device's docker group",
+      "provisionMissingProjectDirFix": "Fixed provisioning a new device failing at the \"Upload Configuration\" step with a \"No such file or directory\" error — the docker-compose.yml destination folder is now created before writing to it",
       "phoneHomeInfoGuardFix": "Fixed a device's IP/status sometimes never updating again after its first heartbeat — a fresh install's phone-home script was missing a safeguard (already present in the manual reinstall script) against an edge case that made every subsequent heartbeat fail silently",
       "playlistOrderFix": "Fixed playlist content playing back in the wrong order on the device — the intended order is now sent explicitly instead of relying on creation order",
       "migrateImageTimeoutFix": "Fixed migrating/rebuilding a device sometimes reporting a timeout even though it was still working — the underlying request now has enough time to wait through a device reboot",

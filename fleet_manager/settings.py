@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'playlists',
     'access',
     'mfa',
+    'footer_messages',
 ]
 
 MIDDLEWARE = [

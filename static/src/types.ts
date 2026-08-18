@@ -441,6 +441,20 @@ export interface Playlist {
   created_at: string
 }
 
+export interface FooterMessage {
+  id: string
+  text: string
+  order: number
+  is_active: boolean
+  target_players: string[]
+  target_players_detail?: Player[]
+  target_groups: string[]
+  target_groups_detail?: Group[]
+  target_locations: string[]
+  target_locations_detail?: Location[]
+  created_at: string
+}
+
 export interface ScheduledDeployment {
   id: string
   media_file: string | null

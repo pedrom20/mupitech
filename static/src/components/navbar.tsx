@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt, FaBullhorn } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi, system as systemApi } from '@/services/api'
 import { AuthContext } from '@/components/app'
@@ -187,6 +187,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems 
   ]
   const navItemsAfter = [
     { to: '/playlists', icon: <FaListUl className="nav-icon" />, label: t('nav.playlists'), end: false },
+    { to: '/footer-messages', icon: <FaBullhorn className="nav-icon" />, label: t('nav.footerMessages'), end: false },
     { to: '/scheduling', icon: <FaCalendarAlt className="nav-icon" />, label: t('nav.scheduling'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },

@@ -6,6 +6,7 @@
     "groups": "Grupos",
     "locations": "Localizações",
     "playlists": "Listas de Reprodução",
+    "footerMessages": "Mensagens de Rodapé",
     "scheduling": "Agendamento",
     "content": "Conteúdo",
     "history": "Histórico",
@@ -223,6 +224,18 @@
     "deployStartedDesc": "A publicar esta lista em {{count}} dispositivo(s).",
     "lastDeployed": "Última publicação",
     "confirmDelete": "Tem a certeza que quer eliminar esta lista de reprodução?"
+  },
+  "footerMessages": {
+    "title": "Mensagens de Rodapé",
+    "subtitle": "Mensagens em rolamento mostradas numa barra no fundo do ecrã nos dispositivos selecionados.",
+    "addMessage": "Adicionar Mensagem",
+    "editMessage": "Editar Mensagem",
+    "text": "Texto da mensagem",
+    "order": "Ordem",
+    "active": "Ativa",
+    "inactive": "Inativa",
+    "targetsLockedHint": "Só um admin pode alterar em que dispositivos esta mensagem aparece. Pode continuar a editar o texto e a ordem.",
+    "confirmDelete": "Tem a certeza que quer eliminar esta mensagem?"
   },
   "history": {
     "title": "Histórico de Reprodução",
@@ -765,6 +778,7 @@
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
       "migrateImageSudoFix": "Corrigido migrar/reconstruir um device por vezes falhar com \"permission denied\" ao ligar ao Docker — os comandos de gestão do device passam a correr com sudo em vez de assumir que o utilizador SSH já está no grupo docker do device",
+      "provisionMissingProjectDirFix": "Corrigido o provisionamento de um novo device falhar no passo \"Carregar Configuração\" com um erro \"No such file or directory\" — a pasta de destino do docker-compose.yml passa a ser criada antes de escrever nela",
       "phoneHomeInfoGuardFix": "Corrigido o IP/estado de um device por vezes nunca mais atualizar depois do primeiro heartbeat — o script de phone-home de uma instalação de raiz não tinha uma proteção (já existente no script de reinstalação manual) contra um caso limite que fazia todos os heartbeats seguintes falhar silenciosamente",
       "playlistOrderFix": "Corrigido o conteúdo de uma playlist reproduzir na ordem errada no device — a ordem pretendida é agora enviada explicitamente, em vez de depender da ordem de criação",
       "migrateImageTimeoutFix": "Corrigido migrar/reconstruir um device por vezes reportar timeout mesmo continuando a funcionar — o pedido tem agora tempo suficiente para esperar por um reinício do device",

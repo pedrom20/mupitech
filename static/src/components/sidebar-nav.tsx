@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup,
   FaMapMarkerAlt, FaListUl, FaSitemap, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaChevronDown,
+  FaBullhorn,
 } from 'react-icons/fa'
 import { SidebarNavContext } from '@/components/app'
 
@@ -47,6 +48,7 @@ const SidebarNav: React.FC = () => {
   ]
   const bottomItems = [
     { to: '/playlists', icon: FaListUl, label: t('nav.playlists'), end: false },
+    { to: '/footer-messages', icon: FaBullhorn, label: t('nav.footerMessages'), end: false },
     { to: '/scheduling', icon: FaCalendarAlt, label: t('nav.scheduling'), end: false },
     { to: '/content', icon: FaPhotoVideo, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: FaHistory, label: t('nav.history'), end: false },

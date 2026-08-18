@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, EditorCapabilities, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, EditorCapabilities, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus, FooterMessage } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -530,6 +530,24 @@ export const playlists = {
 
   removeFromDevices(id: string, data: { player_ids?: string[]; group_ids?: string[]; location_ids?: string[] }): Promise<Playlist> {
     return apiRequest<Playlist>('POST', `/playlists/${id}/remove-from-devices/`, data)
+  },
+}
+
+export const footerMessages = {
+  list(): Promise<FooterMessage[]> {
+    return apiRequest<FooterMessage[]>('GET', '/footer-messages/')
+  },
+
+  create(data: Partial<FooterMessage>): Promise<FooterMessage> {
+    return apiRequest<FooterMessage>('POST', '/footer-messages/', data)
+  },
+
+  update(id: string, data: Partial<FooterMessage>): Promise<FooterMessage> {
+    return apiRequest<FooterMessage>('PATCH', `/footer-messages/${id}/`, data)
+  },
+
+  delete(id: string): Promise<void> {
+    return apiRequest<void>('DELETE', `/footer-messages/${id}/`)
   },
 }
 

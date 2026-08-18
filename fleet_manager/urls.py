@@ -726,6 +726,7 @@ urlpatterns = [
     path('api/', include('players.urls')),
     path('api/', include('deploy.urls')),
     path('api/', include('mfa.urls')),
+    path('api/', include('footer_messages.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     path('cctv/<uuid:config_id>/', cctv_player_view, name='cctv-player'),
     path('tools/weather/', weather_widget, name='weather-widget'),
