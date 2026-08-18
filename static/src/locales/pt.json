@@ -763,6 +763,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "cecStatusFalsePositive": "Corrigido o estado do CEC aparecer como disponível (com os botões de ligar/desligar ativos mas sem funcionar) num monitor comum sem suporte a CEC — uma resposta real de \"sem display CEC\" do device não estava a ser reconhecida como tal",
+      "navbarPartnerLogoPolish": "O logo do parceiro na barra de navegação passa a ficar espaçado de forma simétrica à volta do separador e é clicável, tal como o logo da MupiTech",
       "editorButtonsRespectCapabilities": "Os botões de gestão de devices (eliminar, reiniciar, editar, terminal SSH, separadores de marca/imagem) ficam agora escondidos para editores sem a capacidade correspondente, em vez de aparecerem e falharem",
       "fleetOverviewMoveMode": "As setas de mover device/grupo na Visão Geral da Frota ficam agora escondidas por omissão — ative \"Mover devices/grupos\" no topo da página para as mostrar",
       "fleetOverviewChipContrast": "Corrigidos os chips de devices na Visão Geral da Frota ficarem quase invisíveis (branco sobre branco) no modo claro",

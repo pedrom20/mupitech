@@ -763,6 +763,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "cecStatusFalsePositive": "Fixed CEC status wrongly showing as available (with the power buttons enabled but not working) on a plain monitor without CEC support — a real \"no CEC display\" answer from the device wasn't being recognized as such",
+      "navbarPartnerLogoPolish": "The partner logo in the navbar is now evenly spaced around the divider and clickable, same as the MupiTech logo",
       "editorButtonsRespectCapabilities": "Device-management buttons (delete, reboot, edit, SSH terminal, branding/image settings tabs) are now hidden for editors who don't have the matching capability, instead of showing and then failing",
       "fleetOverviewMoveMode": "The move-device/move-group arrows on Fleet Overview are now hidden by default — turn on \"Move devices/groups\" in the page header to show them",
       "fleetOverviewChipContrast": "Fixed device chips on Fleet Overview being nearly invisible (white on white) in light mode",

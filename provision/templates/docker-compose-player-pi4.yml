@@ -35,7 +35,14 @@ services:
     # default: unlike a volume bind mount, Docker's `devices:` hard-fails
     # `up` if the host path doesn't exist, and CEC-on-Pi4 hasn't been
     # confirmed across our fleet's HDMI wiring yet. Add on hosts that
-    # have it:
+    # have it — and add the SAME block to anthias-celery below too:
+    # the periodic display_power probe runs there (celery-beat), not
+    # here, so CEC/IR only being added to this service leaves the
+    # status poller permanently reporting "No CEC adapter" (confirmed
+    # live on a real Pi 4 — /dev/cec0 present on the host, container
+    # detects the adapter fine once passed through, but the status
+    # shown in the Fleet Manager never updates until anthias-celery
+    # gets the same device(s) too).
     #   devices:
     #     - /dev/cec0:/dev/cec0
     #     - /dev/lirc0:/dev/lirc0
@@ -93,6 +100,13 @@ services:
       - /home/$PI_USER/anthias_assets:/data/anthias_assets
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+    # CEC/IR passthrough (MupiTech addition) — see the matching comment
+    # on anthias-server above. This service is where the periodic
+    # display_power probe actually runs (celery-beat), so it needs the
+    # SAME devices: block, not just anthias-server:
+    #   devices:
+    #     - /dev/cec0:/dev/cec0
+    #     - /dev/lirc0:/dev/lirc0
     depends_on:
       - anthias-server
       - redis

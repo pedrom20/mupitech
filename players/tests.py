@@ -132,6 +132,63 @@ class AnthiasAPIClientTests(TestCase):
         self.assertEqual(api.auth[0], 'admin')
 
 
+class CecStatusTests(TestCase):
+    """_cec_status_from_display_power translates every documented
+    lib/diagnostics.py::get_display_power() return value (mupitech-
+    player) into cec_available/tv_on — see that function's own
+    docstring for the canonical list of strings. 'No CEC display
+    detected' is a real, expected, non-error state (a plain monitor
+    without CEC support) and must count as unavailable just like the
+    other three string states, not fall through to the True/False
+    branch and get reported as available."""
+
+    def setUp(self):
+        self.player = Player.objects.create(name='Test', url='http://10.0.0.1')
+        self.api = AnthiasAPIClient(self.player)
+
+    def test_no_adapter_is_unavailable(self):
+        self.assertEqual(
+            self.api._cec_status_from_display_power('No CEC adapter'),
+            {'cec_available': False, 'tv_on': False},
+        )
+
+    def test_no_display_detected_is_unavailable(self):
+        self.assertEqual(
+            self.api._cec_status_from_display_power('No CEC display detected'),
+            {'cec_available': False, 'tv_on': False},
+        )
+
+    def test_adapter_unresponsive_is_unavailable(self):
+        self.assertEqual(
+            self.api._cec_status_from_display_power('CEC adapter unresponsive'),
+            {'cec_available': False, 'tv_on': False},
+        )
+
+    def test_generic_error_is_unavailable(self):
+        self.assertEqual(
+            self.api._cec_status_from_display_power('CEC error'),
+            {'cec_available': False, 'tv_on': False},
+        )
+
+    def test_none_is_unavailable(self):
+        self.assertEqual(
+            self.api._cec_status_from_display_power(None),
+            {'cec_available': False, 'tv_on': False},
+        )
+
+    def test_real_on_answer(self):
+        self.assertEqual(
+            self.api._cec_status_from_display_power('True'),
+            {'cec_available': True, 'tv_on': True},
+        )
+
+    def test_real_off_answer(self):
+        self.assertEqual(
+            self.api._cec_status_from_display_power('False'),
+            {'cec_available': True, 'tv_on': False},
+        )
+
+
 class PollPlayerTaskTests(TestCase):
     def setUp(self):
         self.player = Player.objects.create(

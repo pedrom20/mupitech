@@ -206,10 +206,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems 
             <img src="/static/img/logo-dos.svg" alt="MupiTech — Gestor de Mupis Digitais" className="logo-dos" />
           </NavLink>
           {partnerLogoUrl && (
-            <span className="navbar-partner-logo">
+            <NavLink to="/" className="navbar-partner-logo" onClick={() => { closeMenu(); registerLogoTap() }}>
               <span className="navbar-partner-logo__divider" aria-hidden="true" />
               <img src={partnerLogoUrl} alt="" />
-            </span>
+            </NavLink>
           )}
 
           {isAuthenticated && (

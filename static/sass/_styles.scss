@@ -60,7 +60,10 @@ body {
     align-items: center;
     gap: 0.75rem;
     padding: 0;
-    margin-right: 1rem;
+    // Matches .navbar-partner-logo's own internal gap below, so the "|"
+    // divider sits equidistant from both logos instead of looking off-
+    // center toward the partner side.
+    margin-right: 0.75rem;
 
     img {
       height: 60px;
@@ -84,6 +87,7 @@ body {
     align-items: center;
     gap: 0.75rem;
     margin-right: 2rem;
+    text-decoration: none;
 
     &__divider {
       width: 1px;

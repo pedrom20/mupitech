@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.2.20.0'
+export const APP_VERSION = '1.2.21.0'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.2.21.0',
+    date: '2026-08-18',
+    changeKeys: [
+      'cecStatusFalsePositive',
+      'navbarPartnerLogoPolish',
+    ],
+  },
   {
     version: '1.2.20.0',
     date: '2026-08-18',

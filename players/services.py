@@ -294,7 +294,7 @@ class AnthiasAPIClient:
     # layer, kept so callers (players/views.py, the frontend) don't need
     # to change.
     _CEC_UNAVAILABLE_VALUES = (
-        'No CEC adapter', 'CEC adapter unresponsive', 'CEC error', None,
+        'No CEC adapter', 'No CEC display detected', 'CEC adapter unresponsive', 'CEC error', None,
     )
 
     def _cec_status_from_display_power(self, display_power):

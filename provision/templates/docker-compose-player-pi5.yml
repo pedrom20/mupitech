@@ -97,6 +97,15 @@ services:
       - /home/$PI_USER/anthias_assets:/data/anthias_assets
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+    # Same /dev/cec0+/dev/cec1 as anthias-server above — this is where
+    # the periodic display_power probe actually runs (celery-beat), so
+    # without this the Fleet Manager's CEC status (and the power on/
+    # off buttons, which are disabled whenever it reports unavailable)
+    # never reflects a working adapter even though anthias-server's own
+    # interactive on/off command would have worked fine.
+    devices:
+      - /dev/cec0:/dev/cec0
+      - /dev/cec1:/dev/cec1
     depends_on:
       - anthias-server
       - redis
