@@ -18,6 +18,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchPlayers } from '@/store/playersSlice'
 import { locations as locationsApi } from '@/services/api'
 import { isVideoUrl } from '@/utils/media'
+import ScopedFoldersPanel from '@/components/shared/scoped-folders-panel'
 import type { Location } from '@/types'
 
 const LocationList: React.FC = () => {
@@ -494,6 +495,8 @@ const LocationList: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <ScopedFoldersPanel locationId={detailLocation.id} />
 
                 {getGroupsInLocation(detailLocation.id).length === 0
                   && getUngroupedPlayersInLocation(detailLocation.id).length === 0 ? (

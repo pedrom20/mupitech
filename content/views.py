@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import parsers, serializers, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
@@ -12,11 +12,27 @@ from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly, IsSuperAdmin,
 from history.logging import log_action
 
 from .models import MediaFile, MediaFolder, ScheduledDeployment, detect_file_type
-from .scoping import filter_folders, filter_media_files
+from .scoping import filter_folders, filter_media_files, is_root_content_visible_to_editors, set_root_content_visible_to_editors
 from .serializers import MediaFileSerializer, MediaFolderSerializer, ScheduledDeploymentSerializer
 from .tasks import _is_safe_url, fetch_og_image_task, generate_image_thumbnail, transcode_video
 
 logger = logging.getLogger(__name__)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAdmin])
+def content_library_settings(request):
+    """Admin-only content-library-wide settings — currently just whether
+    root-level (folderless) content is visible to editors. Separate from
+    a folder's own is_common flag: this covers content that was never
+    organized into a folder at all."""
+    if request.method == 'PATCH' and 'root_visible_to_editors' in request.data:
+        set_root_content_visible_to_editors(request.data['root_visible_to_editors'])
+        log_action(
+            request, 'update', 'settings', target_name='content_library',
+            details={'root_visible_to_editors': bool(request.data['root_visible_to_editors'])},
+        )
+    return Response({'root_visible_to_editors': is_root_content_visible_to_editors()})
 
 
 class MediaFolderViewSet(viewsets.ModelViewSet):

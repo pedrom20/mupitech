@@ -17,6 +17,7 @@ import { fetchPlayers } from '@/store/playersSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { groups as groupsApi, system as systemApi } from '@/services/api'
 import { isVideoUrl } from '@/utils/media'
+import ScopedFoldersPanel from '@/components/shared/scoped-folders-panel'
 import type { Group } from '@/types'
 
 const ROTATION_OPTIONS: (0 | 90 | 180 | 270)[] = [0, 90, 180, 270]
@@ -799,6 +800,8 @@ const GroupList: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <ScopedFoldersPanel groupId={detailGroup.id} />
 
                 {getPlayersInGroup(detailGroup.id).length === 0 ? (
                   <p className="text-muted mb-0">{t('common.noResults')}</p>

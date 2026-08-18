@@ -58,7 +58,7 @@ import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
 import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus, Group, Location } from '@/types'
 import PlayerTerminal from './player-terminal'
 import { ScheduleTimeline } from './schedule-timeline'
-import { RoleContext, isAdminRole } from '@/components/app'
+import { RoleContext, AuthContext, isAdminRole, canEditorManage } from '@/components/app'
 
 const getAssetTypeIcon = (mimetype: string) => {
   if (!mimetype) return <FaFile />
@@ -171,6 +171,8 @@ const PlayerDetail: React.FC = () => {
   const location = useLocation()
   const { t } = useTranslation()
   const role = useContext(RoleContext)
+  const { user } = useContext(AuthContext)
+  const editorCapabilities = user?.editor_capabilities
 
   const [player, setPlayer] = useState<Player | null>(null)
   const [showTerminal, setShowTerminal] = useState(false)
@@ -1995,11 +1997,9 @@ const PlayerDetail: React.FC = () => {
           >
             <FaArrowLeft />
           </button>
-          <h1 className="page-title d-inline-flex align-items-center gap-2">
+          <h1 className="page-title d-flex align-items-center gap-2 flex-wrap">
             <FaDesktop className="page-icon" />
             {player.name}
-          </h1>
-          <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
             <span
               className={
                 player.is_online ? 'fm-badge-online' : 'fm-badge-offline'
@@ -2026,7 +2026,7 @@ const PlayerDetail: React.FC = () => {
               )}
             </div>
             )}
-          </div>
+          </h1>
         </div>
         <div className="page-actions">
         </div>
@@ -2044,15 +2044,17 @@ const PlayerDetail: React.FC = () => {
             >
               <FaCog />
             </button>
-            <button
-              className="fm-btn-accent fm-btn-sm"
-              onClick={handleReboot}
-              disabled={!player.is_online}
-              title={t('players.reboot')}
-            >
-              <FaSyncAlt />
-            </button>
-            {isAdminRole(role) && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
+            {canEditorManage(role, editorCapabilities, 'power_control') && (
+              <button
+                className="fm-btn-accent fm-btn-sm"
+                onClick={handleReboot}
+                disabled={!player.is_online}
+                title={t('players.reboot')}
+              >
+                <FaSyncAlt />
+              </button>
+            )}
+            {canEditorManage(role, editorCapabilities, 'image_management') && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={() => handleOpenSettings('image')}
@@ -2061,7 +2063,7 @@ const PlayerDetail: React.FC = () => {
                 <FaCloudUploadAlt />
               </button>
             )}
-            {isAdminRole(role) && player.is_online && (
+            {canEditorManage(role, editorCapabilities, 'credentials') && player.is_online && (
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={() => setShowTerminal(!showTerminal)}
@@ -2070,14 +2072,16 @@ const PlayerDetail: React.FC = () => {
                 <FaTerminalIcon />
               </button>
             )}
-            <button
-              className="fm-btn-sm"
-              style={{ background: '#dc3545', color: '#fff', border: 'none' }}
-              onClick={handleForget}
-              title={t('players.forget')}
-            >
-              <FaTrash />
-            </button>
+            {canEditorManage(role, editorCapabilities, 'manage_devices') && (
+              <button
+                className="fm-btn-sm"
+                style={{ background: '#dc3545', color: '#fff', border: 'none' }}
+                onClick={handleForget}
+                title={t('players.forget')}
+              >
+                <FaTrash />
+              </button>
+            )}
           </div>
         </div>
         <div className="fm-card-body">
@@ -3208,7 +3212,7 @@ const PlayerDetail: React.FC = () => {
                     {t('playerSettings.tabLocation')}
                   </button>
                 </li>
-                {isAdminRole(role) && (
+                {canEditorManage(role, editorCapabilities, 'branding') && (
                   <li className="nav-item">
                     <button
                       type="button"
@@ -3220,7 +3224,7 @@ const PlayerDetail: React.FC = () => {
                     </button>
                   </li>
                 )}
-                {isAdminRole(role) && (
+                {canEditorManage(role, editorCapabilities, 'image_management') && (
                   <li className="nav-item">
                     <button
                       type="button"
@@ -3232,7 +3236,7 @@ const PlayerDetail: React.FC = () => {
                     </button>
                   </li>
                 )}
-                {isAdminRole(role) && (
+                {(canEditorManage(role, editorCapabilities, 'credentials') || canEditorManage(role, editorCapabilities, 'sso')) && (
                   <li className="nav-item">
                     <button
                       type="button"

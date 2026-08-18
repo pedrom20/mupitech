@@ -23,6 +23,8 @@
     "editGroup": "Manage groups",
     "noDevices": "No devices in this group",
     "empty": "Nothing here yet",
+    "moveModeOff": "Move devices/groups",
+    "moveModeOn": "Done moving",
     "moveGroup": "Move to another location",
     "moveDevice": "Move to another group/location",
     "moveGroupTitle": "Move \"{{name}}\"",
@@ -761,6 +763,13 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "editorButtonsRespectCapabilities": "Device-management buttons (delete, reboot, edit, SSH terminal, branding/image settings tabs) are now hidden for editors who don't have the matching capability, instead of showing and then failing",
+      "fleetOverviewMoveMode": "The move-device/move-group arrows on Fleet Overview are now hidden by default — turn on \"Move devices/groups\" in the page header to show them",
+      "fleetOverviewChipContrast": "Fixed device chips on Fleet Overview being nearly invisible (white on white) in light mode",
+      "fleetOverviewButtonConsistency": "Made the \"Add group\" and \"Add location\" buttons on Fleet Overview look the same",
+      "playerDetailInlineBadges": "The online/offline badge and location chip on a device's details page now sit inline with its name instead of on separate lines",
+      "contentRootVisibility": "Content that isn't in any folder is now hidden from editors by default — enable \"Show unorganized content to editors\" in Settings > Content Folders to restore it",
+      "scopedFoldersPanel": "A location or group's detail view now shows its content folders, with a quick way to create a new one scoped to it",
       "editorGranularPermissions": "Admins can now grant editors specific device-management abilities (power control, branding, image management, SSH credentials, etc.) individually, in Settings > Editor Permissions — editors still default to content-only",
       "editorForcedToLoginFix": "Fixed non-admin users getting kicked back to the login screen when opening a device's details — a permission-denied response on one internal request was being wrongly treated as a session timeout",
       "playerDetailStatusChipAlignFix": "Fixed the location chip on a device's details page not lining up with the online/offline status badge",
@@ -1172,9 +1181,17 @@
     "status_done": "Done",
     "status_failed": "Failed"
   },
+  "scopedFolders": {
+    "title": "Content Folders",
+    "newFolder": "New folder",
+    "folderNamePlaceholder": "Folder name",
+    "empty": "No folders here yet."
+  },
   "contentLibrary": {
     "title": "Content Folders",
     "description": "Mark folders as common to make them (and everything nested inside) visible to every editor, regardless of their own location/group access. Every other folder is only visible to editors whose access covers its location/group.",
+    "rootVisible": "Show unorganized content to editors",
+    "rootVisibleDesc": "Content that isn't in any folder — off by default, since it's usually meant for whoever uploaded it rather than every editor.",
     "empty": "No folders yet.",
     "inheritedCommon": "Common (inherited)"
   },

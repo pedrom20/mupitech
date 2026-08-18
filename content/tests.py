@@ -195,16 +195,57 @@ class ContentLibraryScopingTests(TestCase):
             'Folder A', 'Subfolder A', 'Folder B', 'Folder Group', 'Common Folder', 'Unscoped Folder',
         })
 
-    def test_files_in_hidden_folder_are_not_visible_but_root_files_are(self):
+    def test_files_in_hidden_folder_are_not_visible(self):
         MediaFile.objects.create(name='In A', folder=self.folder_a, file_type='image')
         MediaFile.objects.create(name='In B', folder=self.folder_b, file_type='image')
-        MediaFile.objects.create(name='No folder', folder=None, file_type='image')
 
         self.client.force_authenticate(self.editor_a)
         names = {f['name'] for f in self.client.get('/api/media/').json()['results']}
         self.assertIn('In A', names)
-        self.assertIn('No folder', names)
         self.assertNotIn('In B', names)
+
+    def test_root_files_hidden_from_editor_by_default(self):
+        MediaFile.objects.create(name='No folder', folder=None, file_type='image')
+
+        self.client.force_authenticate(self.editor_a)
+        names = {f['name'] for f in self.client.get('/api/media/').json()['results']}
+        self.assertNotIn('No folder', names)
+
+    def test_root_files_visible_to_editor_once_enabled(self):
+        from .scoping import set_root_content_visible_to_editors
+        set_root_content_visible_to_editors(True)
+        self.addCleanup(set_root_content_visible_to_editors, False)
+
+        MediaFile.objects.create(name='No folder', folder=None, file_type='image')
+        self.client.force_authenticate(self.editor_a)
+        names = {f['name'] for f in self.client.get('/api/media/').json()['results']}
+        self.assertIn('No folder', names)
+
+    def test_root_files_always_visible_to_admin(self):
+        MediaFile.objects.create(name='No folder', folder=None, file_type='image')
+        self.client.force_authenticate(self.admin)
+        names = {f['name'] for f in self.client.get('/api/media/').json()['results']}
+        self.assertIn('No folder', names)
+
+    def test_content_library_settings_round_trip(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get('/api/content-library-settings/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.json()['root_visible_to_editors'])
+
+        resp = self.client.patch('/api/content-library-settings/', {'root_visible_to_editors': True}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()['root_visible_to_editors'])
+
+        from .scoping import set_root_content_visible_to_editors
+        self.addCleanup(set_root_content_visible_to_editors, False)
+
+    def test_content_library_settings_requires_admin(self):
+        self.client.force_authenticate(self.editor_a)
+        resp = self.client.get('/api/content-library-settings/')
+        self.assertEqual(resp.status_code, 403)
+        resp = self.client.patch('/api/content-library-settings/', {'root_visible_to_editors': True}, format='json')
+        self.assertEqual(resp.status_code, 403)
 
     def test_set_common_requires_admin(self):
         self.client.force_authenticate(self.editor_a)

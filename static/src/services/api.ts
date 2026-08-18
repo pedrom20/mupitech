@@ -840,6 +840,14 @@ export const system = {
     return apiRequest<EditorCapabilities>('PATCH', '/system/editor-permissions/', data)
   },
 
+  getContentLibrarySettings(): Promise<{ root_visible_to_editors: boolean }> {
+    return apiRequest('GET', '/content-library-settings/')
+  },
+
+  updateContentLibrarySettings(data: { root_visible_to_editors: boolean }): Promise<{ root_visible_to_editors: boolean }> {
+    return apiRequest('PATCH', '/content-library-settings/', data)
+  },
+
   getAlertSettings(): Promise<AlertSettings> {
     return apiRequest<AlertSettings>('GET', '/system/alerts/')
   },

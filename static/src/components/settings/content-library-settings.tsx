@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaFolder } from 'react-icons/fa'
 import Swal from 'sweetalert2'
-import { folders as foldersApi } from '@/services/api'
+import { folders as foldersApi, system as systemApi } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import type { MediaFolder } from '@/types'
 
@@ -17,13 +17,26 @@ const ContentLibrarySettings: React.FC = () => {
   const [folders, setFolders] = useState<MediaFolder[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [rootVisible, setRootVisible] = useState(false)
+  const [savingRootVisible, setSavingRootVisible] = useState(false)
 
   const load = () => {
     setLoading(true)
     foldersApi.list().then(setFolders).catch(() => {}).finally(() => setLoading(false))
+    systemApi.getContentLibrarySettings().then((res) => setRootVisible(res.root_visible_to_editors)).catch(() => {})
   }
 
   useEffect(() => { load() }, [])
+
+  const handleToggleRootVisible = (checked: boolean) => {
+    setSavingRootVisible(true)
+    systemApi.updateContentLibrarySettings({ root_visible_to_editors: checked }).then((res) => {
+      setRootVisible(res.root_visible_to_editors)
+      showToast('success', t('common.success'))
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }).finally(() => setSavingRootVisible(false))
+  }
 
   const handleToggle = (folder: MediaFolder, checked: boolean) => {
     setBusyId(folder.id)
@@ -65,6 +78,23 @@ const ContentLibrarySettings: React.FC = () => {
           </div>
           <div className="fm-card-body py-3">
             <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>{t('contentLibrary.description')}</p>
+
+            <div className="form-check form-switch mb-3">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="content-root-visible"
+                checked={rootVisible}
+                disabled={savingRootVisible}
+                onChange={(e) => handleToggleRootVisible(e.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="content-root-visible">
+                <span className="fw-semibold d-block">{t('contentLibrary.rootVisible')}</span>
+                <span className="form-text" style={{ fontSize: '0.78rem' }}>{t('contentLibrary.rootVisibleDesc')}</span>
+              </label>
+            </div>
+            <hr />
 
             {loading ? (
               <p className="form-text mb-0">{t('common.loading')}</p>

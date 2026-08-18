@@ -33,7 +33,7 @@ import ChangelogPage from '@/components/changelog-page'
 import { users as usersApi, system as systemApi } from '@/services/api'
 import { FeaturesProvider } from '@/context/features-context'
 import { applyTheme, watchSystemTheme, type ThemePreference } from '@/utils/theme'
-import type { User } from '@/types'
+import type { User, EditorCapabilities } from '@/types'
 
 export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin' | null
 
@@ -44,6 +44,23 @@ export const RoleContext = createContext<UserRole>(null)
  * areas like Tailscale settings, gated separately with isSuperAdminRole). */
 export const isAdminRole = (role: UserRole): boolean => role === 'admin' || role === 'superadmin'
 export const isSuperAdminRole = (role: UserRole): boolean => role === 'superadmin'
+
+/** Whether the current user can perform a given device-management
+ * capability group (see players/editor_capabilities.py on the backend —
+ * this must mirror that gate, since it's UI-only convenience, not a
+ * security boundary). Admin/superadmin always can; an editor only if
+ * their editor_capabilities (from AuthContext's user, refreshed from
+ * /api/users/me/) has that group turned on. Content actions (asset
+ * assign/update/remove, clone content) aren't gated here — editors
+ * always have those, same as the backend's _CONTENT_ACTIONS. */
+export const canEditorManage = (
+  role: UserRole,
+  capabilities: Partial<EditorCapabilities> | undefined,
+  capability: keyof EditorCapabilities,
+): boolean => {
+  if (isAdminRole(role)) return true
+  return role === 'editor' && !!capabilities?.[capability]
+}
 
 interface AuthContextValue {
   user: User | null

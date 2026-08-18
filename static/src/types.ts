@@ -332,6 +332,7 @@ export interface User {
   mfa_enabled?: boolean
   must_change_password?: boolean
   force_mfa_enroll?: boolean
+  editor_capabilities?: EditorCapabilities
   last_login: string | null
   date_joined: string
 }

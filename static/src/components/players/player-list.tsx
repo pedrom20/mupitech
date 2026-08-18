@@ -20,7 +20,7 @@ import AddPlayerModal from './add-player-modal'
 import BulkProvision from './bulk-provision'
 import PendingPairings from './pending-pairings'
 import PlayerCard from '@/components/dashboard/player-card'
-import { RoleContext, isAdminRole } from '@/components/app'
+import { RoleContext, AuthContext, isAdminRole, canEditorManage } from '@/components/app'
 import type { Player } from '@/types'
 
 type PlayerListLayout = 'cards' | 'table'
@@ -31,6 +31,8 @@ const PlayerList: React.FC = () => {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const role = useContext(RoleContext)
+  const { user } = useContext(AuthContext)
+  const canManageDevices = canEditorManage(role, user?.editor_capabilities, 'manage_devices')
   const { players, loading } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
   const { locations } = useAppSelector((state) => state.locations)
@@ -137,10 +139,12 @@ const PlayerList: React.FC = () => {
               {t('bulkProvision.title')}
             </button>
           )}
-          <button className="fm-btn-primary" onClick={handleAdd}>
-            <FaPlus />
-            {t('players.addPlayer')}
-          </button>
+          {canManageDevices && (
+            <button className="fm-btn-primary" onClick={handleAdd}>
+              <FaPlus />
+              {t('players.addPlayer')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -194,7 +198,11 @@ const PlayerList: React.FC = () => {
         <div className="row g-3">
           {filteredPlayers.map((player) => (
             <div key={player.id} className="col-sm-6 col-lg-4 col-xl-3">
-              <PlayerCard player={player} onEdit={handleEdit} onDelete={handleDelete} />
+              <PlayerCard
+                player={player}
+                onEdit={canManageDevices ? handleEdit : undefined}
+                onDelete={canManageDevices ? handleDelete : undefined}
+              />
             </div>
           ))}
         </div>
@@ -273,21 +281,25 @@ const PlayerList: React.FC = () => {
                         </td>
                         <td>
                           <div className="d-flex gap-1">
-                            <button
-                              className="fm-btn-icon"
-                              onClick={() => handleEdit(player)}
-                              title={t('common.edit')}
-                            >
-                              <FaEdit />
-                            </button>
-                            <button
-                              className="fm-btn-icon"
-                              onClick={() => handleDelete(player)}
-                              title={t('common.delete')}
-                              style={{ color: '#dc3545' }}
-                            >
-                              <FaTrash />
-                            </button>
+                            {canManageDevices && (
+                              <>
+                                <button
+                                  className="fm-btn-icon"
+                                  onClick={() => handleEdit(player)}
+                                  title={t('common.edit')}
+                                >
+                                  <FaEdit />
+                                </button>
+                                <button
+                                  className="fm-btn-icon"
+                                  onClick={() => handleDelete(player)}
+                                  title={t('common.delete')}
+                                  style={{ color: '#dc3545' }}
+                                >
+                                  <FaTrash />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

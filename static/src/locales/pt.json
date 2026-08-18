@@ -23,6 +23,8 @@
     "editGroup": "Gerir grupos",
     "noDevices": "Sem dispositivos neste grupo",
     "empty": "Ainda sem nada aqui",
+    "moveModeOff": "Mover devices/grupos",
+    "moveModeOn": "Terminar",
     "moveGroup": "Mover para outra localização",
     "moveDevice": "Mover para outro grupo/localização",
     "moveGroupTitle": "Mover \"{{name}}\"",
@@ -761,6 +763,13 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "editorButtonsRespectCapabilities": "Os botões de gestão de devices (eliminar, reiniciar, editar, terminal SSH, separadores de marca/imagem) ficam agora escondidos para editores sem a capacidade correspondente, em vez de aparecerem e falharem",
+      "fleetOverviewMoveMode": "As setas de mover device/grupo na Visão Geral da Frota ficam agora escondidas por omissão — ative \"Mover devices/grupos\" no topo da página para as mostrar",
+      "fleetOverviewChipContrast": "Corrigidos os chips de devices na Visão Geral da Frota ficarem quase invisíveis (branco sobre branco) no modo claro",
+      "fleetOverviewButtonConsistency": "Os botões \"Adicionar grupo\" e \"Adicionar localização\" na Visão Geral da Frota passam a ter o mesmo aspeto",
+      "playerDetailInlineBadges": "O badge de online/offline e o chip de localização na página de detalhes do device passam a ficar em linha com o nome, em vez de em linhas separadas",
+      "contentRootVisibility": "Conteúdo que não está em nenhuma pasta fica agora escondido dos editores por omissão — ative \"Mostrar conteúdo não organizado aos editores\" em Definições > Pastas de Conteúdo para o repor",
+      "scopedFoldersPanel": "Os detalhes de uma localização ou grupo passam a mostrar as suas pastas de conteúdo, com uma forma rápida de criar uma nova pasta associada",
       "editorGranularPermissions": "Os admins podem agora atribuir aos editores capacidades específicas de gestão de devices (energia, marca, gestão de imagem, credenciais SSH, etc.) individualmente, em Definições > Permissões do Editor — os editores continuam limitados a conteúdo por omissão",
       "editorForcedToLoginFix": "Corrigido utilizadores não-admin serem reencaminhados para o login ao abrir os detalhes de um device — uma resposta de permissão negada numa chamada interna estava a ser tratada erradamente como sessão expirada",
       "playerDetailStatusChipAlignFix": "Corrigido o chip da localização na página de detalhes do device não estar alinhado com o badge de online/offline",
@@ -1172,9 +1181,17 @@
     "status_done": "Concluído",
     "status_failed": "Falhou"
   },
+  "scopedFolders": {
+    "title": "Pastas de Conteúdo",
+    "newFolder": "Nova pasta",
+    "folderNamePlaceholder": "Nome da pasta",
+    "empty": "Ainda sem pastas aqui."
+  },
   "contentLibrary": {
     "title": "Pastas de Conteúdo",
     "description": "Marque pastas como comuns para ficarem (e tudo o que estiver dentro) visíveis a todos os editores, independentemente do seu próprio acesso por localização/grupo. Qualquer outra pasta só é visível a editores cujo acesso cubra a sua localização/grupo.",
+    "rootVisible": "Mostrar conteúdo não organizado aos editores",
+    "rootVisibleDesc": "Conteúdo que não está em nenhuma pasta — desativado por omissão, já que normalmente é destinado a quem o carregou, não a todos os editores.",
     "empty": "Ainda não há pastas.",
     "inheritedCommon": "Comum (herdado)"
   },

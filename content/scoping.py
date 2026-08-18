@@ -10,13 +10,26 @@ ancestor — see MediaFolder.effective_location/effective_group/
 effective_is_common) is marked common, OR its effective location/group
 is one the user is allowed to see.
 
-A file with no folder is always visible — root-level content predates
-this feature and shouldn't silently vanish for an existing editor
-whose scope happens to be restricted.
+A file with no folder (root-level content) is visible to admins/
+superadmins/viewers unconditionally, but to editors only if an admin
+has opted that in via ROOT_CONTENT_VISIBLE_KEY (Settings > Content
+Library) — defaults to hidden, since unorganized root content is
+usually meant for whoever uploaded it, not the whole editor pool.
 """
+from django.core.cache import cache
 from django.db.models import Q
 
 from access.scoping import allowed_group_ids, allowed_location_ids, is_restricted
+
+ROOT_CONTENT_VISIBLE_KEY = 'content:root_visible_to_editors'
+
+
+def is_root_content_visible_to_editors():
+    return bool(cache.get(ROOT_CONTENT_VISIBLE_KEY, False))
+
+
+def set_root_content_visible_to_editors(visible):
+    cache.set(ROOT_CONTENT_VISIBLE_KEY, bool(visible), None)
 
 
 def _visible_folder_ids(user):
@@ -64,7 +77,12 @@ def filter_folders(queryset, user):
 
 
 def filter_media_files(queryset, user):
+    from fleet_manager.permissions import _user_role
+    hide_root = _user_role(user) == 'editor' and not is_root_content_visible_to_editors()
+
     ids = _visible_folder_ids(user)
     if ids is None:
-        return queryset
+        return queryset.exclude(folder__isnull=True) if hide_root else queryset
+    if hide_root:
+        return queryset.filter(folder_id__in=ids)
     return queryset.filter(Q(folder__isnull=True) | Q(folder_id__in=ids))

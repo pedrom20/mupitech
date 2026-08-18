@@ -41,6 +41,11 @@ const FleetOverview: React.FC = () => {
   const [groupFormLocation, setGroupFormLocation] = useState('')
   const [savingGroup, setSavingGroup] = useState(false)
 
+  // Move buttons (group/device) are hidden by default and only shown once
+  // this is toggled on — avoids cluttering every card with a move affordance
+  // that's rarely used and easy to misclick.
+  const [moveModeActive, setMoveModeActive] = useState(false)
+
   // Move group to a different location
   const [moveGroup, setMoveGroup] = useState<Group | null>(null)
   const [moveGroupLocationId, setMoveGroupLocationId] = useState('')
@@ -232,17 +237,19 @@ const FleetOverview: React.FC = () => {
           <FaLayerGroup style={{ color: group.color || undefined }} />
           <span className="fw-semibold">{group.name}</span>
           <span className="badge bg-secondary">{devices.length}</span>
+          {moveModeActive && (
+            <button
+              type="button"
+              className="btn btn-sm btn-link p-0 ms-auto"
+              onClick={(e) => { e.stopPropagation(); handleOpenMoveGroup(group) }}
+              title={t('fleetOverview.moveGroup')}
+            >
+              <FaArrowsAlt />
+            </button>
+          )}
           <button
             type="button"
-            className="btn btn-sm btn-link p-0 ms-auto"
-            onClick={(e) => { e.stopPropagation(); handleOpenMoveGroup(group) }}
-            title={t('fleetOverview.moveGroup')}
-          >
-            <FaArrowsAlt />
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-link p-0"
+            className={`btn btn-sm btn-link p-0 ${moveModeActive ? '' : 'ms-auto'}`}
             onClick={(e) => { e.stopPropagation(); navigate('/groups') }}
             title={t('fleetOverview.editGroup')}
           >
@@ -270,15 +277,17 @@ const FleetOverview: React.FC = () => {
         <div className="flex-grow-1" style={{ minWidth: 0 }}>
           <PlayerCard player={player} compact />
         </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-light border flex-shrink-0"
-          style={{ padding: '0.2rem 0.35rem' }}
-          onClick={(e) => { e.stopPropagation(); handleOpenMoveDevice(player) }}
-          title={t('fleetOverview.moveDevice')}
-        >
-          <FaArrowsAlt style={{ fontSize: '0.7rem' }} />
-        </button>
+        {moveModeActive && (
+          <button
+            type="button"
+            className="btn btn-sm btn-light border flex-shrink-0"
+            style={{ padding: '0.2rem 0.35rem' }}
+            onClick={(e) => { e.stopPropagation(); handleOpenMoveDevice(player) }}
+            title={t('fleetOverview.moveDevice')}
+          >
+            <FaArrowsAlt style={{ fontSize: '0.7rem' }} />
+          </button>
+        )}
       </div>
     </div>
   )
@@ -352,7 +361,14 @@ const FleetOverview: React.FC = () => {
           <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>{t('fleetOverview.description')}</p>
         </div>
         <div className="page-actions d-flex gap-2">
-          <button className="fm-btn-outline" onClick={() => setShowGroupForm(true)}>
+          <button
+            className={moveModeActive ? 'fm-btn-primary' : 'fm-btn-outline'}
+            onClick={() => setMoveModeActive((prev) => !prev)}
+          >
+            <FaArrowsAlt />
+            {moveModeActive ? t('fleetOverview.moveModeOn') : t('fleetOverview.moveModeOff')}
+          </button>
+          <button className="fm-btn-primary" onClick={() => setShowGroupForm(true)}>
             <FaPlus />
             {t('groups.addGroup')}
           </button>

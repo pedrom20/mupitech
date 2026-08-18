@@ -727,6 +727,13 @@ body {
   gap: 0.5rem;
   padding: 0.45rem 0.75rem;
   min-width: 0;
+  // Overrides .fm-player-card's plain $white background — on its own
+  // that blended straight into the white .fm-card body it sits inside
+  // on Fleet Overview, leaving only a barely-visible box-shadow as a
+  // boundary. A tinted fill + visible border gives it a real edge.
+  background: $gray-100;
+  border: 1px solid $gray-200;
+  box-shadow: none;
 
   .status-dot {
     width: 8px;
@@ -2200,8 +2207,16 @@ body {
       border-top-color: rgba(255, 255, 255, 0.1);
     }
 
-    &.fm-player-card-compact .player-name-compact {
-      color: #ddd;
+    // Same reasoning as the light-mode override above — without its own
+    // fill this matched the dark .fm-card body it sits inside exactly.
+    &.fm-player-card-compact {
+      background: #1f2d4d;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: none;
+
+      .player-name-compact {
+        color: #ddd;
+      }
     }
   }
 

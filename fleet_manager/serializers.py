@@ -73,12 +73,14 @@ class UserSerializer(serializers.ModelSerializer):
     mfa_enabled = serializers.SerializerMethodField()
     must_change_password = serializers.SerializerMethodField()
     force_mfa_enroll = serializers.SerializerMethodField()
+    editor_capabilities = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
                   'is_active', 'role', 'scope', 'receive_offline_alerts', 'can_delete_content',
-                  'mfa_enabled', 'must_change_password', 'force_mfa_enroll', 'last_login', 'date_joined']
+                  'mfa_enabled', 'must_change_password', 'force_mfa_enroll', 'editor_capabilities',
+                  'last_login', 'date_joined']
         read_only_fields = ['id', 'last_login', 'date_joined']
 
     def get_role(self, obj):
@@ -109,6 +111,16 @@ class UserSerializer(serializers.ModelSerializer):
     def get_force_mfa_enroll(self, obj):
         scope = getattr(obj, 'access_scope', None)
         return bool(scope and scope.force_mfa_enroll)
+
+    def get_editor_capabilities(self, obj):
+        """Which device-management capability groups this user's role has
+        (see players/editor_capabilities.py) — {} for anyone but an
+        editor, since the frontend only needs this to decide whether to
+        show admin-gated device buttons to an editor specifically."""
+        if _user_role(obj) != 'editor':
+            return {}
+        from players.editor_capabilities import get_editor_capabilities
+        return get_editor_capabilities()
 
 
 def _validate_role_escalation(role, context):

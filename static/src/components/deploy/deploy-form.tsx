@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   FaTrash,
@@ -471,6 +472,7 @@ const ContentPage: React.FC = () => {
   // need to also back out of the folder you're browsing.
   const [browsingFolderId, setBrowsingFolderId] = useState<string | null>(null)
   const [showNewFolder, setShowNewFolder] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderLocation, setNewFolderLocation] = useState('')
@@ -508,6 +510,24 @@ const ContentPage: React.FC = () => {
     dispatch(fetchGroups())
     dispatch(fetchLocations())
   }, [loadFiles, loadFolders, dispatch])
+
+  // Deep-link from a location/group's "scoped folders" panel
+  // (components/shared/scoped-folders-panel.tsx) — jump straight into
+  // that folder once the folder list has loaded, then drop the param so
+  // navigating around afterwards doesn't keep snapping back to it.
+  useEffect(() => {
+    const folderId = searchParams.get('folder')
+    if (!folderId || folders.length === 0) return
+    if (folders.some((f) => f.id === folderId)) {
+      setBrowsingFolderId(folderId)
+      setActiveFolder(folderId)
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('folder')
+      return next
+    }, { replace: true })
+  }, [folders, searchParams, setSearchParams])
 
   // Auto-refresh while any file is processing
   useEffect(() => {
