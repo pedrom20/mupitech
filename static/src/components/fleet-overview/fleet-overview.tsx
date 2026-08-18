@@ -157,7 +157,7 @@ const FleetOverview: React.FC = () => {
   const handleOpenMoveDevice = (player: Player) => {
     setMoveDevice(player)
     setMoveDeviceGroupId(player.group_detail?.id || player.group?.id || '')
-    setMoveDeviceLocationId(player.location_detail?.id || player.location || '')
+    setMoveDeviceLocationId(player.effective_location_detail?.id || '')
     setMatchDestinationContent(false)
   }
 
@@ -170,7 +170,7 @@ const FleetOverview: React.FC = () => {
       return players.find((p) => p.id !== moveDevice.id && (p.group_detail?.id || p.group?.id) === moveDeviceGroupId) || null
     }
     if (moveDeviceLocationId) {
-      return players.find((p) => p.id !== moveDevice.id && !p.group && (p.location_detail?.id || p.location) === moveDeviceLocationId) || null
+      return players.find((p) => p.id !== moveDevice.id && !p.group && p.effective_location_detail?.id === moveDeviceLocationId) || null
     }
     return null
   }
@@ -213,7 +213,7 @@ const FleetOverview: React.FC = () => {
     groups.filter((g) => (locationId === null ? !g.location : g.location === locationId))
 
   const standaloneDevicesForLocation = (locationId: string | null) =>
-    players.filter((p) => !p.group && (locationId === null ? !p.location : p.location === locationId))
+    players.filter((p) => !p.group && (locationId === null ? !p.effective_location_detail : p.effective_location_detail?.id === locationId))
 
   const devicesForGroup = (groupId: string) =>
     players.filter((p) => p.group?.id === groupId)

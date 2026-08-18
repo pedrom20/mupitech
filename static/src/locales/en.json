@@ -761,6 +761,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "locationWithoutGroupFix": "Fixed a device assigned to a location without a group not actually showing up under that location in Fleet Overview and the Locations page",
       "editorContentOnly": "Editors can now only manage content on devices (assign/update/remove assets, clone content between devices) — adding/editing/removing a device, its credentials, OS image, power, or branding now requires an admin",
       "emailLogoOutlookFix": "Fixed the MupiTech logo not showing at all in emails opened in classic Outlook (it now travels as a real inline attachment instead of a data: URI, which classic Outlook doesn't render)",
       "folderCountFix": "Fixed a folder's content count including files sitting in the recycle bin — it now matches what's actually visible, and updates correctly on delete",

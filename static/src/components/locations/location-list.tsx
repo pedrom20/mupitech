@@ -51,7 +51,7 @@ const LocationList: React.FC = () => {
   }
 
   const getUngroupedPlayersInLocation = (locationId: string) => {
-    return players.filter((p) => !p.group && p.location_detail?.id === locationId)
+    return players.filter((p) => !p.group && p.effective_location_detail?.id === locationId)
   }
 
   const getPlayersInGroup = (groupId: string) => {
