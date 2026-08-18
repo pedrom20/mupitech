@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.2.17.0'
+export const APP_VERSION = '1.2.18.0'
 
 export interface ChangelogEntry {
   version: string
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '1.2.18.0',
+    date: '2026-08-18',
+    changeKeys: [
+      'editorForcedToLoginFix',
+      'playerDetailStatusChipAlignFix',
+    ],
+  },
   {
     version: '1.2.17.0',
     date: '2026-08-18',

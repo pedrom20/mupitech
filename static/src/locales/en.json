@@ -761,6 +761,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "editorForcedToLoginFix": "Fixed non-admin users getting kicked back to the login screen when opening a device's details — a permission-denied response on one internal request was being wrongly treated as a session timeout",
+      "playerDetailStatusChipAlignFix": "Fixed the location chip on a device's details page not lining up with the online/offline status badge",
       "locationWithoutGroupFix": "Fixed a device assigned to a location without a group not actually showing up under that location in Fleet Overview and the Locations page",
       "editorContentOnly": "Editors can now only manage content on devices (assign/update/remove assets, clone content between devices) — adding/editing/removing a device, its credentials, OS image, power, or branding now requires an admin",
       "emailLogoOutlookFix": "Fixed the MupiTech logo not showing at all in emails opened in classic Outlook (it now travels as a real inline attachment instead of a data: URI, which classic Outlook doesn't render)",

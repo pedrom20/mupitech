@@ -761,6 +761,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "editorForcedToLoginFix": "Corrigido utilizadores não-admin serem reencaminhados para o login ao abrir os detalhes de um device — uma resposta de permissão negada numa chamada interna estava a ser tratada erradamente como sessão expirada",
+      "playerDetailStatusChipAlignFix": "Corrigido o chip da localização na página de detalhes do device não estar alinhado com o badge de online/offline",
       "locationWithoutGroupFix": "Corrigido um device atribuído a uma localização sem grupo não aparecer nessa localização na Visão Geral da Frota nem na página de Localizações",
       "editorContentOnly": "Editores passam a poder só gerir conteúdo nos devices (atribuir/atualizar/remover conteúdos, clonar conteúdo entre devices) — adicionar/editar/remover um device, as suas credenciais, imagem do sistema, energia ou marca passa a exigir um admin",
       "emailLogoOutlookFix": "Corrigido o logo da MupiTech não aparecer de todo nos emails abertos no Outlook clássico (passa agora a viajar como anexo embutido em vez de URI data:, que o Outlook clássico não representa)",

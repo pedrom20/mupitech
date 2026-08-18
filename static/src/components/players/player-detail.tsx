@@ -1998,6 +1998,8 @@ const PlayerDetail: React.FC = () => {
           <h1 className="page-title d-inline-flex align-items-center gap-2">
             <FaDesktop className="page-icon" />
             {player.name}
+          </h1>
+          <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
             <span
               className={
                 player.is_online ? 'fm-badge-online' : 'fm-badge-offline'
@@ -2005,9 +2007,8 @@ const PlayerDetail: React.FC = () => {
             >
               {player.is_online ? t('players.online') : t('players.offline')}
             </span>
-          </h1>
-          {(playerLocation || group) && (
-            <div className="player-location-chip d-inline-flex align-items-center gap-2 mt-1">
+            {(playerLocation || group) && (
+            <div className="player-location-chip d-inline-flex align-items-center gap-2">
               {playerLocation && (
                 <span className="player-location-chip__item">
                   <FaMapMarkerAlt />
@@ -2024,7 +2025,8 @@ const PlayerDetail: React.FC = () => {
                 </span>
               )}
             </div>
-          )}
+            )}
+          </div>
         </div>
         <div className="page-actions">
         </div>

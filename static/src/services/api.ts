@@ -54,7 +54,7 @@ async function apiRequest<T = unknown>(
   const response = await fetch(`${BASE_URL}${url}`, config)
 
   if (!response.ok) {
-    if (response.status === 403 && !url.startsWith('/auth/')) {
+    if (response.status === 401 && !url.startsWith('/auth/')) {
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
