@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, EditorCapabilities, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -830,6 +830,14 @@ export const system = {
 
   updateTailscale(data: Record<string, unknown>): Promise<TailscaleSettings> {
     return apiRequest<TailscaleSettings>('PATCH', '/system/tailscale/', data)
+  },
+
+  getEditorPermissions(): Promise<EditorCapabilities> {
+    return apiRequest<EditorCapabilities>('GET', '/system/editor-permissions/')
+  },
+
+  updateEditorPermissions(data: Partial<EditorCapabilities>): Promise<EditorCapabilities> {
+    return apiRequest<EditorCapabilities>('PATCH', '/system/editor-permissions/', data)
   },
 
   getAlertSettings(): Promise<AlertSettings> {

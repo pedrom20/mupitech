@@ -761,6 +761,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "editorGranularPermissions": "Admins can now grant editors specific device-management abilities (power control, branding, image management, SSH credentials, etc.) individually, in Settings > Editor Permissions — editors still default to content-only",
       "editorForcedToLoginFix": "Fixed non-admin users getting kicked back to the login screen when opening a device's details — a permission-denied response on one internal request was being wrongly treated as a session timeout",
       "playerDetailStatusChipAlignFix": "Fixed the location chip on a device's details page not lining up with the online/offline status badge",
       "locationWithoutGroupFix": "Fixed a device assigned to a location without a group not actually showing up under that location in Fleet Overview and the Locations page",
@@ -1136,6 +1137,26 @@
     "sendTestOfflineHint": "Uses the real offline-devices alert template (with currently offline devices, or a sample if none are offline), instead of the generic text from the test above.",
     "testSent": "Test email sent — check your inbox.",
     "testFailed": "Could not send the test email. Check the email settings."
+  },
+  "editorPermissions": {
+    "title": "Editor Permissions",
+    "description": "Editors can always manage content on devices (assign/update/remove assets, clone content). Turn on any of the groups below to also let them handle that part of the device itself — everything stays off by default.",
+    "manageDevices": "Manage devices",
+    "manageDevicesDesc": "Add, edit and remove device records.",
+    "deviceSettings": "Device settings",
+    "deviceSettingsDesc": "Test connectivity and view/edit a device's own settings.",
+    "powerControl": "Power control",
+    "powerControlDesc": "Reboot and shut down devices, including bulk actions.",
+    "screenshot": "Screenshot",
+    "screenshotDesc": "Take a live screenshot of a device.",
+    "branding": "Branding",
+    "brandingDesc": "Push branding, and manage the logo/standby image.",
+    "imageManagement": "Image management",
+    "imageManagementDesc": "Change image source, migrate, rebuild, restore or back up a device's image.",
+    "credentials": "SSH credentials",
+    "credentialsDesc": "Manage a device's SSH credentials and reveal its local dashboard login.",
+    "sso": "SSO",
+    "ssoDesc": "SSO login into a device and push its SSO secret."
   },
   "registryMirror": {
     "title": "Registry Mirror",

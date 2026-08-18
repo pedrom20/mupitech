@@ -8,6 +8,7 @@ import type { TailscaleSettings } from '@/types'
 import { APP_VERSION } from '../../changelog'
 import { RoleContext, ThemeContext, SidebarNavContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
+import EditorPermissionsSettings from './editor-permissions-settings'
 import BrandingSettings from './branding-settings'
 import PartnerLogoSettings from './partner-logo-settings'
 import AlertSettings from './alert-settings'
@@ -239,6 +240,7 @@ const Settings: React.FC = () => {
           { id: 'mfaProviders', label: t('mfaProviders.title'), show: isSuperAdminRole(role) },
           { id: 'contentLibrary', label: t('contentLibrary.title'), show: isAdminRole(role) },
           { id: 'branding', label: t('branding.title'), show: isAdminRole(role) },
+          { id: 'editorPermissions', label: t('editorPermissions.title'), show: isAdminRole(role) },
           { id: 'users', label: t('users.title'), show: isAdminRole(role) },
           { id: 'audit', label: t('audit.title'), show: isAdminRole(role) },
         ].filter((tab) => tab.show)
@@ -638,6 +640,10 @@ const Settings: React.FC = () => {
               <PartnerLogoSettings />
             </div>
           </div>
+        )}
+
+        {activeSettingsTab === 'editorPermissions' && isAdminRole(role) && (
+          <EditorPermissionsSettings />
         )}
 
         {activeSettingsTab === 'users' && isAdminRole(role) && (

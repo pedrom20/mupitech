@@ -12,9 +12,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
+from rest_framework.permissions import BasePermission
+
+from fleet_manager.permissions import IsEditorOrReadOnly, _user_role
 
 from content.models import MediaFile
+from .editor_capabilities import action_allowed_for_editor
 from .models import Player, PlayerSnapshot
 from .serializers import PlayerListSerializer, PlayerSerializer, PlayerSnapshotSerializer
 from .services import AnthiasAPIClient, PlayerConnectionError, deploy_media_file_to_player, format_player_error
@@ -126,6 +129,24 @@ def _update_player_status(player, online, info=None):
     player.save(update_fields=['is_online', 'last_seen', 'last_status'])
 
 
+class _IsAdminOrCapableEditor(BasePermission):
+    """Admin/superadmin always pass; editor passes only if an admin has
+    opted this specific action's capability group back in via
+    editor_capabilities.py — otherwise editors are limited to
+    PlayerViewSet._CONTENT_ACTIONS."""
+
+    def __init__(self, action):
+        self.action = action
+
+    def has_permission(self, request, view):
+        role = _user_role(request.user)
+        if role in ('admin', 'superadmin'):
+            return True
+        if role == 'editor':
+            return action_allowed_for_editor(self.action)
+        return False
+
+
 class PlayerViewSet(viewsets.ModelViewSet):
     """ViewSet for managing Anthias players."""
     queryset = Player.objects.select_related('group').all()
@@ -150,18 +171,24 @@ class PlayerViewSet(viewsets.ModelViewSet):
         'clone_content', 'playback_control',
     )
 
+    # Every action below defaults to admin-only, but each maps to a
+    # capability group in editor_capabilities.py that an admin can opt
+    # back in for editors via Settings > Permissões — see
+    # _IsAdminOrCapableEditor.
+    _ADMIN_GATED_ACTIONS = (
+        'create', 'update', 'partial_update', 'destroy',
+        'test_connection', 'device_settings', 'reboot', 'shutdown',
+        'screenshot_sidecar', 'push_branding', 'image_source',
+        'migrate_image', 'rebuild_image', 'restore_image',
+        'ssh_credentials', 'reveal_credentials', 'sso_login',
+        'push_sso_secret', 'logo', 'standby', 'backup',
+    )
+
     def get_permissions(self):
         if self.action in self._CONTENT_ACTIONS:
             return super().get_permissions()
-        if self.action in (
-            'create', 'update', 'partial_update', 'destroy',
-            'test_connection', 'device_settings', 'reboot', 'shutdown',
-            'screenshot_sidecar', 'push_branding', 'image_source',
-            'migrate_image', 'rebuild_image', 'restore_image',
-            'ssh_credentials', 'reveal_credentials', 'sso_login',
-            'push_sso_secret', 'logo', 'standby', 'backup',
-        ):
-            return [IsAdmin()]
+        if self.action in self._ADMIN_GATED_ACTIONS:
+            return [_IsAdminOrCapableEditor(self.action)]
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -693,16 +720,16 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='reveal-credentials')
     def reveal_credentials(self, request, pk=None):
-        """Admin-only: decrypt and return this device's local dashboard
-        login (Player.username/password — already the system-of-record
-        credential used by services.py for API calls to the device, and
-        the fallback login when SSO/the device can't reach the Fleet
-        Manager). Nobody else can read this in cleartext: PlayerSerializer
-        keeps `password` write_only, so this action is the only reveal
-        path — gated to IsAdmin via get_permissions() above, and further
-        requires the requesting admin's own current password, since
-        exposing another party's stored secret is a sensitive action even
-        for an admin."""
+        """Admin-only by default (opt-in for editors via the `credentials`
+        capability — see editor_capabilities.py): decrypt and return this
+        device's local dashboard login (Player.username/password — already
+        the system-of-record credential used by services.py for API calls
+        to the device, and the fallback login when SSO/the device can't
+        reach the Fleet Manager). Nobody else can read this in cleartext:
+        PlayerSerializer keeps `password` write_only, so this action is the
+        only reveal path — gated via get_permissions() above, and further
+        requires the requesting user's own current password, since exposing
+        another party's stored secret is sensitive even for an admin."""
         player = self.get_object()
         if not request.user.check_password(request.data.get('password', '')):
             return Response({'error': 'Incorrect password.'}, status=400)
@@ -1213,7 +1240,13 @@ class BulkActionView(APIView):
     POST /api/bulk/reboot/   - Reboot multiple players.
     POST /api/bulk/shutdown/ - Shut down multiple players.
     """
-    permission_classes = [IsEditorOrReadOnly]
+
+    def get_permissions(self):
+        # Same admin-or-capable-editor gate as the single-device
+        # reboot/shutdown actions on PlayerViewSet (power_control
+        # capability) — a bulk action shouldn't be reachable by editors
+        # when the equivalent single-device action isn't.
+        return [_IsAdminOrCapableEditor(self.kwargs.get('action', ''))]
 
     def _execute_bulk_action(self, action_name, player_ids):
         """

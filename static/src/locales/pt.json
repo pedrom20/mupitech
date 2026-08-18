@@ -761,6 +761,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "editorGranularPermissions": "Os admins podem agora atribuir aos editores capacidades específicas de gestão de devices (energia, marca, gestão de imagem, credenciais SSH, etc.) individualmente, em Definições > Permissões do Editor — os editores continuam limitados a conteúdo por omissão",
       "editorForcedToLoginFix": "Corrigido utilizadores não-admin serem reencaminhados para o login ao abrir os detalhes de um device — uma resposta de permissão negada numa chamada interna estava a ser tratada erradamente como sessão expirada",
       "playerDetailStatusChipAlignFix": "Corrigido o chip da localização na página de detalhes do device não estar alinhado com o badge de online/offline",
       "locationWithoutGroupFix": "Corrigido um device atribuído a uma localização sem grupo não aparecer nessa localização na Visão Geral da Frota nem na página de Localizações",
@@ -1136,6 +1137,26 @@
     "sendTestOfflineHint": "Usa o template real do alerta de devices offline (com os devices offline atuais, ou um exemplo se nenhum estiver offline), em vez do texto genérico do teste acima.",
     "testSent": "Email de teste enviado — verifique a sua caixa de entrada.",
     "testFailed": "Não foi possível enviar o email de teste. Verifique as definições de email."
+  },
+  "editorPermissions": {
+    "title": "Permissões do Editor",
+    "description": "Os editores podem sempre gerir conteúdo nos devices (atribuir/atualizar/remover conteúdos, clonar conteúdo). Ative qualquer um dos grupos abaixo para também lhes permitir gerir essa parte do próprio device — tudo começa desativado.",
+    "manageDevices": "Gerir devices",
+    "manageDevicesDesc": "Adicionar, editar e remover devices.",
+    "deviceSettings": "Definições do device",
+    "deviceSettingsDesc": "Testar ligação e ver/editar as definições do próprio device.",
+    "powerControl": "Ligar/desligar",
+    "powerControlDesc": "Reiniciar e desligar devices, incluindo ações em massa.",
+    "screenshot": "Captura de ecrã",
+    "screenshotDesc": "Tirar uma captura de ecrã ao vivo de um device.",
+    "branding": "Marca",
+    "brandingDesc": "Enviar a marca e gerir o logo/imagem de standby.",
+    "imageManagement": "Gestão de imagem",
+    "imageManagementDesc": "Mudar a origem da imagem, migrar, reconstruir, restaurar ou fazer backup da imagem de um device.",
+    "credentials": "Credenciais SSH",
+    "credentialsDesc": "Gerir as credenciais SSH de um device e revelar o seu login do dashboard local.",
+    "sso": "SSO",
+    "ssoDesc": "Login SSO num device e envio do seu segredo SSO."
   },
   "registryMirror": {
     "title": "Registo Espelho",

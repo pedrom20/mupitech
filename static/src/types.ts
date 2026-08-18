@@ -205,6 +205,17 @@ export interface AlertSettings {
   graph_sender: string
 }
 
+export interface EditorCapabilities {
+  manage_devices: boolean
+  device_settings: boolean
+  power_control: boolean
+  screenshot: boolean
+  branding: boolean
+  image_management: boolean
+  credentials: boolean
+  sso: boolean
+}
+
 export interface RegistryMirrorSettings {
   enabled: boolean
   host: string

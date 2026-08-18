@@ -512,6 +512,28 @@ def alert_settings(request):
     return Response(_current())
 
 
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAdmin])
+def editor_permissions(request):
+    """Get or update which device-management capability groups are opted
+    back in for the editor role — see players/editor_capabilities.py for
+    the capability -> action mapping. Admin-gated (not superadmin-only,
+    unlike most of this module) since deciding what editors can touch is
+    an ordinary fleet-management decision, not an infra-level one."""
+    from players.editor_capabilities import CAPABILITY_ACTIONS, get_editor_capabilities, set_editor_capabilities
+
+    if request.method == 'GET':
+        return Response(get_editor_capabilities())
+
+    updates = {k: v for k, v in request.data.items() if k in CAPABILITY_ACTIONS}
+    set_editor_capabilities(updates)
+
+    from history.logging import log_action
+    log_action(request, 'update', 'settings', target_name='editor_permissions', details=updates)
+
+    return Response(get_editor_capabilities())
+
+
 @api_view(['POST'])
 @permission_classes([IsSuperAdmin])
 def alert_test_email(request):

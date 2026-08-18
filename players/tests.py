@@ -407,3 +407,87 @@ class PlayerEditorPermissionTests(TestCase):
             'name': 'New', 'url': 'http://10.0.0.2',
         }, format='json')
         self.assertEqual(resp.status_code, 201)
+
+
+class EditorCapabilityTests(TestCase):
+    """Admin-configurable, per-capability-group opt-in for the editor
+    role (players/editor_capabilities.py) — an admin can grant editors
+    e.g. power_control without granting manage_devices. Covers both the
+    PlayerViewSet/BulkActionView enforcement and the
+    /api/system/editor-permissions/ admin settings endpoint."""
+
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        from django.core.cache import cache
+        from .editor_capabilities import CAPABILITY_ACTIONS
+        self.cache = cache
+        self.capability_keys = [f'system:editor_capability:{c}' for c in CAPABILITY_ACTIONS]
+        for name in ('admin', 'editor', 'viewer', 'superadmin'):
+            Group.objects.get_or_create(name=name)
+        self.client = APIClient()
+        self.editor = User.objects.create_user(username='editor2', password='pw123456')
+        Group.objects.get(name='editor').user_set.add(self.editor)
+        self.admin = _make_admin('capadmin')
+        self.player = Player.objects.create(name='P1', url='http://10.0.0.1')
+
+    def tearDown(self):
+        for key in self.capability_keys:
+            self.cache.delete(key)
+
+    def test_reboot_still_blocked_by_default(self):
+        self.client.force_authenticate(self.editor)
+        resp = self.client.post(f'/api/players/{self.player.id}/reboot/')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_reboot_allowed_once_power_control_enabled(self):
+        from .editor_capabilities import set_editor_capabilities
+        set_editor_capabilities({'power_control': True})
+        self.client.force_authenticate(self.editor)
+        resp = self.client.post(f'/api/players/{self.player.id}/reboot/')
+        self.assertNotEqual(resp.status_code, 403)
+
+    def test_enabling_power_control_does_not_unlock_manage_devices(self):
+        from .editor_capabilities import set_editor_capabilities
+        set_editor_capabilities({'power_control': True})
+        self.client.force_authenticate(self.editor)
+        resp = self.client.delete(f'/api/players/{self.player.id}/')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_bulk_reboot_respects_same_capability(self):
+        self.client.force_authenticate(self.editor)
+        resp = self.client.post('/api/bulk/reboot/', {'player_ids': [str(self.player.id)]}, format='json')
+        self.assertEqual(resp.status_code, 403)
+
+        from .editor_capabilities import set_editor_capabilities
+        set_editor_capabilities({'power_control': True})
+        resp = self.client.post('/api/bulk/reboot/', {'player_ids': [str(self.player.id)]}, format='json')
+        self.assertNotEqual(resp.status_code, 403)
+
+    def test_admin_unaffected_by_capability_state(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.delete(f'/api/players/{self.player.id}/')
+        self.assertEqual(resp.status_code, 204)
+
+    def test_settings_endpoint_get_requires_admin(self):
+        self.client.force_authenticate(self.editor)
+        resp = self.client.get('/api/system/editor-permissions/')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_settings_endpoint_round_trip(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get('/api/system/editor-permissions/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['power_control'])
+
+        resp = self.client.patch('/api/system/editor-permissions/', {'power_control': True}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['power_control'])
+        self.assertFalse(resp.data['manage_devices'])
+
+    def test_settings_endpoint_patch_requires_admin(self):
+        self.client.force_authenticate(self.editor)
+        resp = self.client.patch('/api/system/editor-permissions/', {'power_control': True}, format='json')
+        self.assertEqual(resp.status_code, 403)
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get('/api/system/editor-permissions/')
+        self.assertFalse(resp.data['power_control'])
