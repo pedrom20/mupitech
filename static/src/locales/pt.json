@@ -764,6 +764,9 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "editorSimplificadoRole": "A restrição de alvos de playlists passa a ser um papel dedicado — Editor Simplificado (Definições > Utilizadores) — em vez de um interruptor de admin que afetava todos os editores",
+      "playerDetailBackButtonLayout": "Corrigido o botão de voltar atrás na página de detalhes do device cair para a sua própria linha — passa a ficar na mesma linha que o nome, estado e localização",
+      "navbarLogoSpacingTighter": "Reduzido o espaço entre o logo da MupiTech e o separador da barra de navegação",
       "playlistTargetRestriction": "Os admins podem agora restringir os editores de alterar a que devices uma playlist se aplica (Definições > Permissões do Editor) — os editores mantêm controlo total sobre o conteúdo e sobre aplicá-lo",
       "playlistScheduleAdHocTargets": "Um agendamento de playlist pode agora aplicar-se a devices/grupos/localizações diferentes da configuração da própria playlist, em vez de reutilizar sempre a mesma",
       "sessionExpiryRedirectFix": "Corrigido uma sessão expirada por vezes não reencaminhar de volta para o login — um problema na ordem de autenticação do backend fazia \"não tem sessão\" e \"tem sessão mas sem permissão\" parecerem a mesma coisa para a aplicação",
@@ -1173,9 +1176,7 @@
     "credentialsDesc": "Gerir as credenciais SSH de um device e revelar o seu login do dashboard local.",
     "sso": "SSO",
     "ssoDesc": "Login SSO num device e envio do seu segredo SSO.",
-    "playlistTargetsTitle": "Playlists",
-    "restrictPlaylistTargets": "Restringir alvos de playlists a admins",
-    "restrictPlaylistTargetsDesc": "Os editores continuam a poder escolher o conteúdo de uma playlist e aplicá-lo — vai para os devices onde a playlist já está configurada. Só um admin pode alterar quais são esses devices/grupos/localizações."
+    "simplifiedEditorNote": "O papel Editor Simplificado (Definições > Utilizadores) é uma variante restrita do Editor: pode escolher o conteúdo de uma playlist e aplicá-lo, mas não alterar a que devices/grupos/localizações se aplica — isso continua reservado a admins."
   },
   "registryMirror": {
     "title": "Registo Espelho",
@@ -1351,6 +1352,7 @@
     "role_superadmin": "Superadministrador",
     "role_admin": "Administrador",
     "role_editor": "Editor",
+    "role_editor_simplificado": "Editor Simplificado",
     "role_viewer": "Visualizador",
     "superadminRoleLocked": "Só um superadministrador pode alterar a função ou o estado da conta de outro superadministrador.",
     "ownAccessLocked": "Não pode alterar a sua própria função ou âmbito de acesso.",

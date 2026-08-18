@@ -419,7 +419,7 @@ def dual_mfa_policy_save(request):
     from history.logging import log_action
 
     roles = request.data.get('require_dual_roles', [])
-    valid_roles = {'viewer', 'editor', 'admin', 'superadmin'}
+    valid_roles = {'viewer', 'editor_simplificado', 'editor', 'admin', 'superadmin'}
     if not isinstance(roles, list) or not set(roles) <= valid_roles:
         return Response({'error': 'require_dual_roles must be a list of valid role names.'}, status=400)
 

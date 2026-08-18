@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from access.models import UserAccessScope
-from .permissions import _user_role
+from .permissions import EDITOR_ROLES, _user_role
 
 
 class ScopeSerializer(serializers.ModelSerializer):
@@ -115,9 +115,10 @@ class UserSerializer(serializers.ModelSerializer):
     def get_editor_capabilities(self, obj):
         """Which device-management capability groups this user's role has
         (see players/editor_capabilities.py) — {} for anyone but an
-        editor, since the frontend only needs this to decide whether to
-        show admin-gated device buttons to an editor specifically."""
-        if _user_role(obj) != 'editor':
+        editor/editor_simplificado, since the frontend only needs this to
+        decide whether to show admin-gated device buttons to those roles
+        specifically."""
+        if _user_role(obj) not in EDITOR_ROLES:
             return {}
         from players.editor_capabilities import get_editor_capabilities
         return get_editor_capabilities()
@@ -155,7 +156,7 @@ def _assign_role(user, role):
 
 class CreateUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
-    role = serializers.ChoiceField(choices=['viewer', 'editor', 'admin', 'superadmin'])
+    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin', 'superadmin'])
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
@@ -204,7 +205,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 class UpdateUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=6)
-    role = serializers.ChoiceField(choices=['viewer', 'editor', 'admin', 'superadmin'], required=False)
+    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin', 'superadmin'], required=False)
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)

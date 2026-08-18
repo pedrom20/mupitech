@@ -144,4 +144,21 @@ class ScheduledDeploymentSerializer(serializers.ModelSerializer):
         playlist = attrs.get('playlist', getattr(self.instance, 'playlist', None))
         if bool(media_file) == bool(playlist):
             raise serializers.ValidationError('Set exactly one of media_file or playlist.')
+
+        # Ad-hoc targets on a playlist schedule are the same "change
+        # where this playlist goes" capability as Playlist's own
+        # target_players/groups/locations — an editor_simplificado
+        # can't set those directly (see PlaylistSerializer.validate),
+        # so this closes the same door on the scheduling page.
+        if playlist:
+            target_fields = ('target_players', 'target_groups', 'target_locations')
+            touches_targets = any(f in self.initial_data for f in target_fields)
+            request = self.context.get('request')
+            if request and touches_targets:
+                from fleet_manager.permissions import _user_role
+                if _user_role(request.user) == 'editor_simplificado':
+                    raise serializers.ValidationError(
+                        'Only an admin can schedule this playlist to different devices '
+                        'than its own configured targets.'
+                    )
         return attrs

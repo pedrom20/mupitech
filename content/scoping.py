@@ -77,8 +77,8 @@ def filter_folders(queryset, user):
 
 
 def filter_media_files(queryset, user):
-    from fleet_manager.permissions import _user_role
-    hide_root = _user_role(user) == 'editor' and not is_root_content_visible_to_editors()
+    from fleet_manager.permissions import EDITOR_ROLES, _user_role
+    hide_root = _user_role(user) in EDITOR_ROLES and not is_root_content_visible_to_editors()
 
     ids = _visible_folder_ids(user)
     if ids is None:

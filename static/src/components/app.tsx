@@ -35,7 +35,7 @@ import { FeaturesProvider } from '@/context/features-context'
 import { applyTheme, watchSystemTheme, type ThemePreference } from '@/utils/theme'
 import type { User, EditorCapabilities } from '@/types'
 
-export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin' | null
+export type UserRole = 'viewer' | 'editor_simplificado' | 'editor' | 'admin' | 'superadmin' | null
 
 export const RoleContext = createContext<UserRole>(null)
 
@@ -45,22 +45,36 @@ export const RoleContext = createContext<UserRole>(null)
 export const isAdminRole = (role: UserRole): boolean => role === 'admin' || role === 'superadmin'
 export const isSuperAdminRole = (role: UserRole): boolean => role === 'superadmin'
 
+/** editor_simplificado is a restricted variant of editor (see
+ * playlists/serializers.py on the backend) — same role for every
+ * purpose except the one specific "can this user change which devices
+ * a playlist targets" check (canEditPlaylistTargets below). Everywhere
+ * else that used to check role === 'editor' should check this instead. */
+export const isEditorRole = (role: UserRole): boolean => role === 'editor' || role === 'editor_simplificado'
+
 /** Whether the current user can perform a given device-management
  * capability group (see players/editor_capabilities.py on the backend —
  * this must mirror that gate, since it's UI-only convenience, not a
- * security boundary). Admin/superadmin always can; an editor only if
- * their editor_capabilities (from AuthContext's user, refreshed from
- * /api/users/me/) has that group turned on. Content actions (asset
- * assign/update/remove, clone content) aren't gated here — editors
- * always have those, same as the backend's _CONTENT_ACTIONS. */
+ * security boundary). Admin/superadmin always can; an editor (either
+ * variant) only if their editor_capabilities (from AuthContext's user,
+ * refreshed from /api/users/me/) has that group turned on. Content
+ * actions (asset assign/update/remove, clone content) aren't gated
+ * here — editors always have those, same as the backend's
+ * _CONTENT_ACTIONS. */
 export const canEditorManage = (
   role: UserRole,
   capabilities: Partial<EditorCapabilities> | undefined,
   capability: keyof EditorCapabilities,
 ): boolean => {
   if (isAdminRole(role)) return true
-  return role === 'editor' && !!capabilities?.[capability]
+  return isEditorRole(role) && !!capabilities?.[capability]
 }
+
+/** Whether the current user can change which devices/groups/locations
+ * a playlist targets — the one place editor_simplificado differs from
+ * a plain editor. See PlaylistSerializer.validate() on the backend. */
+export const canEditPlaylistTargets = (role: UserRole): boolean =>
+  isAdminRole(role) || role === 'editor'
 
 interface AuthContextValue {
   user: User | null

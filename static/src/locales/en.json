@@ -764,6 +764,9 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "editorSimplificadoRole": "The playlist-target restriction is now a dedicated role — Simplified Editor (Settings > Users) — instead of an admin toggle affecting every editor",
+      "playerDetailBackButtonLayout": "Fixed the back button on a device's details page dropping to its own line — it now sits on the same line as the name, status and location",
+      "navbarLogoSpacingTighter": "Reduced the gap between the MupiTech logo and the navbar divider",
       "playlistTargetRestriction": "Admins can now restrict editors from changing which devices a playlist targets (Settings > Editor Permissions) — editors keep full control over its content and deploying it",
       "playlistScheduleAdHocTargets": "A playlist schedule can now target different devices/groups/locations than the playlist's own configuration, instead of always reusing it",
       "sessionExpiryRedirectFix": "Fixed an expired session sometimes not redirecting back to the login screen — a backend authentication ordering issue meant \"not logged in\" and \"logged in but not allowed\" looked identical to the app",
@@ -1173,9 +1176,7 @@
     "credentialsDesc": "Manage a device's SSH credentials and reveal its local dashboard login.",
     "sso": "SSO",
     "ssoDesc": "SSO login into a device and push its SSO secret.",
-    "playlistTargetsTitle": "Playlists",
-    "restrictPlaylistTargets": "Restrict playlist targets to admins",
-    "restrictPlaylistTargetsDesc": "Editors can still pick a playlist's content and deploy it — it goes out to whichever devices the playlist is already configured for. Only an admin can change which devices/groups/locations that is."
+    "simplifiedEditorNote": "The Simplified Editor role (Settings > Users) is a restricted variant of Editor: it can pick a playlist's content and deploy it, but not change which devices/groups/locations it targets — that stays admin-only."
   },
   "registryMirror": {
     "title": "Registry Mirror",
@@ -1351,6 +1352,7 @@
     "role_superadmin": "Superadmin",
     "role_admin": "Admin",
     "role_editor": "Editor",
+    "role_editor_simplificado": "Simplified Editor",
     "role_viewer": "Viewer",
     "superadminRoleLocked": "Only a superadmin can change another superadmin's role or account status.",
     "ownAccessLocked": "You cannot change your own role or access scope.",

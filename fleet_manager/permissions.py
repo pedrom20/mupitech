@@ -1,17 +1,29 @@
 """
 Custom DRF permission classes for role-based access control.
 
-Four roles: viewer (read-only), editor (viewer + create/update),
-admin (full access except superadmin-only areas, e.g. Tailscale),
-superadmin (full access to everything, backed by Django's is_superuser).
-Non-superadmin roles are stored as Django Group memberships.
+Five roles: viewer (read-only), editor_simplificado (viewer + create/
+update, same as editor, but can't change which devices/groups/
+locations a playlist targets — see playlists/serializers.py), editor
+(full create/update), admin (full access except superadmin-only areas,
+e.g. Tailscale), superadmin (full access to everything, backed by
+Django's is_superuser). Non-superadmin roles are stored as Django Group
+memberships.
+
+editor_simplificado is a restricted variant of editor, not a separate
+tier below it in capability — EDITOR_ROLES below is the tuple to use
+anywhere the old code just checked role == 'editor', so both count
+equally except at the one specific playlist-target check that exists
+to distinguish them.
 """
 
 from rest_framework.permissions import BasePermission
 
+EDITOR_ROLES = ('editor', 'editor_simplificado')
+
 
 def _user_role(user):
-    """Return the highest role for a user: superadmin > admin > editor > viewer."""
+    """Return the highest role for a user: superadmin > admin > editor >
+    editor_simplificado > viewer."""
     if not user or not user.is_authenticated:
         return None
     if user.is_superuser:
@@ -23,6 +35,8 @@ def _user_role(user):
         return 'admin'
     if 'editor' in groups:
         return 'editor'
+    if 'editor_simplificado' in groups:
+        return 'editor_simplificado'
     if 'viewer' in groups:
         return 'viewer'
     # Authenticated user with no group — treat as viewer
@@ -37,11 +51,11 @@ class IsViewer(BasePermission):
 
 
 class IsEditor(BasePermission):
-    """User in editor, admin or superadmin group (create/update)."""
+    """User in editor, editor_simplificado, admin or superadmin group (create/update)."""
 
     def has_permission(self, request, view):
         role = _user_role(request.user)
-        return role in ('editor', 'admin', 'superadmin')
+        return role in (*EDITOR_ROLES, 'admin', 'superadmin')
 
 
 class IsAdmin(BasePermission):
@@ -67,7 +81,7 @@ class IsEditorOrReadOnly(BasePermission):
             return False
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
-        return _user_role(request.user) in ('editor', 'admin', 'superadmin')
+        return _user_role(request.user) in (*EDITOR_ROLES, 'admin', 'superadmin')
 
 
 def user_can_delete_content(user):
@@ -77,7 +91,7 @@ def user_can_delete_content(user):
     role = _user_role(user)
     if role == 'superadmin':
         return True
-    if role not in ('editor', 'admin'):
+    if role not in (*EDITOR_ROLES, 'admin'):
         return False
     scope = getattr(user, 'access_scope', None)
     return scope.can_delete_content if scope else True

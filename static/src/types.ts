@@ -273,7 +273,7 @@ export interface ProvisionStep {
   timestamp: string
 }
 
-export type UserRole = 'viewer' | 'editor' | 'admin' | 'superadmin'
+export type UserRole = 'viewer' | 'editor_simplificado' | 'editor' | 'admin' | 'superadmin'
 
 // Keep in sync with mfa/providers.py::PROVIDERS keys. 'authpoint' isn't
 // offered by the backend yet (mfa.authpoint.authpoint_configured() is

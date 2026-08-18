@@ -1,43 +1,13 @@
 from rest_framework import viewsets
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import BasePermission
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
+from fleet_manager.permissions import IsEditorOrReadOnly
 from history.logging import log_action
 
 from .models import Playlist
 from .serializers import PlaylistSerializer
-from .settings import is_target_editing_restricted, set_target_editing_restricted
 from .tasks import deploy_playlist
-
-
-class _ReadableByAnyAdminWrite(BasePermission):
-    """Any authenticated user can GET (the frontend needs this to decide
-    whether to show the playlist target-picker to an editor at all —
-    see canEditTargets in playlist-list.tsx); only an admin can PATCH."""
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.method == 'GET':
-            return True
-        return IsAdmin().has_permission(request, view)
-
-
-@api_view(['GET', 'PATCH'])
-@permission_classes([_ReadableByAnyAdminWrite])
-def playlist_settings(request):
-    """Whether editors are restricted from changing which devices a
-    playlist targets (see settings.py) — readable by anyone, editable
-    by an admin only."""
-    if request.method == 'PATCH' and 'restrict_targets_to_admin' in request.data:
-        set_target_editing_restricted(request.data['restrict_targets_to_admin'])
-        log_action(
-            request, 'update', 'settings', target_name='playlists',
-            details={'restrict_targets_to_admin': bool(request.data['restrict_targets_to_admin'])},
-        )
-    return Response({'restrict_targets_to_admin': is_target_editing_restricted()})
 
 
 class PlaylistViewSet(viewsets.ModelViewSet):

@@ -11,6 +11,7 @@ const ROLE_BADGE: Record<UserRole, string> = {
   superadmin: 'bg-dark',
   admin: 'bg-danger',
   editor: 'bg-primary',
+  editor_simplificado: 'bg-info',
   viewer: 'bg-secondary',
 }
 
@@ -478,6 +479,7 @@ const UsersSettings: React.FC = () => {
                       disabled={(!!editUser && editUser.role === 'superadmin' && !isSuperAdminRole(currentRole)) || isEditingSelf}
                     >
                       <option value="viewer">{t('users.role_viewer')}</option>
+                      <option value="editor_simplificado">{t('users.role_editor_simplificado')}</option>
                       <option value="editor">{t('users.role_editor')}</option>
                       <option value="admin">{t('users.role_admin')}</option>
                       {isSuperAdminRole(currentRole) && (
@@ -508,7 +510,7 @@ const UsersSettings: React.FC = () => {
                     </div>
                   )}
 
-                  {(role === 'editor' || role === 'admin') && (
+                  {(role === 'editor' || role === 'editor_simplificado' || role === 'admin') && (
                     <div className="form-check mb-2">
                       <input
                         type="checkbox"
@@ -592,7 +594,7 @@ const UsersSettings: React.FC = () => {
                       <div>{(viewUser.receive_offline_alerts ?? true) ? t('common.yes') : t('common.no')}</div>
                     </div>
                   )}
-                  {(viewUser.role === 'editor' || viewUser.role === 'admin') && (
+                  {(viewUser.role === 'editor' || viewUser.role === 'editor_simplificado' || viewUser.role === 'admin') && (
                     <div className="col-sm-6">
                       <div className="text-muted" style={{ fontSize: '0.75rem' }}>{t('users.canDeleteContent')}</div>
                       <div>{(viewUser.can_delete_content ?? true) ? t('common.yes') : t('common.no')}</div>

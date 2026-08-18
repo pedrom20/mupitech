@@ -14,7 +14,7 @@ const AuthPointIcon = MFA_METHOD_ICON.authpoint
 const SECRET_PLACEHOLDER_SET = '••••••••'
 const SECRET_PLACEHOLDER_UNSET = ''
 
-const DUAL_MFA_ROLES = ['viewer', 'editor', 'admin', 'superadmin'] as const
+const DUAL_MFA_ROLES = ['viewer', 'editor_simplificado', 'editor', 'admin', 'superadmin'] as const
 
 type ProviderTab = 'dual' | 'duo' | 'privacyidea' | 'authpoint'
 

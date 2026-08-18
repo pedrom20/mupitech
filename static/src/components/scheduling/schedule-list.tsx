@@ -7,17 +7,16 @@ import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { fetchPlaylists } from '@/store/playlistsSlice'
-import { schedules as schedulesApi, media as mediaApi, playlists as playlistsApi } from '@/services/api'
+import { schedules as schedulesApi, media as mediaApi } from '@/services/api'
 import { showToast } from '@/utils/toast'
-import { RoleContext, isAdminRole } from '@/components/app'
+import { RoleContext, canEditPlaylistTargets } from '@/components/app'
 import type { ScheduledDeployment, MediaFile } from '@/types'
 
 const SchedulingPage: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const role = useContext(RoleContext)
-  const [restrictPlaylistTargets, setRestrictPlaylistTargets] = useState(false)
-  const canEditPlaylistTargets = isAdminRole(role) || !restrictPlaylistTargets
+  const canOverridePlaylistTargets = canEditPlaylistTargets(role)
   const { players } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
   const { locations } = useAppSelector((state) => state.locations)
@@ -51,7 +50,6 @@ const SchedulingPage: React.FC = () => {
     dispatch(fetchGroups())
     dispatch(fetchLocations())
     dispatch(fetchPlaylists())
-    playlistsApi.getSettings().then((res) => setRestrictPlaylistTargets(res.restrict_targets_to_admin)).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch])
 
@@ -76,7 +74,7 @@ const SchedulingPage: React.FC = () => {
   // ScheduledDeploymentViewSet.perform_create) — same admin-only gate
   // as the Playlists page's own "Apply to" picker, so this can't be
   // used as a back door around that restriction.
-  const showPlaylistTargetPicker = contentType === 'playlist' && canEditPlaylistTargets
+  const showPlaylistTargetPicker = contentType === 'playlist' && canOverridePlaylistTargets
 
   const handleCreate = async () => {
     if (contentType === 'media' && !selectedMediaId) return

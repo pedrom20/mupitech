@@ -298,12 +298,14 @@ class ScheduledPlaylistAdHocTargetTests(TestCase):
     def setUp(self):
         from playlists.models import Playlist
 
-        for name in ('admin', 'editor', 'viewer', 'superadmin'):
+        for name in ('admin', 'editor', 'editor_simplificado', 'viewer', 'superadmin'):
             AuthGroup.objects.get_or_create(name=name)
         self.client = APIClient()
         self.admin = User.objects.create_user(username='admin3', password='pw123456')
         self.admin.is_superuser = True
         self.admin.save(update_fields=['is_superuser'])
+        self.simplified_editor = User.objects.create_user(username='simplified2', password='pw123456')
+        AuthGroup.objects.get(name='editor_simplificado').user_set.add(self.simplified_editor)
 
         self.default_player = Player.objects.create(name='Default', url='http://10.0.0.1')
         self.adhoc_player = Player.objects.create(name='AdHoc', url='http://10.0.0.2')
@@ -336,3 +338,22 @@ class ScheduledPlaylistAdHocTargetTests(TestCase):
         self.assertEqual(args[0], str(self.playlist.id))
         self.assertEqual(args[3], [str(self.adhoc_player.id)])
         self.assertIsNotNone(args[4])  # schedule_id
+
+    @patch('playlists.tasks.deploy_playlist.delay')
+    def test_simplified_editor_blocked_from_ad_hoc_targets(self, mock_delay):
+        self.client.force_authenticate(self.simplified_editor)
+        resp = self.client.post('/api/schedules/', {
+            'playlist': str(self.playlist.id),
+            'target_players': [str(self.adhoc_player.id)],
+        }, format='json')
+        self.assertEqual(resp.status_code, 400)
+        mock_delay.assert_not_called()
+
+    @patch('playlists.tasks.deploy_playlist.delay')
+    def test_simplified_editor_can_schedule_without_ad_hoc_targets(self, mock_delay):
+        self.client.force_authenticate(self.simplified_editor)
+        resp = self.client.post('/api/schedules/', {
+            'playlist': str(self.playlist.id),
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        mock_delay.assert_called_once()

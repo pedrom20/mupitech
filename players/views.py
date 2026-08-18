@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 
 from rest_framework.permissions import BasePermission
 
-from fleet_manager.permissions import IsEditorOrReadOnly, _user_role
+from fleet_manager.permissions import EDITOR_ROLES, IsEditorOrReadOnly, _user_role
 
 from content.models import MediaFile
 from .editor_capabilities import action_allowed_for_editor
@@ -142,7 +142,7 @@ class _IsAdminOrCapableEditor(BasePermission):
         role = _user_role(request.user)
         if role in ('admin', 'superadmin'):
             return True
-        if role == 'editor':
+        if role in EDITOR_ROLES:
             return action_allowed_for_editor(self.action)
         return False
 

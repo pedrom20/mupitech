@@ -1990,14 +1990,14 @@ const PlayerDetail: React.FC = () => {
   return (
     <div>
       <div className="fm-page-header">
-        <div>
+        <div className="d-flex align-items-center gap-2 flex-wrap">
           <button
-            className="fm-btn-outline fm-btn-sm me-3"
+            className="fm-btn-outline fm-btn-sm me-1"
             onClick={handleBack}
           >
             <FaArrowLeft />
           </button>
-          <h1 className="page-title d-flex align-items-center gap-2 flex-wrap">
+          <h1 className="page-title d-flex align-items-center gap-2 flex-wrap mb-0">
             <FaDesktop className="page-icon" />
             {player.name}
             <span
