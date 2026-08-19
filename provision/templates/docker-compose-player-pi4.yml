@@ -121,6 +121,36 @@ services:
     volumes:
       - redis-data:/var/lib/redis
 
+  host-agent:
+    # Runs anthias_host_agent (same module the upstream ansible installer
+    # runs as a bare host systemd service) from the already-pulled server
+    # image instead — this provision.py flow has no host-side install
+    # step, so without this nothing ever answers the hostcmd Redis
+    # channel anthias-server publishes to: the splash page's network
+    # detection spins forever (only host_agent.set_ip_addresses ever
+    # writes the ip_addresses key it polls), and host:total_mem_kb /
+    # host:board_subtype (used to size the low-RAM/board-specific
+    # matrix) never get populated either. network_mode: host is what
+    # lets it see the real host interfaces (netifaces) rather than this
+    # container's own private bridge network; it reaches redis over the
+    # SAME 127.0.0.1:6379 already published to the host loopback above.
+    #
+    # KNOWN LIMITATION: host_agent's reboot/shutdown hostcmds (also used
+    # by the Fleet Manager's own Reboot/Shutdown buttons) still won't
+    # work from in here — the image has no systemctl binary, and
+    # reaching the host's real one would need a privileged container
+    # with host PID namespace access, which isn't wired up yet. Only
+    # set_ip_addresses (and the two host:* diagnostics above) work
+    # today.
+    image: $ANTHIAS_REGISTRY-server:$ANTHIAS_TAG_SUFFIX
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    network_mode: host
+    command: python3 -m anthias_host_agent
+    depends_on:
+      - redis
+
   watchtower:
     image: containrrr/watchtower:latest
     restart: always

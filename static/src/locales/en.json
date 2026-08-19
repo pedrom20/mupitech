@@ -779,6 +779,9 @@
     "changes": {
       "migrateImageSudoFix": "Fixed migrating/rebuilding a device sometimes failing with \"permission denied\" connecting to Docker — device management commands now run with sudo instead of assuming the SSH user is already in the device's docker group",
       "provisionMissingProjectDirFix": "Fixed provisioning a new device failing at the \"Upload Configuration\" step with a \"No such file or directory\" error — the docker-compose.yml destination folder is now created before writing to it",
+      "provisionTimezoneScopingFix": "Fixed provisioning sometimes crashing with a Python scoping error while registering the new device — a redundant conditional import was shadowing a date/time helper used elsewhere in the same step",
+      "provisionWaitReadyTimeoutFix": "Fixed provisioning sometimes timing out at \"Waiting for player API\" even though the device came up fine shortly after — a fresh device's first boot (running its database setup) can take a bit longer than the previous budget allowed",
+      "provisionHostAgentFix": "Fixed the device's own splash screen getting stuck on \"Detecting network…\" forever after provisioning — a background helper process needed to report the device's IP address was missing from newly provisioned devices",
       "phoneHomeInfoGuardFix": "Fixed a device's IP/status sometimes never updating again after its first heartbeat — a fresh install's phone-home script was missing a safeguard (already present in the manual reinstall script) against an edge case that made every subsequent heartbeat fail silently",
       "playlistOrderFix": "Fixed playlist content playing back in the wrong order on the device — the intended order is now sent explicitly instead of relying on creation order",
       "migrateImageTimeoutFix": "Fixed migrating/rebuilding a device sometimes reporting a timeout even though it was still working — the underlying request now has enough time to wait through a device reboot",

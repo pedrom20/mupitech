@@ -424,8 +424,16 @@ try:
             if rc == 0 and 'yes' in (ntp_out or ''):
                 _append_log(task, 'Clock synced via systemd-timesyncd')
             else:
-                # Fallback: set time from Fleet Manager server
-                from django.utils import timezone
+                # Fallback: set time from Fleet Manager server. `timezone`
+                # is already imported at module level (top of this file) —
+                # a local `import` here previously shadowed it for this
+                # ENTIRE method (Python scopes a name as local to the
+                # whole function the moment any assignment to it appears
+                # anywhere in the body, including a conditional import),
+                # so whenever THIS branch was skipped (NTP sync succeeded,
+                # the common case), every later `timezone.now()` call in
+                # provision_player — e.g. setting Player.last_seen during
+                # registration — crashed with UnboundLocalError.
                 now_utc = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
                 _append_log(task, f'NTP unavailable, setting time from FM server: {now_utc} UTC')
                 _ssh_run(
@@ -714,8 +722,20 @@ try:
             _update_step(task, 9, 'wait_ready', 'running', 'Waiting for player API...')
             _append_log(task, '[Step 9] Waiting for player to be ready...')
 
+            # 40 attempts * 5s = ~200s. A fresh device's FIRST boot of the
+            # anthias-server container runs its DB migrations, a sqlite
+            # backup and uvicorn startup all before it answers anything —
+            # live-observed on a real Pi 4 taking well past the previous
+            # 24*5s=120s budget under that one-time first-boot load
+            # (subsequent boots/restarts are seconds, not minutes). Mirrors
+            # the same real-device-needs-more-time reasoning already
+            # applied to migrate_image.py's wait_for_player_ready (90s ->
+            # 180s) — this is provision's own equivalent, checked via SSH
+            # + localhost curl rather than AnthiasAPIClient since no
+            # Player row exists yet at this point in a fresh provision.
+            max_attempts = 40
             ready = False
-            for attempt in range(24):
+            for attempt in range(max_attempts):
                 time.sleep(5)
                 _, _, rc = _ssh_run(
                     ssh,
@@ -727,10 +747,12 @@ try:
                     ready = True
                     _append_log(task, f'Player API ready (attempt {attempt + 1})')
                     break
-                _append_log(task, f'Attempt {attempt + 1}/24: not ready yet...')
+                _append_log(task, f'Attempt {attempt + 1}/{max_attempts}: not ready yet...')
 
             if not ready:
-                raise RuntimeError('Player API did not become ready within 2 minutes.')
+                raise RuntimeError(
+                    f'Player API did not become ready within {max_attempts * 5} seconds.'
+                )
             _update_step(task, 9, 'wait_ready', 'success', 'Player is ready')
 
             # Step 10: Install phone-home timer
