@@ -836,13 +836,13 @@ export const system = {
     return apiRequest('POST', '/system/update/')
   },
 
-  getSettings(): Promise<{ auto_update: boolean; experimental_sidebar_nav: boolean }> {
+  getSettings(): Promise<{ auto_update: boolean }> {
     return apiRequest('GET', '/system/settings/')
   },
 
   updateSettings(
-    data: Partial<{ auto_update: boolean; experimental_sidebar_nav: boolean }>,
-  ): Promise<{ auto_update: boolean; experimental_sidebar_nav: boolean }> {
+    data: Partial<{ auto_update: boolean }>,
+  ): Promise<{ auto_update: boolean }> {
     return apiRequest('PATCH', '/system/settings/', data)
   },
 

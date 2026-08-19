@@ -193,10 +193,9 @@ const Settings: React.FC = () => {
   }
 
   const handleSidebarNavToggle = (value: boolean) => {
+    // Personal preference (localStorage, persisted by app.tsx) — no
+    // server round-trip, same as the theme choice right above it.
     sidebarNav.setEnabled(value)
-    system.updateSettings({ experimental_sidebar_nav: value }).catch(() => {
-      sidebarNav.setEnabled(!value)
-    })
   }
 
   const handleSave = () => {
@@ -361,22 +360,20 @@ const Settings: React.FC = () => {
                 </div>
               </div>
 
-              {isSuperAdminRole(role) && (
-                <div className="mb-3 form-check form-switch">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    role="switch"
-                    id="experimental-sidebar-nav"
-                    checked={sidebarNav.enabled}
-                    onChange={(e) => handleSidebarNavToggle(e.target.checked)}
-                  />
-                  <label className="form-check-label fw-semibold" htmlFor="experimental-sidebar-nav" style={{ fontSize: '0.85rem' }}>
-                    {t('settings.experimentalSidebarNav')}
-                  </label>
-                  <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('settings.experimentalSidebarNavDesc')}</div>
-                </div>
-              )}
+              <div className="mb-3 form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="experimental-sidebar-nav"
+                  checked={sidebarNav.enabled}
+                  onChange={(e) => handleSidebarNavToggle(e.target.checked)}
+                />
+                <label className="form-check-label fw-semibold" htmlFor="experimental-sidebar-nav" style={{ fontSize: '0.85rem' }}>
+                  {t('settings.experimentalSidebarNav')}
+                </label>
+                <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('settings.experimentalSidebarNavDesc')}</div>
+              </div>
 
               <button className="fm-btn-primary btn-sm" onClick={handleSave}>
                 <FaSave />

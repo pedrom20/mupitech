@@ -106,11 +106,13 @@ export const ThemeContext = createContext<ThemeContextValue>({
 })
 
 interface SidebarNavContextValue {
-  /** Instance-wide, superadmin-controlled (system:experimental_sidebar_nav
-   * on the backend) — NOT a personal preference, so this is fetched once
-   * in app.tsx rather than read from localStorage. Exposed as context
-   * (not just a prop) so settings.tsx's toggle can flip it live for
-   * every open tab of every user, without a full page reload. */
+  /** Personal preference (localStorage, like themePref below) — each
+   * user picks navbar vs. sidebar for themselves; it used to be a
+   * single instance-wide, superadmin-controlled toggle
+   * (system:experimental_sidebar_nav on the backend), but that forced
+   * the same layout on every user of the instance. Exposed as context
+   * (not just a prop) so settings.tsx's toggle can flip it live without
+   * a full page reload. */
   enabled: boolean
   setEnabled: (enabled: boolean) => void
   /** Collapsed-to-icon-rail state IS a personal preference (persisted
@@ -132,6 +134,7 @@ const RETRO_STORAGE_KEY = 'fm_retro_theme'
 const DOS_STORAGE_KEY = 'fm_dos_theme'
 const THEME_STORAGE_KEY = 'fm_theme'
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'fm_sidebar_nav_collapsed'
+const SIDEBAR_NAV_ENABLED_STORAGE_KEY = 'fm_sidebar_nav_enabled'
 
 const App: React.FC = () => {
   const { i18n, t } = useTranslation()
@@ -234,7 +237,9 @@ const App: React.FC = () => {
   // user *and* setup is required — both need to resolve up front to
   // pick the right thing to render) — see setup-wizard.tsx.
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null)
-  const [sidebarNavEnabled, setSidebarNavEnabled] = useState(false)
+  const [sidebarNavEnabled, setSidebarNavEnabled] = useState(
+    () => localStorage.getItem(SIDEBAR_NAV_ENABLED_STORAGE_KEY) === '1',
+  )
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1',
   )
@@ -242,6 +247,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, sidebarCollapsed ? '1' : '0')
   }, [sidebarCollapsed])
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_NAV_ENABLED_STORAGE_KEY, sidebarNavEnabled ? '1' : '0')
+  }, [sidebarNavEnabled])
 
   useEffect(() => {
     // Mirrors the exact condition SidebarNav/.fm-content--with-sidebar
@@ -260,9 +269,6 @@ const App: React.FC = () => {
     systemApi.getSetupRequired()
       .then((res) => setSetupRequired(res.required))
       .catch(() => setSetupRequired(false))
-    systemApi.getSettings()
-      .then((res) => setSidebarNavEnabled(res.experimental_sidebar_nav))
-      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

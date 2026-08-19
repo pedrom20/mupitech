@@ -658,44 +658,6 @@ class EmailOTPTests(TestCase):
         self.assertEqual(verify_resp.status_code, 401)
 
 
-class SidebarNavSettingTests(TestCase):
-    """Instance-wide, superadmin-only toggle for the experimental
-    sidebar-nav layout (fleet_manager/system_views.py::system_settings)."""
-
-    def setUp(self):
-        Group.objects.get_or_create(name='admin')
-        Group.objects.get_or_create(name='editor')
-        Group.objects.get_or_create(name='viewer')
-        Group.objects.get_or_create(name='superadmin')
-        self.client = APIClient()
-
-    def tearDown(self):
-        from django.core.cache import cache
-        cache.delete('system:experimental_sidebar_nav')
-
-    def test_defaults_to_off(self):
-        self.client.force_authenticate(User.objects.create_user(username='u1', password='pw123456'))
-        response = self.client.get('/api/system/settings/')
-        self.assertFalse(response.data['experimental_sidebar_nav'])
-
-    def test_non_superadmin_cannot_enable(self):
-        editor = User.objects.create_user(username='editor1', password='pw123456')
-        Group.objects.get(name='editor').user_set.add(editor)
-        self.client.force_authenticate(editor)
-        response = self.client.patch('/api/system/settings/', {'experimental_sidebar_nav': True}, format='json')
-        self.assertEqual(response.status_code, 403)
-
-    def test_superadmin_can_enable_and_it_is_readable_by_anyone(self):
-        self.client.force_authenticate(_make_superadmin('root1'))
-        enable = self.client.patch('/api/system/settings/', {'experimental_sidebar_nav': True}, format='json')
-        self.assertEqual(enable.status_code, 200)
-        self.assertTrue(enable.data['experimental_sidebar_nav'])
-
-        self.client.force_authenticate(User.objects.create_user(username='u2', password='pw123456'))
-        response = self.client.get('/api/system/settings/')
-        self.assertTrue(response.data['experimental_sidebar_nav'])
-
-
 class EmailGraphModeTests(TestCase):
     """Microsoft Graph as an alternative to SMTP for every email the app
     sends (alerts, email-OTP, password reset) — see fleet_manager/alerts.py.
