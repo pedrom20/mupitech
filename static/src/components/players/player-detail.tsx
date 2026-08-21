@@ -2280,6 +2280,7 @@ const PlayerDetail: React.FC = () => {
                             style={{ fontSize: '0.75rem' }}
                             onClick={handleUpdate}
                             disabled={updating}
+                            title={latestSha ? (t('players.updateAvailableTooltip', { sha: latestSha }) as string) : undefined}
                           >
                             {updating ? (
                               <span className="spinner-border spinner-border-sm" style={{ width: '0.7rem', height: '0.7rem' }} />
@@ -2290,7 +2291,11 @@ const PlayerDetail: React.FC = () => {
                           </button>
                         )}
                         {updateAvailable === false && (
-                          <FaCheckCircle className="text-success" style={{ fontSize: '12px' }} title={t('players.upToDate')} />
+                          <FaCheckCircle
+                            className="text-success"
+                            style={{ fontSize: '12px' }}
+                            title={latestSha ? (t('players.upToDateTooltip', { sha: latestSha }) as string) : t('players.upToDate')}
+                          />
                         )}
                         {updateAvailable === null && player?.is_online && updateChecking && (
                           <span className="spinner-border spinner-border-sm text-muted" style={{ width: '0.7rem', height: '0.7rem' }} />

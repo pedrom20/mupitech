@@ -1,4 +1,5 @@
 import logging
+import re
 
 import requests as http_requests
 from django.conf import settings
@@ -107,6 +108,36 @@ def _get_latest_player_version(device_type='pi4'):
     except Exception as e:
         logger.warning('Failed to check GHCR for player version: %s', e)
         return {'sha': '', 'error': str(e)}
+
+
+# Matches mupitech-player's current anthias_version shape (see
+# anthias_server/lib/diagnostics.py::get_anthias_version there):
+#   "v2026.8.0 (f20d488)" / "v2026.8.0 (f20d488, branch)" /
+#   "v2026.8.0" (no git meta) / "(f20d488)" (no release).
+_PLAYER_VERSION_RE = re.compile(
+    r'^(v[\w.]+)?\s*(?:\(([0-9a-f]{6,40})(?:,.*)?\))?\s*$'
+)
+
+
+def _parse_player_version(current_version):
+    """Split a player's reported version string into (label, sha).
+
+    Tries the current "label (sha[, branch])" shape first, falling
+    back to the older "{branch}@{hash}" shape (that format's own
+    docstring: "Replaces the old {branch}@{hash} shape") for a device
+    running a build from before the format changed — update_check must
+    still detect an available update on those, not just newer ones.
+    Returns ('', '') for a genuinely unparsable/unknown string rather
+    than raising, since update_check treats that as "can't compare".
+    """
+    current_version = current_version or ''
+    match = _PLAYER_VERSION_RE.match(current_version)
+    if match and (match.group(1) or match.group(2)):
+        return match.group(1) or '', match.group(2) or ''
+    if '@' in current_version:
+        parts = current_version.split('@')
+        return parts[0], parts[-1]
+    return '', ''
 
 
 def _safe_int(value, default, field_name='value'):
@@ -1099,10 +1130,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             )
 
         current_version = info.get('anthias_version', 'unknown')
-        # Parse "v1.0.0@c313f81" → version="v1.0.0", sha="c313f81"
-        parts = current_version.split('@')
-        current_ver_label = parts[0] if len(parts) > 1 else ''
-        current_sha = parts[-1] if '@' in current_version else ''
+        current_ver_label, current_sha = _parse_player_version(current_version)
 
         # Select tag suffix based on player device_type
         dt = player.device_type if player.device_type in ('pi4', 'pi5', 'x86') else 'pi4'

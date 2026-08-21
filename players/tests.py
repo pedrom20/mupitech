@@ -694,3 +694,87 @@ class PreparePlayerDirectoriesTests(TestCase):
         self.assertIn('/home/pi/anthias', mkdir_call[0][0])
         self.assertIn('/home/pi/.anthias', mkdir_call[0][0])
         self.assertIn('/home/pi/anthias_assets', mkdir_call[0][0])
+
+
+class ParsePlayerVersionTests(TestCase):
+    """mupitech-player's own anthias_version format changed from
+    "{branch}@{hash}" to "label (hash[, branch])" a while back (see
+    that repo's diagnostics.py::get_anthias_version docstring), but
+    this parser was never updated to match — update_check silently
+    treated every real device's version string as unparsable, so
+    current_sha/current_ver_label were always '' and update_available
+    was always False no matter what was actually running. Confirmed
+    live against a real device reporting 'v2026.8.0 (f20d488)'."""
+
+    def test_current_format_with_release_and_sha(self):
+        from .views import _parse_player_version
+        self.assertEqual(
+            _parse_player_version('v2026.8.0 (f20d488)'),
+            ('v2026.8.0', 'f20d488'),
+        )
+
+    def test_current_format_with_branch_suffix(self):
+        from .views import _parse_player_version
+        self.assertEqual(
+            _parse_player_version('v2026.8.0 (f20d488, vanilla-django)'),
+            ('v2026.8.0', 'f20d488'),
+        )
+
+    def test_release_only_no_git_meta(self):
+        from .views import _parse_player_version
+        self.assertEqual(_parse_player_version('v2026.8.0'), ('v2026.8.0', ''))
+
+    def test_sha_only_no_release(self):
+        from .views import _parse_player_version
+        self.assertEqual(_parse_player_version('(f20d488)'), ('', 'f20d488'))
+
+    def test_legacy_at_sign_format_still_supported(self):
+        from .views import _parse_player_version
+        self.assertEqual(
+            _parse_player_version('vanilla-django@c313f81'),
+            ('vanilla-django', 'c313f81'),
+        )
+
+    def test_unparsable_returns_empty_pair(self):
+        from .views import _parse_player_version
+        self.assertEqual(_parse_player_version('unknown'), ('', ''))
+        self.assertEqual(_parse_player_version(''), ('', ''))
+        self.assertEqual(_parse_player_version(None), ('', ''))
+
+
+class PlayerUpdateCheckTests(TestCase):
+    """End-to-end: a real device's current-format version string must
+    actually be compared against the latest GHCR sha, not silently
+    treated as unparsable (see ParsePlayerVersionTests)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=_make_admin('admin1'))
+        self.player = Player.objects.create(
+            name='P1', url='http://10.0.0.1', device_type='pi4',
+        )
+
+    @patch('players.views._get_latest_player_version')
+    @patch('players.services.AnthiasAPIClient.get_info')
+    def test_detects_available_update_from_current_format(self, mock_info, mock_latest):
+        mock_info.return_value = {'anthias_version': 'v2026.8.0 (f20d488)'}
+        mock_latest.return_value = {'sha': '6782345', 'version': ''}
+
+        resp = self.client.get(f'/api/players/{self.player.id}/update-check/')
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data['current_sha'], 'f20d488')
+        self.assertEqual(data['latest_sha'], '6782345')
+        self.assertTrue(data['update_available'])
+
+    @patch('players.views._get_latest_player_version')
+    @patch('players.services.AnthiasAPIClient.get_info')
+    def test_reports_up_to_date_when_sha_matches(self, mock_info, mock_latest):
+        mock_info.return_value = {'anthias_version': 'v2026.8.0 (6782345)'}
+        mock_latest.return_value = {'sha': '6782345', 'version': ''}
+
+        resp = self.client.get(f'/api/players/{self.player.id}/update-check/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.json()['update_available'])
