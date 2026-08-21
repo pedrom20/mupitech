@@ -780,6 +780,7 @@
     "subtitle": "Version history and release notes.",
     "changes": {
       "deviceUrlManualEdit": "Added a Device URL / IP field to the Location tab of a player's settings — lets an admin manually correct a device's address (e.g. after it changed IP and hasn't phoned home yet, or while it's offline), without needing the device to be reachable",
+      "repoRenameGhcrFix": "Fixed the FM getting stuck reporting no available update — the GitHub repository was renamed, and the CI build was silently publishing new images under the new name while this app was still pulling the old one",
       "migrateImageSudoFix": "Fixed migrating/rebuilding a device sometimes failing with \"permission denied\" connecting to Docker — device management commands now run with sudo instead of assuming the SSH user is already in the device's docker group",
       "provisionMissingProjectDirFix": "Fixed provisioning a new device failing at the \"Upload Configuration\" step with a \"No such file or directory\" error — the docker-compose.yml destination folder is now created before writing to it",
       "provisionTimezoneScopingFix": "Fixed provisioning sometimes crashing with a Python scoping error while registering the new device — a redundant conditional import was shadowing a date/time helper used elsewhere in the same step",

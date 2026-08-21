@@ -123,7 +123,7 @@ access" — só precisa de ler). Depois:
 
 ```bash
 GIT_SSH_COMMAND="ssh -i ~/.ssh/mupiteck_deploy -o IdentitiesOnly=yes" \
-  git clone git@github.com:pedrom20/mupiteck.git
+  git clone git@github.com:pedrom20/mupitech.git
 ```
 
 Alternativa mais rápida para um único uso pontual, mas o acesso fica
@@ -132,7 +132,7 @@ com acesso só a este repo, só "Contents: Read-only", gerado em GitHub
 → Settings → Developer settings → Personal access tokens):
 
 ```bash
-git clone https://<TOKEN>@github.com/pedrom20/mupiteck.git
+git clone https://<TOKEN>@github.com/pedrom20/mupitech.git
 ```
 
 ### Automática (Ubuntu/Debian, servidor limpo)
@@ -204,7 +204,7 @@ opcionalmente, definir um logótipo de parceiro.
 | `CSRF_TRUSTED_ORIGINS` | — | Origens de confiança para CSRF |
 | `PLAYER_REGISTER_TOKEN` | vazio (registo aberto) | Segredo partilhado para registo automático de dispositivos |
 | `ANTHIAS_IMAGE_REGISTRY` / `ANTHIAS_IMAGE_TAG_SUFFIX_PI4` / `_PI5` | ver `docs/anthias-version-analysis.md` | Origem das imagens Anthias usadas no provisionamento |
-| `UPDATE_CHECK_GITHUB_REPO` | `pedrom20/mupiteck` | Repositório usado pela verificação de atualizações da própria dashboard |
+| `UPDATE_CHECK_GITHUB_REPO` | `pedrom20/mupitech` | Repositório usado pela verificação de atualizações da própria dashboard |
 | `FEATURE_CCTV_ENABLED` | `False` | Ativa a funcionalidade opcional de videovigilância |
 
 Ver [.env.example](.env.example) para a lista completa.

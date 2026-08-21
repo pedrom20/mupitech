@@ -49,7 +49,7 @@ const Footer: React.FC<FooterProps> = ({ onSecretTrigger }) => {
           <p className="footer-text">
             &copy; {currentYear}{' '}
             <a
-              href="https://github.com/pedrom20/mupiteck"
+              href="https://github.com/pedrom20/mupitech"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -84,7 +84,7 @@ const Footer: React.FC<FooterProps> = ({ onSecretTrigger }) => {
             </li>
             <li className="footer-github-item">
               <a
-                href="https://github.com/pedrom20/mupiteck"
+                href="https://github.com/pedrom20/mupitech"
                 target="_blank"
                 rel="noopener noreferrer"
               >

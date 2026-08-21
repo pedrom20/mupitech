@@ -18,7 +18,7 @@ from fleet_manager.permissions import IsAdmin, IsSuperAdmin
 
 logger = logging.getLogger(__name__)
 
-GITHUB_REPO = os.environ.get('UPDATE_CHECK_GITHUB_REPO', 'pedrom20/mupiteck')
+GITHUB_REPO = os.environ.get('UPDATE_CHECK_GITHUB_REPO', 'pedrom20/mupitech')
 UPDATE_CHECK_CACHE_KEY = 'system:latest_version'
 UPDATE_CHECK_CACHE_TTL = 300  # 5 minutes
 AUTO_UPDATE_CACHE_KEY = 'system:auto_update'

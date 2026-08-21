@@ -780,6 +780,7 @@
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
       "deviceUrlManualEdit": "Adicionado um campo URL / IP do Dispositivo ao separador Localização das definições de um device — permite a um admin corrigir manualmente o endereço de um device (ex: depois de mudar de IP e ainda não ter feito phone-home, ou enquanto está offline), sem precisar que o device esteja acessível",
+      "repoRenameGhcrFix": "Corrigido o FM ficar preso a reportar que não há atualização disponível — o repositório do GitHub foi renomeado, e o build de CI passou a publicar as imagens novas com o nome novo em silêncio enquanto esta aplicação continuava a puxar a imagem antiga",
       "migrateImageSudoFix": "Corrigido migrar/reconstruir um device por vezes falhar com \"permission denied\" ao ligar ao Docker — os comandos de gestão do device passam a correr com sudo em vez de assumir que o utilizador SSH já está no grupo docker do device",
       "provisionMissingProjectDirFix": "Corrigido o provisionamento de um novo device falhar no passo \"Carregar Configuração\" com um erro \"No such file or directory\" — a pasta de destino do docker-compose.yml passa a ser criada antes de escrever nela",
       "provisionTimezoneScopingFix": "Corrigido o provisionamento por vezes falhar com um erro de âmbito (scoping) em Python ao registar o novo device — uma importação condicional redundante estava a sobrepor-se a um auxiliar de data/hora usado noutro ponto do mesmo passo",

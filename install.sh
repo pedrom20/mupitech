@@ -3,8 +3,8 @@
 # limpo, a partir de um clone deste repositório.
 #
 # Uso:
-#   git clone https://github.com/pedrom20/mupiteck.git
-#   cd mupiteck
+#   git clone https://github.com/pedrom20/mupitech.git
+#   cd mupitech
 #   ./install.sh
 #
 # Variáveis opcionais para correr sem prompts (ex.: provisioning

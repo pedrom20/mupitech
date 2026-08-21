@@ -26,7 +26,7 @@ services:
       retries: 5
 
   web:
-    image: ghcr.io/pedrom20/mupiteck:latest
+    image: ghcr.io/pedrom20/mupitech:latest
     restart: unless-stopped
     environment: &app-env
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
@@ -89,7 +89,7 @@ services:
       - web
 
   celery-worker:
-    image: ghcr.io/pedrom20/mupiteck:latest
+    image: ghcr.io/pedrom20/mupitech:latest
     restart: unless-stopped
     command: celery -A fleet_manager worker -l info --concurrency=4 -Q celery
     environment: *app-env
@@ -105,7 +105,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   celery-transcode:
-    image: ghcr.io/pedrom20/mupiteck:latest
+    image: ghcr.io/pedrom20/mupitech:latest
     restart: unless-stopped
     command: celery -A fleet_manager worker -l info --concurrency=1 -Q transcode
     environment: *app-env
@@ -121,7 +121,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   celery-beat:
-    image: ghcr.io/pedrom20/mupiteck:latest
+    image: ghcr.io/pedrom20/mupitech:latest
     restart: unless-stopped
     command: celery -A fleet_manager beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment: *app-env
