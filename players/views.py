@@ -1,5 +1,6 @@
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests as http_requests
 from django.conf import settings
@@ -55,11 +56,82 @@ def _player_tag_suffix(device_type='pi4'):
     return f'-{device_type}-64'
 
 
-def _get_latest_player_version(device_type='pi4'):
-    """Query GHCR OCI registry for the latest player SHA tag. Cached 5 min.
+_GHCR_MANIFEST_ACCEPT = ', '.join([
+    'application/vnd.oci.image.index.v1+json',
+    'application/vnd.docker.distribution.manifest.list.v2+json',
+    'application/vnd.oci.image.manifest.v1+json',
+    'application/vnd.docker.distribution.manifest.v2+json',
+])
 
-    Uses the anonymous token endpoint + tags/list API which works
-    without authentication for public/org-visible packages.
+
+_GHCR_LINK_NEXT_RE = re.compile(r'<([^>]+)>;\s*rel="next"')
+
+
+def _ghcr_list_all_tags(image_name, token, max_pages=20):
+    """Follow GHCR's `tags/list` pagination (Link: rel="next") up to
+    max_pages, returning the combined tag list.
+
+    The API paginates at ~100 tags/page. A repo with more history than
+    that has tags on later pages — confirmed live: the tag matching
+    the currently-published `latest-pi4-64` digest was on page 2, so
+    only reading page 1 (the previous behaviour) could miss the exact
+    tag update_check needs, on top of that approach's other bug (see
+    _get_latest_player_version's docstring).
+    """
+    tags = []
+    url = f'https://ghcr.io/v2/{image_name}/tags/list'
+    headers = {'Authorization': f'Bearer {token}'}
+    for _ in range(max_pages):
+        resp = http_requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            break
+        tags.extend(resp.json().get('tags', []))
+        match = _GHCR_LINK_NEXT_RE.search(resp.headers.get('Link', ''))
+        if not match:
+            break
+        next_path = match.group(1)
+        url = next_path if next_path.startswith('http') else f'https://ghcr.io{next_path}'
+    return tags
+
+
+def _ghcr_tag_digest(image_name, tag, token):
+    """HEAD the manifest for `tag`, returning its Docker-Content-Digest
+    (or '' if the tag doesn't exist / the request fails). Cheap —
+    HEAD returns no body — so safe to call once per candidate tag."""
+    try:
+        resp = http_requests.head(
+            f'https://ghcr.io/v2/{image_name}/manifests/{tag}',
+            headers={
+                'Authorization': f'Bearer {token}',
+                'Accept': _GHCR_MANIFEST_ACCEPT,
+            },
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return ''
+        return resp.headers.get('Docker-Content-Digest', '')
+    except http_requests.RequestException:
+        return ''
+
+
+def _get_latest_player_version(device_type='pi4'):
+    """Query GHCR for the player build the floating `latest-<board>`
+    tag actually points at right now. Cached 5 min.
+
+    Uses the anonymous token endpoint (works without authentication for
+    public/org-visible packages). The `tags/list` API's own ordering is
+    NOT reliable — it isn't chronological or otherwise sorted, so
+    treating "last in the list" as "newest" (the previous approach)
+    could pick an arbitrarily old tag. Confirmed live: it returned a
+    7-day-old commit as "latest", which made update_check report an
+    update was available when the device was already newer — clicking
+    Update then correctly found nothing to pull (Watchtower comparing
+    the real `latest-<board>` tag, which hadn't changed), so the button
+    just reappeared on the next check. Fixed by resolving the actual
+    `latest-<board>` tag's manifest digest and matching it against each
+    candidate SHA/version tag's own digest — the one that matches is
+    the genuinely newest build, since publish-latest re-points
+    `latest-<board>` at the same manifest as the SHA tag it mirrors.
     """
     tag_suffix = _player_tag_suffix(device_type)
     cache_key = f'{PLAYER_VERSION_CACHE_KEY}:{device_type}'
@@ -78,33 +150,67 @@ def _get_latest_player_version(device_type='pi4'):
             return {'sha': '', 'error': f'Token endpoint returned {token_resp.status_code}'}
         token = token_resp.json().get('token', '')
 
-        # Step 2: list tags
-        tags_resp = http_requests.get(
-            f'https://ghcr.io/v2/{image_name}/tags/list',
-            headers={'Authorization': f'Bearer {token}'},
-            timeout=10,
-        )
-        if tags_resp.status_code != 200:
-            return {'sha': '', 'error': f'Tags API returned {tags_resp.status_code}'}
+        # Step 2: list tags (paginated — see _ghcr_list_all_tags)
+        tags = _ghcr_list_all_tags(image_name, token)
+        if not tags:
+            return {'sha': '', 'error': 'Tags API returned no tags'}
 
-        tags = tags_resp.json().get('tags', [])
-        # Collect SHA tags and version tags (last in list = newest)
-        latest_sha = ''
-        latest_version = ''
+        candidates = []
         for tag in tags:
             if not tag.endswith(tag_suffix) or 'latest' in tag:
                 continue
-            name = tag.replace(tag_suffix, '')
-            if name.startswith('v') and '.' in name:
-                latest_version = name  # e.g. "v1.0.0" — last wins
-            else:
-                latest_sha = name  # e.g. "abc1234" — last wins
+            candidates.append((tag, tag.replace(tag_suffix, '')))
+
+        if not candidates:
+            return {'sha': '', 'version': '', 'error': 'No tags found'}
+
+        # Step 3: resolve what `latest-<board>` actually points at now.
+        latest_digest = _ghcr_tag_digest(image_name, f'latest{tag_suffix}', token)
+        if not latest_digest:
+            return {
+                'sha': '', 'version': '',
+                'error': f'Could not resolve latest{tag_suffix} digest',
+            }
+
+        # Step 4: find the candidate tag sharing that digest. Bounded —
+        # a long-lived repo accumulates many SHA tags over time, and
+        # each check is one more HEAD request. Fired concurrently
+        # (sequential HEAD-per-candidate took 17s+ live against ~250
+        # tags) with a bounded worker pool; result is cached for 5
+        # minutes regardless, so this only pays the full cost once per
+        # cache window rather than per page load.
+        #
+        # Not a `with ThreadPoolExecutor(...)` block on purpose: its
+        # __exit__ calls shutdown(wait=True), which blocks for every
+        # submitted future to finish even after the `break` below found
+        # a match — cancel_futures=True on an explicit shutdown() is
+        # what actually lets an early match skip the rest.
+        scoped = candidates[:200]
+        latest_sha = ''
+        latest_version = ''
+        executor = ThreadPoolExecutor(max_workers=16)
+        try:
+            futures = {
+                executor.submit(_ghcr_tag_digest, image_name, tag, token): (tag, name)
+                for tag, name in scoped
+            }
+            for future in as_completed(futures):
+                tag, name = futures[future]
+                if future.result() != latest_digest:
+                    continue
+                if name.startswith('v') and '.' in name:
+                    latest_version = name
+                else:
+                    latest_sha = name
+                break
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
         if latest_sha or latest_version:
             result = {'sha': latest_sha, 'version': latest_version}
             cache.set(cache_key, result, PLAYER_VERSION_CACHE_TTL)
             return result
-        return {'sha': '', 'version': '', 'error': 'No tags found'}
+        return {'sha': '', 'version': '', 'error': 'Could not match latest tag to a digest'}
     except Exception as e:
         logger.warning('Failed to check GHCR for player version: %s', e)
         return {'sha': '', 'error': str(e)}

@@ -778,3 +778,162 @@ class PlayerUpdateCheckTests(TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(resp.json()['update_available'])
+
+
+def _fake_response(status_code=200, json_data=None, headers=None):
+    resp = MagicMock()
+    resp.status_code = status_code
+    resp.json.return_value = json_data or {}
+    resp.headers = headers or {}
+    return resp
+
+
+class GhcrListAllTagsTests(TestCase):
+    """GHCR's tags/list paginates at ~100/page via a Link: rel="next"
+    header — confirmed live the tag matching the published latest-
+    <board> digest was on page 2, so reading only page 1 (the previous
+    behaviour) could miss it entirely."""
+
+    @patch('players.views.http_requests.get')
+    def test_follows_link_header_pagination(self, mock_get):
+        page1 = _fake_response(
+            json_data={'tags': ['a', 'b']},
+            headers={'Link': '</v2/img/tags/list?last=b>; rel="next"'},
+        )
+        page2 = _fake_response(json_data={'tags': ['c']}, headers={})
+        mock_get.side_effect = [page1, page2]
+
+        from .views import _ghcr_list_all_tags
+        tags = _ghcr_list_all_tags('img', 'tok')
+
+        self.assertEqual(tags, ['a', 'b', 'c'])
+        self.assertEqual(mock_get.call_count, 2)
+        second_call_url = mock_get.call_args_list[1].args[0]
+        self.assertEqual(second_call_url, 'https://ghcr.io/v2/img/tags/list?last=b')
+
+    @patch('players.views.http_requests.get')
+    def test_stops_without_link_header(self, mock_get):
+        mock_get.return_value = _fake_response(json_data={'tags': ['a']}, headers={})
+
+        from .views import _ghcr_list_all_tags
+        tags = _ghcr_list_all_tags('img', 'tok')
+
+        self.assertEqual(tags, ['a'])
+        mock_get.assert_called_once()
+
+    @patch('players.views.http_requests.get')
+    def test_respects_max_pages_cap(self, mock_get):
+        def make_page(n):
+            return _fake_response(
+                json_data={'tags': [f'tag{n}']},
+                headers={'Link': f'</v2/img/tags/list?last=tag{n}>; rel="next"'},
+            )
+        mock_get.side_effect = [make_page(i) for i in range(10)]
+
+        from .views import _ghcr_list_all_tags
+        tags = _ghcr_list_all_tags('img', 'tok', max_pages=3)
+
+        self.assertEqual(tags, ['tag0', 'tag1', 'tag2'])
+        self.assertEqual(mock_get.call_count, 3)
+
+
+class GhcrTagDigestTests(TestCase):
+    @patch('players.views.http_requests.head')
+    def test_returns_digest_on_success(self, mock_head):
+        mock_head.return_value = _fake_response(
+            headers={'Docker-Content-Digest': 'sha256:abc'},
+        )
+        from .views import _ghcr_tag_digest
+        self.assertEqual(_ghcr_tag_digest('img', 'tag', 'tok'), 'sha256:abc')
+
+    @patch('players.views.http_requests.head')
+    def test_empty_on_non_200(self, mock_head):
+        mock_head.return_value = _fake_response(status_code=404)
+        from .views import _ghcr_tag_digest
+        self.assertEqual(_ghcr_tag_digest('img', 'tag', 'tok'), '')
+
+    @patch('players.views.http_requests.head')
+    def test_empty_on_request_exception(self, mock_head):
+        import requests
+        mock_head.side_effect = requests.RequestException('boom')
+        from .views import _ghcr_tag_digest
+        self.assertEqual(_ghcr_tag_digest('img', 'tag', 'tok'), '')
+
+
+class GetLatestPlayerVersionTests(TestCase):
+    """The actual bug (live-confirmed, not just hypothetical): GHCR's
+    tag list order isn't chronological, so treating "last in the
+    unordered list" as "newest" could return an arbitrarily old tag —
+    it once returned a 7-day-old commit as "latest" against a device
+    that was already newer, permanently showing a phantom update.
+    Fixed by resolving latest-<board>'s own manifest digest and
+    matching candidate tags against it, rather than guessing from list
+    position — these tests build a candidate list in a deliberately
+    "wrong" order (the true match last) to prove the fix doesn't care
+    about ordering at all."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    @patch('players.views._ghcr_tag_digest')
+    @patch('players.views._ghcr_list_all_tags')
+    @patch('players.views.http_requests.get')
+    def test_matches_by_digest_not_list_order(
+        self, mock_get, mock_list_tags, mock_digest,
+    ):
+        mock_get.return_value = _fake_response(json_data={'token': 'tok'})
+        # Deliberately: the newest-looking name is NOT last, and the
+        # tag that actually matches latest's digest ('oldlooking') is
+        # buried in the middle — proving the match is by digest, not
+        # position.
+        mock_list_tags.return_value = [
+            'zzzzzzz-pi4-64', 'oldlooking-pi4-64', 'aaaaaaa-pi4-64',
+            'latest-pi4-64', 'buildcache-pi4-64',
+        ]
+
+        def digest_side_effect(image_name, tag, token):
+            return {
+                'latest-pi4-64': 'sha256:same',
+                'oldlooking-pi4-64': 'sha256:same',
+                'zzzzzzz-pi4-64': 'sha256:different',
+                'aaaaaaa-pi4-64': 'sha256:different',
+            }.get(tag, '')
+        mock_digest.side_effect = digest_side_effect
+
+        from .views import _get_latest_player_version
+        result = _get_latest_player_version('pi4')
+
+        self.assertEqual(result['sha'], 'oldlooking')
+
+    @patch('players.views._ghcr_tag_digest')
+    @patch('players.views._ghcr_list_all_tags')
+    @patch('players.views.http_requests.get')
+    def test_error_when_latest_tag_digest_unresolvable(
+        self, mock_get, mock_list_tags, mock_digest,
+    ):
+        mock_get.return_value = _fake_response(json_data={'token': 'tok'})
+        mock_list_tags.return_value = ['abc1234-pi4-64']
+        mock_digest.return_value = ''  # latest-pi4-64 itself 404s
+
+        from .views import _get_latest_player_version
+        result = _get_latest_player_version('pi4')
+
+        self.assertEqual(result['sha'], '')
+        self.assertIn('error', result)
+
+    @patch('players.views._ghcr_tag_digest')
+    @patch('players.views._ghcr_list_all_tags')
+    @patch('players.views.http_requests.get')
+    def test_caches_result(self, mock_get, mock_list_tags, mock_digest):
+        mock_get.return_value = _fake_response(json_data={'token': 'tok'})
+        mock_list_tags.return_value = ['abc1234-pi4-64']
+        mock_digest.return_value = 'sha256:same'
+
+        from .views import _get_latest_player_version
+        first = _get_latest_player_version('pi4')
+        mock_list_tags.reset_mock()
+        second = _get_latest_player_version('pi4')
+
+        self.assertEqual(first, second)
+        mock_list_tags.assert_not_called()
