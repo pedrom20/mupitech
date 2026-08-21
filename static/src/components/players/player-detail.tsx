@@ -301,7 +301,7 @@ const PlayerDetail: React.FC = () => {
   const [generalSettingsError, setGeneralSettingsError] = useState(false)
   const [allGroups, setAllGroups] = useState<Group[]>([])
   const [allLocations, setAllLocations] = useState<Location[]>([])
-  const [locationForm, setLocationForm] = useState({ group: '', location: '' })
+  const [locationForm, setLocationForm] = useState({ group: '', location: '', url: '' })
   const [savingLocation, setSavingLocation] = useState(false)
   const [settingsForm, setSettingsForm] = useState({
     player_name: '',
@@ -1355,6 +1355,7 @@ const PlayerDetail: React.FC = () => {
     setLocationForm({
       group: player?.group_detail?.id || '',
       location: player?.location_detail?.id || player?.location || '',
+      url: player?.url || '',
     })
     // Branding/Image tab state — initialized alongside the general tab
     // (not only when clicked) since they all now live in one modal.
@@ -1490,10 +1491,17 @@ const PlayerDetail: React.FC = () => {
     if (!id) return
     setSavingLocation(true)
     try {
-      const updated = await playersApi.partialUpdate(id, {
+      const payload: Record<string, unknown> = {
         group: locationForm.group || null,
         location: locationForm.location || null,
-      } as unknown as Partial<Player>)
+      }
+      // url is a required, unique field on the model — only send it
+      // when non-blank so an accidentally-cleared field doesn't turn
+      // an otherwise-valid group/location save into a 400.
+      if (locationForm.url.trim()) {
+        payload.url = locationForm.url.trim()
+      }
+      const updated = await playersApi.partialUpdate(id, payload as unknown as Partial<Player>)
       setPlayer(updated)
       setShowSettingsModal(false)
       showToast('success', t('playerSettings.saveSuccess'))
@@ -3624,6 +3632,20 @@ const PlayerDetail: React.FC = () => {
                     <p className="text-muted mb-3" style={{ fontSize: '0.85rem' }}>
                       {t('playerSettings.locationHint')}
                     </p>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                        <FaNetworkWired className="me-1" />
+                        {t('playerSettings.deviceUrl')}
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="http://192.168.1.10"
+                        value={locationForm.url}
+                        onChange={e => setLocationForm({ ...locationForm, url: e.target.value })}
+                      />
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('playerSettings.deviceUrlHint')}</div>
+                    </div>
                     <div className="mb-3">
                       <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
                         <FaLayerGroup className="me-1" />

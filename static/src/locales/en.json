@@ -709,6 +709,8 @@
     "accessSsoHint": "Open the device's local dashboard with your Gestor de Mupis Digitais session, or turn that off for this device.",
     "accessReplaceHint": "Swap this device for a replacement unit, keeping its name, group, location and schedule.",
     "locationHint": "Assign this device to a group and/or location. This is a Gestor de Mupis Digitais setting only — it works even while the device is offline.",
+    "deviceUrl": "Device URL / IP",
+    "deviceUrlHint": "Normally kept up to date automatically by the device's own phone-home heartbeat. Correct it manually here if the device changed IP and hasn't phoned home yet, or if it's unreachable and you need to point at its new address.",
     "offlineError": "Couldn't reach the device to load its live settings. It may be offline. Its Location & Group can still be changed from the tab above.",
     "playerName": "Player Name",
     "defaultDuration": "Default Duration",
@@ -777,6 +779,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "deviceUrlManualEdit": "Added a Device URL / IP field to the Location tab of a player's settings — lets an admin manually correct a device's address (e.g. after it changed IP and hasn't phoned home yet, or while it's offline), without needing the device to be reachable",
       "migrateImageSudoFix": "Fixed migrating/rebuilding a device sometimes failing with \"permission denied\" connecting to Docker — device management commands now run with sudo instead of assuming the SSH user is already in the device's docker group",
       "provisionMissingProjectDirFix": "Fixed provisioning a new device failing at the \"Upload Configuration\" step with a \"No such file or directory\" error — the docker-compose.yml destination folder is now created before writing to it",
       "provisionTimezoneScopingFix": "Fixed provisioning sometimes crashing with a Python scoping error while registering the new device — a redundant conditional import was shadowing a date/time helper used elsewhere in the same step",
