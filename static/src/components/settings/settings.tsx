@@ -31,12 +31,11 @@ const Settings: React.FC = () => {
   const [language, setLanguage] = useState(i18n.language)
   const [serverUrl, setServerUrl] = useState(window.location.origin)
   const [copied, setCopied] = useState(false)
-  // Synced to ?tab= (not plain useState) so a full page refresh — not
-  // just client-side navigation — keeps whichever tab was open instead
-  // of always snapping back to 'general'.
+  // Synced to ?tab=/&section= (not plain useState) so a full page
+  // refresh — not just client-side navigation — keeps whichever group
+  // and sub-section was open instead of always snapping back to
+  // 'general'.
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeSettingsTab = searchParams.get('tab') || 'general'
-  const setActiveSettingsTab = (tab: string) => setSearchParams({ tab }, { replace: true })
 
   // Update section state
   const [buildDate, setBuildDate] = useState('')
@@ -229,49 +228,122 @@ const Settings: React.FC = () => {
       </div>
 
       {(() => {
-        const settingsTabs = [
-          { id: 'general', label: t('settings.general'), show: true },
-          { id: 'registration', label: t('settings.autoRegistration'), show: true },
-          { id: 'updates', label: t('updates.title'), show: true },
-          { id: 'tailscale', label: t('tailscale.title'), show: isSuperAdminRole(role) },
-          { id: 'alerts', label: t('alerts.title'), show: isSuperAdminRole(role) },
-          { id: 'registry', label: t('registryMirror.title'), show: isSuperAdminRole(role) },
-          { id: 'mfaProviders', label: t('mfaProviders.title'), show: isSuperAdminRole(role) },
-          { id: 'contentLibrary', label: t('contentLibrary.title'), show: isAdminRole(role) },
-          { id: 'branding', label: t('branding.title'), show: isAdminRole(role) },
-          { id: 'editorPermissions', label: t('editorPermissions.title'), show: isAdminRole(role) },
-          { id: 'users', label: t('users.title'), show: isAdminRole(role) },
-          { id: 'audit', label: t('audit.title'), show: isAdminRole(role) },
-        ].filter((tab) => tab.show)
+        // Groups collapse related tabs behind one sidebar entry with an
+        // internal sub-tab strip — the sidebar used to list every leaf
+        // section (12 entries for a superadmin); grouping related ones
+        // (system/self-update, security/network, content/branding,
+        // users/permissions/audit) cuts that down to 5 while every leaf
+        // section keeps its own id for ?tab=&section= deep-linking.
+        const settingsGroups = [
+          {
+            id: 'general',
+            label: t('settings.general'),
+            show: true,
+            subTabs: [
+              { id: 'preferences', label: t('settings.preferencesTab') },
+              { id: 'registration', label: t('settings.autoRegistration') },
+              { id: 'updates', label: t('updates.title') },
+            ],
+          },
+          {
+            id: 'security',
+            label: t('settings.securityGroup'),
+            show: isSuperAdminRole(role),
+            subTabs: [
+              { id: 'tailscale', label: t('tailscale.title') },
+              { id: 'mfaProviders', label: t('mfaProviders.title') },
+              { id: 'registry', label: t('registryMirror.title') },
+            ],
+          },
+          { id: 'alerts', label: t('alerts.title'), show: isSuperAdminRole(role), subTabs: null },
+          {
+            id: 'content',
+            label: t('settings.contentGroup'),
+            show: isAdminRole(role),
+            subTabs: [
+              { id: 'contentLibrary', label: t('contentLibrary.title') },
+              { id: 'branding', label: t('branding.title') },
+            ],
+          },
+          {
+            id: 'usersGroup',
+            label: t('settings.usersGroup'),
+            show: isAdminRole(role),
+            subTabs: [
+              { id: 'users', label: t('users.title') },
+              { id: 'editorPermissions', label: t('editorPermissions.title') },
+              { id: 'audit', label: t('audit.title') },
+            ],
+          },
+        ].filter((group) => group.show)
+
+        const activeGroupId = searchParams.get('tab') || settingsGroups[0]?.id || 'general'
+        const activeGroup = settingsGroups.find((g) => g.id === activeGroupId) || settingsGroups[0]
+        const activeSection = searchParams.get('section') || activeGroup?.subTabs?.[0]?.id || ''
+
+        const setActiveGroup = (groupId: string) => {
+          const group = settingsGroups.find((g) => g.id === groupId)
+          const firstSection = group?.subTabs?.[0]?.id
+          setSearchParams(firstSection ? { tab: groupId, section: firstSection } : { tab: groupId }, { replace: true })
+        }
+        const setActiveSection = (sectionId: string) => {
+          setSearchParams({ tab: activeGroupId, section: sectionId }, { replace: true })
+        }
 
         return (
       <div className="d-flex flex-column flex-md-row gap-3">
-        {/* Mobile: a dropdown instead of a horizontally-scrolling button strip */}
+        {/* Mobile: dropdown(s) instead of the sidebar + sub-tab strip */}
         <select
           className="form-select d-md-none"
-          value={activeSettingsTab}
-          onChange={(e) => setActiveSettingsTab(e.target.value)}
+          value={activeGroupId}
+          onChange={(e) => setActiveGroup(e.target.value)}
         >
-          {settingsTabs.map((tab) => (
-            <option key={tab.id} value={tab.id}>{tab.label}</option>
+          {settingsGroups.map((group) => (
+            <option key={group.id} value={group.id}>{group.label}</option>
           ))}
         </select>
+        {activeGroup?.subTabs && (
+          <select
+            className="form-select d-md-none"
+            value={activeSection}
+            onChange={(e) => setActiveSection(e.target.value)}
+          >
+            {activeGroup.subTabs.map((sub) => (
+              <option key={sub.id} value={sub.id}>{sub.label}</option>
+            ))}
+          </select>
+        )}
 
         <div className="fm-settings-nav d-none d-md-flex flex-column gap-1">
-          {settingsTabs.map((tab) => (
+          {settingsGroups.map((group) => (
             <button
-              key={tab.id}
+              key={group.id}
               type="button"
-              className={`btn btn-sm text-start ${activeSettingsTab === tab.id ? 'fm-btn-primary' : 'fm-btn-outline'}`}
-              onClick={() => setActiveSettingsTab(tab.id)}
+              className={`btn btn-sm text-start ${activeGroupId === group.id ? 'fm-btn-primary' : 'fm-btn-outline'}`}
+              onClick={() => setActiveGroup(group.id)}
             >
-              {tab.label}
+              {group.label}
             </button>
           ))}
         </div>
 
         <div className="flex-grow-1" style={{ minWidth: 0 }}>
-        {activeSettingsTab === 'general' && (
+        {activeGroup?.subTabs && (
+          <ul className="nav nav-pills mb-3 flex-nowrap overflow-x-auto">
+            {activeGroup.subTabs.map((sub) => (
+              <li className="nav-item" key={sub.id}>
+                <button
+                  type="button"
+                  className={`nav-link btn-sm ${activeSection === sub.id ? 'active' : ''}`}
+                  onClick={() => setActiveSection(sub.id)}
+                >
+                  {sub.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {activeSection === 'preferences' && (
         <div className="row g-3">
         <div className="col-12">
           <div className="fm-card fm-card-accent h-100">
@@ -385,7 +457,7 @@ const Settings: React.FC = () => {
         </div>
         )}
 
-        {activeSettingsTab === 'registration' && (
+        {activeSection === 'registration' && (
         <div className="row g-3">
         {/* Auto-Registration */}
         <div className="col-12">
@@ -439,7 +511,7 @@ const Settings: React.FC = () => {
         )}
 
         {/* Tailscale VPN — superadmin only */}
-        {activeSettingsTab === 'tailscale' && isSuperAdminRole(role) && (
+        {activeSection === 'tailscale' && isSuperAdminRole(role) && (
         <div className="row g-3">
         <div className="col-12">
           <div className="fm-card fm-card-accent h-100">
@@ -531,7 +603,7 @@ const Settings: React.FC = () => {
         </div>
         )}
 
-        {activeSettingsTab === 'updates' && (
+        {activeSection === 'updates' && (
         <div className="row g-3">
         {/* Updates */}
         <div className="col-12">
@@ -612,23 +684,23 @@ const Settings: React.FC = () => {
         </div>
         )}
 
-        {activeSettingsTab === 'alerts' && isSuperAdminRole(role) && (
+        {activeGroupId === 'alerts' && isSuperAdminRole(role) && (
           <AlertSettings />
         )}
 
-        {activeSettingsTab === 'registry' && isSuperAdminRole(role) && (
+        {activeSection === 'registry' && isSuperAdminRole(role) && (
           <RegistrySettings />
         )}
 
-        {activeSettingsTab === 'mfaProviders' && isSuperAdminRole(role) && (
+        {activeSection === 'mfaProviders' && isSuperAdminRole(role) && (
           <MFAProviderSettings />
         )}
 
-        {activeSettingsTab === 'contentLibrary' && isAdminRole(role) && (
+        {activeSection === 'contentLibrary' && isAdminRole(role) && (
           <ContentLibrarySettings />
         )}
 
-        {activeSettingsTab === 'branding' && isAdminRole(role) && (
+        {activeSection === 'branding' && isAdminRole(role) && (
           <div className="row g-3">
             <div className="col-lg-8">
               <BrandingSettings />
@@ -639,15 +711,15 @@ const Settings: React.FC = () => {
           </div>
         )}
 
-        {activeSettingsTab === 'editorPermissions' && isAdminRole(role) && (
+        {activeSection === 'editorPermissions' && isAdminRole(role) && (
           <EditorPermissionsSettings />
         )}
 
-        {activeSettingsTab === 'users' && isAdminRole(role) && (
+        {activeSection === 'users' && isAdminRole(role) && (
           <UsersSettings />
         )}
 
-        {activeSettingsTab === 'audit' && isAdminRole(role) && (
+        {activeSection === 'audit' && isAdminRole(role) && (
           <div className="row g-3">
           <div className="col-12">
             <div className="fm-card fm-card-accent">
