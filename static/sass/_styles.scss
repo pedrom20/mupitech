@@ -2802,3 +2802,19 @@ body {
     width: 100%;
   }
 }
+
+// Offline-alert custom intro editor (shared/rich-text-editor.tsx)
+.rich-text-editor-content {
+  min-height: 90px;
+  height: auto;
+
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: #adb5bd;
+  }
+
+  ul, ol {
+    margin-bottom: 0;
+    padding-left: 1.5rem;
+  }
+}

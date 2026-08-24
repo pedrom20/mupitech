@@ -412,11 +412,12 @@ def alert_settings(request):
     same pattern as Tailscale's authkey.
     """
     from fleet_manager.alerts import (
-        ALERTS_ENABLED_KEY, ALERTS_FROM_EMAIL_KEY, ALERTS_SMTP_HOST_KEY,
-        ALERTS_SMTP_PASSWORD_KEY, ALERTS_SMTP_PORT_KEY, ALERTS_SMTP_USE_TLS_KEY,
-        ALERTS_SMTP_USERNAME_KEY, ALERTS_THRESHOLD_MINUTES_KEY, DEFAULT_THRESHOLD_MINUTES,
-        EMAIL_GRAPH_CLIENT_ID_KEY, EMAIL_GRAPH_CLIENT_SECRET_KEY, EMAIL_GRAPH_SENDER_KEY,
-        EMAIL_GRAPH_TENANT_ID_KEY, EMAIL_MODE_KEY,
+        ALERTS_ENABLED_KEY, ALERTS_FROM_EMAIL_KEY, ALERTS_OFFLINE_INTRO_HTML_KEY,
+        ALERTS_SMTP_HOST_KEY, ALERTS_SMTP_PASSWORD_KEY, ALERTS_SMTP_PORT_KEY,
+        ALERTS_SMTP_USE_TLS_KEY, ALERTS_SMTP_USERNAME_KEY, ALERTS_THRESHOLD_MINUTES_KEY,
+        DEFAULT_THRESHOLD_MINUTES, EMAIL_GRAPH_CLIENT_ID_KEY, EMAIL_GRAPH_CLIENT_SECRET_KEY,
+        EMAIL_GRAPH_SENDER_KEY, EMAIL_GRAPH_TENANT_ID_KEY, EMAIL_MODE_KEY,
+        sanitize_offline_intro_html,
     )
 
     def _current():
@@ -434,6 +435,7 @@ def alert_settings(request):
             'graph_client_id': cache.get(EMAIL_GRAPH_CLIENT_ID_KEY, ''),
             'has_graph_client_secret': bool(cache.get(EMAIL_GRAPH_CLIENT_SECRET_KEY)),
             'graph_sender': cache.get(EMAIL_GRAPH_SENDER_KEY, ''),
+            'offline_intro_html': cache.get(ALERTS_OFFLINE_INTRO_HTML_KEY, ''),
         }
 
     if request.method == 'GET':
@@ -484,6 +486,8 @@ def alert_settings(request):
             cache.delete(EMAIL_GRAPH_CLIENT_SECRET_KEY)
     if 'graph_sender' in data:
         cache.set(EMAIL_GRAPH_SENDER_KEY, data['graph_sender'] or '', None)
+    if 'offline_intro_html' in data:
+        cache.set(ALERTS_OFFLINE_INTRO_HTML_KEY, sanitize_offline_intro_html(data['offline_intro_html']), None)
 
     from history.logging import log_action
     log_action(request, 'update', 'settings', target_name='alerts',

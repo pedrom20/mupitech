@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaBell, FaSave, FaPaperPlane, FaEye, FaEyeSlash } from 'react-icons/fa'
+import { FaBell, FaSave, FaPaperPlane, FaEye, FaEyeSlash, FaUndo } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { system } from '@/services/api'
 import { showToast } from '@/utils/toast'
+import RichTextEditor from '@/components/shared/rich-text-editor'
 import type { AlertSettings as AlertSettingsType } from '@/types'
 
 const AlertSettings: React.FC = () => {
@@ -24,6 +25,8 @@ const AlertSettings: React.FC = () => {
   const [graphClientSecret, setGraphClientSecret] = useState('')
   const [showGraphSecret, setShowGraphSecret] = useState(false)
   const [graphSender, setGraphSender] = useState('')
+  const [offlineIntroHtml, setOfflineIntroHtml] = useState('')
+  const [editorResetKey, setEditorResetKey] = useState(0)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testingOffline, setTestingOffline] = useState(false)
@@ -42,6 +45,8 @@ const AlertSettings: React.FC = () => {
       setGraphTenantId(res.graph_tenant_id)
       setGraphClientId(res.graph_client_id)
       setGraphSender(res.graph_sender)
+      setOfflineIntroHtml(res.offline_intro_html || '')
+      setEditorResetKey((k) => k + 1)
     }).catch(() => {})
   }, [])
 
@@ -61,6 +66,7 @@ const AlertSettings: React.FC = () => {
       graph_tenant_id: graphTenantId,
       graph_client_id: graphClientId,
       graph_sender: graphSender,
+      offline_intro_html: offlineIntroHtml,
     }
     if (smtpPassword) {
       data.smtp_password = smtpPassword
@@ -72,6 +78,11 @@ const AlertSettings: React.FC = () => {
       setSettings(res)
       setSmtpPassword('')
       setGraphClientSecret('')
+      // The server sanitizes offline_intro_html (allowlist-strips any
+      // tag/attribute a paste could sneak in) — re-sync so the editor
+      // always reflects what's actually stored, not what was typed.
+      setOfflineIntroHtml(res.offline_intro_html || '')
+      setEditorResetKey((k) => k + 1)
       showToast('success', t('common.success'))
     }).catch((err) => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
@@ -89,6 +100,11 @@ const AlertSettings: React.FC = () => {
     }).catch((err) => {
       Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
     }).finally(() => setTesting(false))
+  }
+
+  const handleResetIntro = () => {
+    setOfflineIntroHtml('')
+    setEditorResetKey((k) => k + 1)
   }
 
   const handleTestOfflineEmail = () => {
@@ -143,6 +159,29 @@ const AlertSettings: React.FC = () => {
                 <span className="input-group-text">{t('settings.minutes')}</span>
               </div>
               <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('alerts.thresholdDesc')}</div>
+            </div>
+
+            <hr />
+            <div className="d-flex justify-content-between align-items-center mb-1">
+              <p className="fw-semibold mb-0" style={{ fontSize: '0.85rem' }}>{t('alerts.introEditorTitle')}</p>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={handleResetIntro}
+                title={t('alerts.introEditorReset')}
+              >
+                <FaUndo />
+                {t('alerts.introEditorReset')}
+              </button>
+            </div>
+            <p className="form-text mb-2" style={{ fontSize: '0.78rem' }}>{t('alerts.introEditorDesc')}</p>
+            <div className="mb-3">
+              <RichTextEditor
+                key={editorResetKey}
+                value={offlineIntroHtml}
+                onChange={setOfflineIntroHtml}
+                placeholder={t('alerts.introEditorPlaceholder')}
+              />
             </div>
 
             <hr />

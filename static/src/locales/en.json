@@ -781,6 +781,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "offlineAlertIntroEditor": "Added a text editor (Settings > Alerts) to customize the offline-device alert email's intro message, replacing the default wording — supports {count} as a placeholder for the number of offline devices",
       "offlineAlertDeviceNameSubject": "The offline-device alert email now includes the device's name in the subject when only one is offline, so it can be identified without opening the email — with multiple devices, the subject stays generic since they're still grouped into a single email",
       "deviceUrlManualEdit": "Added a Device URL / IP field to the Location tab of a player's settings — lets an admin manually correct a device's address (e.g. after it changed IP and hasn't phoned home yet, or while it's offline), without needing the device to be reachable",
       "repoRenameGhcrFix": "Fixed the FM getting stuck reporting no available update — the GitHub repository was renamed, and the CI build was silently publishing new images under the new name while this app was still pulling the old one",
@@ -1170,6 +1171,11 @@
     "enable": "Enable offline alert emails",
     "threshold": "Offline threshold",
     "thresholdDesc": "How long a device must stay offline before an alert is sent.",
+    "introEditorTitle": "Alert message",
+    "introEditorDesc": "Replaces the default \"N device(s) are offline\" intro paragraph in the alert email. Use {count} anywhere you want the actual number of offline devices inserted. Leave empty to use the default wording.",
+    "introEditorPlaceholder": "e.g. \"Attention: {count} device(s) require urgent attention.\"",
+    "introEditorReset": "Restore default",
+    "introEditorLinkPrompt": "Link URL",
     "smtpTitle": "Email sending",
     "emailModeDesc": "Used to send this alert, the email-based two-factor code, and password resets — pick how the app actually sends email.",
     "smtpHost": "SMTP host",
@@ -1187,7 +1193,7 @@
     "graphSenderHint": "The mailbox Graph sends as — needs a real Microsoft 365 mailbox (a shared mailbox works well) and the Mail.Send permission scoped to it.",
     "sendTest": "Send test email",
     "sendTestOffline": "Send real alert sample",
-    "sendTestOfflineHint": "Uses the real offline-devices alert template (with currently offline devices, or a sample if none are offline), instead of the generic text from the test above.",
+    "sendTestOfflineHint": "Uses the real offline-devices alert template — including your custom message above, if set — with currently offline devices, or a sample if none are offline, instead of the generic text from the test above.",
     "testSent": "Test email sent — check your inbox.",
     "testFailed": "Could not send the test email. Check the email settings."
   },

@@ -781,6 +781,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "offlineAlertIntroEditor": "Adicionado um editor de texto (Definições > Alertas) para personalizar a mensagem de introdução do email de alerta de dispositivo offline, substituindo o texto predefinido — suporta {count} como marcador para o número de dispositivos offline",
       "offlineAlertDeviceNameSubject": "O email de alerta de device offline passa a incluir o nome do device no assunto quando é só um a estar offline, para dar para identificar sem abrir o email — quando são vários, o assunto mantém-se genérico já que continuam agrupados num único email",
       "deviceUrlManualEdit": "Adicionado um campo URL / IP do Dispositivo ao separador Localização das definições de um device — permite a um admin corrigir manualmente o endereço de um device (ex: depois de mudar de IP e ainda não ter feito phone-home, ou enquanto está offline), sem precisar que o device esteja acessível",
       "repoRenameGhcrFix": "Corrigido o FM ficar preso a reportar que não há atualização disponível — o repositório do GitHub foi renomeado, e o build de CI passou a publicar as imagens novas com o nome novo em silêncio enquanto esta aplicação continuava a puxar a imagem antiga",
@@ -1170,6 +1171,11 @@
     "enable": "Ativar alertas por email",
     "threshold": "Limite de tempo offline",
     "thresholdDesc": "Quanto tempo um dispositivo tem de estar offline antes de um alerta ser enviado.",
+    "introEditorTitle": "Mensagem do alerta",
+    "introEditorDesc": "Substitui o parágrafo predefinido \"N dispositivo(s) estão offline\" no email de alerta. Use {count} em qualquer ponto do texto para inserir o número real de devices offline. Deixe vazio para usar o texto predefinido.",
+    "introEditorPlaceholder": "ex: \"Atenção: {count} dispositivo(s) precisam de verificação urgente.\"",
+    "introEditorReset": "Repor predefinição",
+    "introEditorLinkPrompt": "URL do link",
     "smtpTitle": "Envio de email",
     "emailModeDesc": "Usado para enviar este alerta, o código de dois fatores por email, e recuperações de password — escolhe como a aplicação envia mesmo os emails.",
     "smtpHost": "Servidor SMTP",
@@ -1187,7 +1193,7 @@
     "graphSenderHint": "A caixa de correio em nome da qual o Graph envia — precisa de ser uma caixa de correio Microsoft 365 real (uma caixa partilhada funciona bem) com a permissão Mail.Send restrita a ela.",
     "sendTest": "Enviar email de teste",
     "sendTestOffline": "Enviar exemplo de alerta real",
-    "sendTestOfflineHint": "Usa o template real do alerta de devices offline (com os devices offline atuais, ou um exemplo se nenhum estiver offline), em vez do texto genérico do teste acima.",
+    "sendTestOfflineHint": "Usa o template real do alerta de devices offline — incluindo a sua mensagem personalizada acima, se definida — com os devices offline atuais, ou um exemplo se nenhum estiver offline, em vez do texto genérico do teste acima.",
     "testSent": "Email de teste enviado — verifique a sua caixa de entrada.",
     "testFailed": "Não foi possível enviar o email de teste. Verifique as definições de email."
   },

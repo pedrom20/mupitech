@@ -203,6 +203,7 @@ export interface AlertSettings {
   graph_client_id: string
   has_graph_client_secret: boolean
   graph_sender: string
+  offline_intro_html: string
 }
 
 export interface EditorCapabilities {

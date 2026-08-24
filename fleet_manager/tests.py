@@ -228,6 +228,29 @@ class OfflineAlertEmailTests(TestCase):
         from fleet_manager import alerts
         cache.set(alerts.ALERTS_SMTP_HOST_KEY, 'localhost', None)
         cache.set(alerts.ALERTS_FROM_EMAIL_KEY, 'alerts@mupitech.local', None)
+        cache.delete(alerts.ALERTS_OFFLINE_INTRO_HTML_KEY)
+
+    def test_custom_intro_html_replaces_default_wording(self):
+        """Settings > Alerts lets an admin write their own intro
+        paragraph (WYSIWYG editor) — when set, it replaces the default
+        "N device(s) are offline" wording in both the HTML and
+        plain-text bodies, and {count} is substituted with the real
+        number of offline devices."""
+        from django.core.cache import cache
+        from django.utils import timezone
+        from fleet_manager import alerts
+
+        cache.set(
+            alerts.ALERTS_OFFLINE_INTRO_HTML_KEY,
+            '<p>Atenção: {count} equipamento(s) precisam de verificação urgente.</p>',
+            None,
+        )
+        players = [alerts._SamplePlayer('Loja Centro', timezone.now())]
+        _subject, text_body, html, _images = alerts._offline_alert_content(players)
+
+        self.assertIn('Atenção: 1 equipamento(s) precisam de verificação urgente.', html)
+        self.assertIn('Atenção: 1 equipamento(s) precisam de verificação urgente.', text_body)
+        self.assertNotIn('estão offline há mais tempo do que o esperado', html)
 
     def test_offline_alert_message_has_html_alternative_in_portuguese(self):
         from django.utils import timezone
@@ -323,6 +346,38 @@ class OfflineAlertEmailTests(TestCase):
         self.assertEqual(len(image_parts), 1)
         self.assertEqual(image_parts[0]['Content-ID'], '<mupitech-logo>')
         self.assertEqual(image_parts[0].get_content_disposition(), 'inline')
+
+
+class SanitizeOfflineIntroHtmlTests(TestCase):
+    """sanitize_offline_intro_html() is the write-side guard for the
+    Settings > Alerts custom intro editor — its output is later
+    embedded directly into outgoing alert emails, so it must strip
+    anything beyond plain formatting even though only a superadmin can
+    reach the endpoint that calls it."""
+
+    def test_strips_script_tags(self):
+        from fleet_manager.alerts import sanitize_offline_intro_html
+        cleaned = sanitize_offline_intro_html('<p>Olá</p><script>alert(1)</script>')
+        self.assertNotIn('<script', cleaned)
+        self.assertIn('<p>Olá</p>', cleaned)
+
+    def test_strips_javascript_href(self):
+        from fleet_manager.alerts import sanitize_offline_intro_html
+        cleaned = sanitize_offline_intro_html('<a href="javascript:alert(1)">click</a>')
+        self.assertNotIn('javascript:', cleaned)
+
+    def test_keeps_basic_formatting(self):
+        from fleet_manager.alerts import sanitize_offline_intro_html
+        cleaned = sanitize_offline_intro_html(
+            '<p>Texto <b>importante</b> e <a href="https://example.com">link</a></p>'
+        )
+        self.assertIn('<b>importante</b>', cleaned)
+        self.assertIn('<a href="https://example.com">link</a>', cleaned)
+
+    def test_empty_input_returns_empty_string(self):
+        from fleet_manager.alerts import sanitize_offline_intro_html
+        self.assertEqual(sanitize_offline_intro_html(''), '')
+        self.assertEqual(sanitize_offline_intro_html(None), '')
 
 
 class DeviceLoginMFATests(TestCase):

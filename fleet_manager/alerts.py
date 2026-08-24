@@ -35,6 +35,10 @@ ALERTS_SMTP_USERNAME_KEY = 'system:alerts_smtp_username'
 ALERTS_SMTP_PASSWORD_KEY = 'system:alerts_smtp_password'
 ALERTS_SMTP_USE_TLS_KEY = 'system:alerts_smtp_use_tls'
 ALERTS_FROM_EMAIL_KEY = 'system:alerts_from_email'
+# Admin-authored replacement for the default "N device(s) are offline"
+# intro paragraph (Settings > Alerts WYSIWYG editor), sanitized HTML.
+# Empty means "use the default wording".
+ALERTS_OFFLINE_INTRO_HTML_KEY = 'system:alerts_offline_intro_html'
 
 EMAIL_MODE_KEY = 'system:email_mode'  # 'smtp' | 'graph'
 EMAIL_GRAPH_TENANT_ID_KEY = 'system:email_graph_tenant_id'
@@ -47,6 +51,41 @@ EMAIL_GRAPH_SENDER_KEY = 'system:email_graph_sender'
 _EMAIL_GRAPH_TOKEN_CACHE_KEY = 'system:_email_graph_token_cache'
 
 DEFAULT_THRESHOLD_MINUTES = 15
+
+
+_INTRO_ALLOWED_TAGS = ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'a']
+_INTRO_ALLOWED_ATTRS = {'a': ['href']}
+
+
+def sanitize_offline_intro_html(raw_html):
+    """Allowlist-sanitizes the admin-authored custom intro (Settings >
+    Alerts WYSIWYG editor) before it's stored. Only a superadmin can set
+    this, but the value is later embedded directly into outgoing alert
+    emails to every opted-in admin, so it still must never carry
+    scripts/event handlers/iframes/unsafe-scheme links — same reasoning
+    as escaping device names in _offline_alert_content below, just at
+    the write side instead of the render side."""
+    import bleach
+    return bleach.clean(
+        raw_html or '',
+        tags=_INTRO_ALLOWED_TAGS,
+        attributes=_INTRO_ALLOWED_ATTRS,
+        protocols=['http', 'https', 'mailto'],
+        strip=True,
+    ).strip()
+
+
+def _offline_intro_html_to_text(html):
+    """Best-effort HTML-to-plain-text for the custom intro, used in the
+    plain-text alternative part of the alert email."""
+    import re
+
+    import bleach
+    text = re.sub(r'(?i)<br\s*/?>', '\n', html)
+    text = re.sub(r'(?i)</(p|li)>', '\n', text)
+    text = bleach.clean(text, tags=[], attributes={}, strip=True)
+    lines = [line.strip() for line in text.splitlines()]
+    return '\n'.join(line for line in lines if line)
 
 
 def _get_fernet():
@@ -284,13 +323,24 @@ def _offline_alert_content(offline_players, sample_notice=''):
         subject = f'[MupiTech] {count} dispositivos offline'
         subject_html = subject
 
-    lines = [f'{count} dispositivo(s) estão offline há mais tempo do que o esperado:', '']
+    default_intro_text = f'{count} dispositivo(s) estão offline há mais tempo do que o esperado:'
+    custom_intro_html = cache.get(ALERTS_OFFLINE_INTRO_HTML_KEY, '').strip()
+    if custom_intro_html:
+        # {count} is the one placeholder the WYSIWYG editor's hint tells
+        # admins they can use — swapped in after storage (not at save
+        # time) so the count is always the one from *this* send.
+        intro_html = custom_intro_html.replace('{count}', str(count))
+        intro_text = _offline_intro_html_to_text(custom_intro_html).replace('{count}', str(count))
+    else:
+        intro_html = f'<p style="margin:0 0 4px 0;font-size:14px;color:#4b5563;">{escape(default_intro_text)}</p>'
+        intro_text = default_intro_text
+
+    lines = [intro_text, '']
     for player in offline_players:
         last_seen = player.last_seen.strftime('%d/%m/%Y %H:%M') if player.last_seen else 'nunca'
         lines.append(f'- {player.name} (visto pela última vez: {last_seen})')
     text_body = '\n'.join(lines)
 
-    intro_html = f'<p style="margin:0 0 4px 0;font-size:14px;color:#4b5563;">{count} dispositivo(s) estão offline há mais tempo do que o esperado:</p>'
     if sample_notice:
         intro_html = (
             f'<p style="margin:0 0 12px 0;padding:10px 12px;background:#fff7e0;border:1px solid #f0d98c;'
