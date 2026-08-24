@@ -264,10 +264,25 @@ def _offline_alert_content(offline_players, sample_notice=''):
     every opted-in admin. `sample_notice`, if given, is prepended as an
     HTML paragraph (used only by the sample-data preview path, see
     send_test_offline_alert_email)."""
+    from html import escape
+
     from .email_branding import branded_email_html, offline_players_table_html
 
     count = len(offline_players)
-    subject = f'[MupiTech] {count} dispositivo(s) offline'
+    # A single device's name goes straight in the subject so it's
+    # identifiable from the inbox list without opening the email.
+    # Multiple devices already collapse into one summary email (see
+    # send_offline_alert_emails's docstring), where a name in the
+    # subject wouldn't scale — the generic count stays for that case.
+    # `subject` is the real (plain) SMTP subject / text-body value;
+    # `subject_html` is the escaped variant for branded_email_html's
+    # <h1> title, which renders its input as raw HTML.
+    if count == 1:
+        subject = f'[MupiTech] {offline_players[0].name} está offline'
+        subject_html = f'[MupiTech] {escape(offline_players[0].name)} está offline'
+    else:
+        subject = f'[MupiTech] {count} dispositivos offline'
+        subject_html = subject
 
     lines = [f'{count} dispositivo(s) estão offline há mais tempo do que o esperado:', '']
     for player in offline_players:
@@ -281,7 +296,7 @@ def _offline_alert_content(offline_players, sample_notice=''):
             f'<p style="margin:0 0 12px 0;padding:10px 12px;background:#fff7e0;border:1px solid #f0d98c;'
             f'border-radius:6px;font-size:13px;color:#7a5c00;">{sample_notice}</p>' + intro_html
         )
-    html_body, images = branded_email_html(subject, intro_html, offline_players_table_html(offline_players))
+    html_body, images = branded_email_html(subject_html, intro_html, offline_players_table_html(offline_players))
     return subject, text_body, html_body, images
 
 

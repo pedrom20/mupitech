@@ -781,6 +781,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "offlineAlertDeviceNameSubject": "O email de alerta de device offline passa a incluir o nome do device no assunto quando é só um a estar offline, para dar para identificar sem abrir o email — quando são vários, o assunto mantém-se genérico já que continuam agrupados num único email",
       "deviceUrlManualEdit": "Adicionado um campo URL / IP do Dispositivo ao separador Localização das definições de um device — permite a um admin corrigir manualmente o endereço de um device (ex: depois de mudar de IP e ainda não ter feito phone-home, ou enquanto está offline), sem precisar que o device esteja acessível",
       "repoRenameGhcrFix": "Corrigido o FM ficar preso a reportar que não há atualização disponível — o repositório do GitHub foi renomeado, e o build de CI passou a publicar as imagens novas com o nome novo em silêncio enquanto esta aplicação continuava a puxar a imagem antiga",
       "playerUpdateCheckFix": "Corrigido o \"Atualização disponível\" de um device nunca disparar — o formato da string de versão do device tinha mudado e a verificação falhava a interpretá-la em silêncio, pelo que o botão de atualizar nunca aparecia mesmo havendo uma versão mais recente. O botão passa também a mostrar qual a versão disponível.",

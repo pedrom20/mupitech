@@ -236,7 +236,9 @@ class OfflineAlertEmailTests(TestCase):
         players = [alerts._SamplePlayer('Loja Centro', timezone.now())]
         subject, _text_body, html, images = alerts._offline_alert_content(players)
 
-        self.assertIn('dispositivo(s) offline', subject)
+        # Single device: the name goes straight in the subject so it's
+        # identifiable from the inbox list without opening the email.
+        self.assertIn('Loja Centro', subject)
         self.assertIn('Loja Centro', html)
         self.assertIn('MupiTech', html)
         # Logo is a cid: inline attachment (not a data: URI — classic
@@ -245,6 +247,23 @@ class OfflineAlertEmailTests(TestCase):
         # which the caller must attach with matching Content-IDs.
         self.assertIn('cid:mupitech-logo', html)
         self.assertTrue(any(content_id == 'mupitech-logo' for content_id, _mime, _data in images))
+
+    def test_offline_alert_subject_stays_generic_for_multiple_devices(self):
+        """Multiple offline devices already collapse into one summary
+        email (send_offline_alert_emails's docstring) — a subject can't
+        scale to listing every name, so it keeps the device count
+        instead of picking just one name."""
+        from django.utils import timezone
+        from fleet_manager import alerts
+
+        players = [
+            alerts._SamplePlayer('Loja Centro', timezone.now()),
+            alerts._SamplePlayer('Loja Norte', timezone.now()),
+        ]
+        subject, _text_body, _html, _images = alerts._offline_alert_content(players)
+
+        self.assertIn('2 dispositivos offline', subject)
+        self.assertNotIn('Loja Centro', subject)
 
     def test_device_name_is_html_escaped_in_table(self):
         from fleet_manager import alerts
