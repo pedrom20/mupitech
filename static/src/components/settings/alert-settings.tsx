@@ -25,6 +25,8 @@ const AlertSettings: React.FC = () => {
   const [graphClientSecret, setGraphClientSecret] = useState('')
   const [showGraphSecret, setShowGraphSecret] = useState(false)
   const [graphSender, setGraphSender] = useState('')
+  const [offlineSubjectSingle, setOfflineSubjectSingle] = useState('')
+  const [offlineSubjectMultiple, setOfflineSubjectMultiple] = useState('')
   const [offlineIntroHtml, setOfflineIntroHtml] = useState('')
   const [editorResetKey, setEditorResetKey] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -45,6 +47,8 @@ const AlertSettings: React.FC = () => {
       setGraphTenantId(res.graph_tenant_id)
       setGraphClientId(res.graph_client_id)
       setGraphSender(res.graph_sender)
+      setOfflineSubjectSingle(res.offline_subject_single || '')
+      setOfflineSubjectMultiple(res.offline_subject_multiple || '')
       setOfflineIntroHtml(res.offline_intro_html || '')
       setEditorResetKey((k) => k + 1)
     }).catch(() => {})
@@ -66,6 +70,8 @@ const AlertSettings: React.FC = () => {
       graph_tenant_id: graphTenantId,
       graph_client_id: graphClientId,
       graph_sender: graphSender,
+      offline_subject_single: offlineSubjectSingle,
+      offline_subject_multiple: offlineSubjectMultiple,
       offline_intro_html: offlineIntroHtml,
     }
     if (smtpPassword) {
@@ -81,6 +87,8 @@ const AlertSettings: React.FC = () => {
       // The server sanitizes offline_intro_html (allowlist-strips any
       // tag/attribute a paste could sneak in) — re-sync so the editor
       // always reflects what's actually stored, not what was typed.
+      setOfflineSubjectSingle(res.offline_subject_single || '')
+      setOfflineSubjectMultiple(res.offline_subject_multiple || '')
       setOfflineIntroHtml(res.offline_intro_html || '')
       setEditorResetKey((k) => k + 1)
       showToast('success', t('common.success'))
@@ -102,7 +110,9 @@ const AlertSettings: React.FC = () => {
     }).finally(() => setTesting(false))
   }
 
-  const handleResetIntro = () => {
+  const handleResetTemplate = () => {
+    setOfflineSubjectSingle('')
+    setOfflineSubjectMultiple('')
     setOfflineIntroHtml('')
     setEditorResetKey((k) => k + 1)
   }
@@ -167,7 +177,7 @@ const AlertSettings: React.FC = () => {
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
-                onClick={handleResetIntro}
+                onClick={handleResetTemplate}
                 title={t('alerts.introEditorReset')}
               >
                 <FaUndo />
@@ -175,7 +185,33 @@ const AlertSettings: React.FC = () => {
               </button>
             </div>
             <p className="form-text mb-2" style={{ fontSize: '0.78rem' }}>{t('alerts.introEditorDesc')}</p>
+
+            <div className="mb-2">
+              <label className="form-label mb-1" style={{ fontSize: '0.85rem' }}>{t('alerts.subjectSingleLabel')}</label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                value={offlineSubjectSingle}
+                onChange={(e) => setOfflineSubjectSingle(e.target.value)}
+                placeholder={t('alerts.subjectSinglePlaceholder')}
+              />
+              <div className="form-text" style={{ fontSize: '0.72rem' }}>{t('alerts.subjectSingleHint')}</div>
+            </div>
+
             <div className="mb-3">
+              <label className="form-label mb-1" style={{ fontSize: '0.85rem' }}>{t('alerts.subjectMultipleLabel')}</label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                value={offlineSubjectMultiple}
+                onChange={(e) => setOfflineSubjectMultiple(e.target.value)}
+                placeholder={t('alerts.subjectMultiplePlaceholder')}
+              />
+              <div className="form-text" style={{ fontSize: '0.72rem' }}>{t('alerts.subjectMultipleHint')}</div>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label mb-1" style={{ fontSize: '0.85rem' }}>{t('alerts.introEditorContentLabel')}</label>
               <RichTextEditor
                 key={editorResetKey}
                 value={offlineIntroHtml}

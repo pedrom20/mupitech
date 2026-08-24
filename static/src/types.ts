@@ -204,6 +204,8 @@ export interface AlertSettings {
   has_graph_client_secret: boolean
   graph_sender: string
   offline_intro_html: string
+  offline_subject_single: string
+  offline_subject_multiple: string
 }
 
 export interface EditorCapabilities {

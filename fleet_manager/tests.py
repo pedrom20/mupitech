@@ -229,6 +229,8 @@ class OfflineAlertEmailTests(TestCase):
         cache.set(alerts.ALERTS_SMTP_HOST_KEY, 'localhost', None)
         cache.set(alerts.ALERTS_FROM_EMAIL_KEY, 'alerts@mupitech.local', None)
         cache.delete(alerts.ALERTS_OFFLINE_INTRO_HTML_KEY)
+        cache.delete(alerts.ALERTS_OFFLINE_SUBJECT_SINGLE_KEY)
+        cache.delete(alerts.ALERTS_OFFLINE_SUBJECT_MULTIPLE_KEY)
 
     def test_custom_intro_html_replaces_default_wording(self):
         """Settings > Alerts lets an admin write their own intro
@@ -251,6 +253,42 @@ class OfflineAlertEmailTests(TestCase):
         self.assertIn('Atenção: 1 equipamento(s) precisam de verificação urgente.', html)
         self.assertIn('Atenção: 1 equipamento(s) precisam de verificação urgente.', text_body)
         self.assertNotIn('estão offline há mais tempo do que o esperado', html)
+
+    def test_custom_subject_single_replaces_default_and_escapes_whole_subject(self):
+        """Settings > Alerts also lets an admin rewrite the subject/
+        title wording itself (single-device case), not just the intro
+        paragraph. The finished subject — not just the {device_name}
+        placeholder's value — is HTML-escaped before use as the <h1>
+        title, since the admin's own template text could carry HTML."""
+        from django.core.cache import cache
+        from django.utils import timezone
+        from fleet_manager import alerts
+
+        cache.set(
+            alerts.ALERTS_OFFLINE_SUBJECT_SINGLE_KEY,
+            'URGENTE <b>{device_name}</b> caiu!',
+            None,
+        )
+        players = [alerts._SamplePlayer('Loja Centro', timezone.now())]
+        subject, _text_body, html, _images = alerts._offline_alert_content(players)
+
+        self.assertEqual(subject, 'URGENTE <b>Loja Centro</b> caiu!')
+        self.assertNotIn('URGENTE <b>Loja Centro</b> caiu!', html)
+        self.assertIn('URGENTE &lt;b&gt;Loja Centro&lt;/b&gt; caiu!', html)
+
+    def test_custom_subject_multiple_replaces_default(self):
+        from django.core.cache import cache
+        from django.utils import timezone
+        from fleet_manager import alerts
+
+        cache.set(alerts.ALERTS_OFFLINE_SUBJECT_MULTIPLE_KEY, 'Atenção: {count} equipamentos em baixo', None)
+        players = [
+            alerts._SamplePlayer('Loja Centro', timezone.now()),
+            alerts._SamplePlayer('Loja Norte', timezone.now()),
+        ]
+        subject, _text_body, _html, _images = alerts._offline_alert_content(players)
+
+        self.assertEqual(subject, 'Atenção: 2 equipamentos em baixo')
 
     def test_offline_alert_message_has_html_alternative_in_portuguese(self):
         from django.utils import timezone

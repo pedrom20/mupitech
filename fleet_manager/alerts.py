@@ -39,6 +39,14 @@ ALERTS_FROM_EMAIL_KEY = 'system:alerts_from_email'
 # intro paragraph (Settings > Alerts WYSIWYG editor), sanitized HTML.
 # Empty means "use the default wording".
 ALERTS_OFFLINE_INTRO_HTML_KEY = 'system:alerts_offline_intro_html'
+# Admin-authored replacements for the email subject/title — separate
+# templates for the single-device and multiple-device cases (the two
+# already have different default wording and placeholders: {device_name}
+# vs {count}). Plain text, not HTML — the subject is also the literal
+# SMTP header, and the <h1> title it doubles as is built by HTML-
+# escaping the finished subject as a whole (see _offline_alert_content).
+ALERTS_OFFLINE_SUBJECT_SINGLE_KEY = 'system:alerts_offline_subject_single'
+ALERTS_OFFLINE_SUBJECT_MULTIPLE_KEY = 'system:alerts_offline_subject_multiple'
 
 EMAIL_MODE_KEY = 'system:email_mode'  # 'smtp' | 'graph'
 EMAIL_GRAPH_TENANT_ID_KEY = 'system:email_graph_tenant_id'
@@ -313,15 +321,23 @@ def _offline_alert_content(offline_players, sample_notice=''):
     # Multiple devices already collapse into one summary email (see
     # send_offline_alert_emails's docstring), where a name in the
     # subject wouldn't scale — the generic count stays for that case.
-    # `subject` is the real (plain) SMTP subject / text-body value;
-    # `subject_html` is the escaped variant for branded_email_html's
-    # <h1> title, which renders its input as raw HTML.
+    # Both variants are admin-customizable (Settings > Alerts) with
+    # their own placeholder; `subject` is the real (plain) SMTP subject
+    # / text-body value. `subject_html` escapes the *finished* subject
+    # as one string (not just the placeholder's value) for
+    # branded_email_html's <h1> title, which renders its input as raw
+    # HTML — the admin's own template text could otherwise carry HTML
+    # of its own.
     if count == 1:
-        subject = f'[MupiTech] {offline_players[0].name} está offline'
-        subject_html = f'[MupiTech] {escape(offline_players[0].name)} está offline'
+        device_name = offline_players[0].name
+        subject_template = cache.get(ALERTS_OFFLINE_SUBJECT_SINGLE_KEY, '').strip() \
+            or '[MupiTech] {device_name} está offline'
+        subject = subject_template.replace('{device_name}', device_name)
     else:
-        subject = f'[MupiTech] {count} dispositivos offline'
-        subject_html = subject
+        subject_template = cache.get(ALERTS_OFFLINE_SUBJECT_MULTIPLE_KEY, '').strip() \
+            or '[MupiTech] {count} dispositivos offline'
+        subject = subject_template.replace('{count}', str(count))
+    subject_html = escape(subject)
 
     default_intro_text = f'{count} dispositivo(s) estão offline há mais tempo do que o esperado:'
     custom_intro_html = cache.get(ALERTS_OFFLINE_INTRO_HTML_KEY, '').strip()
