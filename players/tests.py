@@ -78,6 +78,61 @@ class PlayerAPITests(TestCase):
         p = Player.objects.get(url='http://10.0.0.1')
         self.assertEqual(p.name, 'Existing')
 
+    def test_register_player_updates_url_via_mac_match(self):
+        """A device reporting a MAC is matched by that MAC even after
+        its IP changes — the url on file gets updated in place instead
+        of a second row appearing at the new address."""
+        Player.objects.create(name='RPI-Loja', url='http://10.0.0.5', mac_address='aa:bb:cc:dd:ee:01')
+        resp = self.client.post('/api/players/register/', {
+            'url': 'http://10.0.0.6', 'name': 'RPI-Loja', 'mac_address': 'AA:BB:CC:DD:EE:01',
+        }, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Player.objects.count(), 1)
+        p = Player.objects.get(mac_address='aa:bb:cc:dd:ee:01')
+        self.assertEqual(p.url, 'http://10.0.0.6')
+
+    def test_register_player_updates_url_via_name_fallback_when_no_mac(self):
+        """Older phone-home installs (predating MAC detection) send no
+        mac_address at all — once its IP changes, the hostname (`name`,
+        sent on every heartbeat) is the one remaining stable signal
+        that this is the SAME device at a new address, not a new one.
+        Only acted on when it uniquely identifies one existing mac-less
+        player, to avoid ever merging two different devices."""
+        Player.objects.create(name='RPI-Antigo', url='http://10.0.0.7')
+        resp = self.client.post('/api/players/register/', {
+            'url': 'http://10.0.0.8', 'name': 'RPI-Antigo',
+        }, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Player.objects.count(), 1)
+        p = Player.objects.get(name='RPI-Antigo')
+        self.assertEqual(p.url, 'http://10.0.0.8')
+        self.assertTrue(p.is_online)
+
+    def test_register_player_name_fallback_skipped_when_name_ambiguous(self):
+        """Two existing mac-less players sharing a hostname (default
+        image hostname never renamed, or provisioning mishap) must
+        never be silently merged — an ambiguous name match falls
+        through to creating a new row, same as before this fallback
+        existed."""
+        Player.objects.create(name='raspberrypi', url='http://10.0.0.9')
+        Player.objects.create(name='raspberrypi', url='http://10.0.0.10')
+        resp = self.client.post('/api/players/register/', {
+            'url': 'http://10.0.0.11', 'name': 'raspberrypi',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(Player.objects.count(), 3)
+
+    def test_register_player_creates_new_when_no_name_or_mac_match(self):
+        """Baseline: a genuinely new mac-less device (unfamiliar name
+        and url) still just creates a new row, unaffected by the name
+        fallback added above."""
+        Player.objects.create(name='RPI-Outro', url='http://10.0.0.12')
+        resp = self.client.post('/api/players/register/', {
+            'url': 'http://10.0.0.13', 'name': 'RPI-Novo',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(Player.objects.count(), 2)
+
     def test_register_player_missing_url(self):
         resp = self.client.post('/api/players/register/', {
             'name': 'No URL',

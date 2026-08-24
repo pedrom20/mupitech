@@ -1552,10 +1552,36 @@ def register_player(request):
             # branch above: an existing row may not be normalized yet.
             player = Player.objects.filter(url__in=[url, f'{url}/']).first()
             created = False
+            if player is None and not mac_address:
+                # No MAC to identify this device by (older phone-home
+                # script installed before MAC detection existed, or a
+                # board where it's genuinely unavailable) — the one
+                # other stable signal a changed IP still carries every
+                # heartbeat is the hostname (`name`). Only act on it
+                # when it uniquely identifies one existing mac-less
+                # player: an ambiguous match (two devices sharing a
+                # default/duplicated hostname) falls through to
+                # creating a new row instead, same as before — an
+                # orphaned duplicate is a recoverable data-hygiene
+                # nuisance, silently merging two different physical
+                # devices under one row is not.
+                candidates = list(Player.objects.filter(name=name, mac_address=''))
+                if len(candidates) == 1:
+                    player = candidates[0]
             if player is None:
                 player = Player.objects.create(url=url, **defaults)
                 created = True
             if not created:
+                # Clear out any OTHER row already sitting at this URL
+                # (e.g. one a previous, mac-less heartbeat from this
+                # same device created before it matched here) — same
+                # reasoning as the MAC branch's own cleanup above.
+                Player.objects.filter(
+                    url__in=[url, f'{url}/'],
+                ).exclude(pk=player.pk).delete()
+                if player.url != url:
+                    player.url = url
+                    update_fields.append('url')
                 player.is_online = True
                 player.last_seen = now
                 player.last_status = info
