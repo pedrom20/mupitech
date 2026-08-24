@@ -59,6 +59,7 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:9000}
       PLAYER_REGISTER_TOKEN: ${PLAYER_REGISTER_TOKEN:-}
+      FM_PUBLIC_URL: ${FM_PUBLIC_URL:-}
     depends_on:
       db:
         condition: service_healthy
