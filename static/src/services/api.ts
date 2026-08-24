@@ -1,4 +1,4 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, EditorCapabilities, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus, FooterMessage } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, EditorCapabilities, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus, FooterMessage, FooterSettings } from '@/types'
 
 const BASE_URL = '/api'
 
@@ -548,6 +548,26 @@ export const footerMessages = {
 
   delete(id: string): Promise<void> {
     return apiRequest<void>('DELETE', `/footer-messages/${id}/`)
+  },
+
+  getSettings(): Promise<FooterSettings> {
+    return apiRequest<FooterSettings>('GET', '/footer-messages-settings/')
+  },
+
+  updateSettings(cycleIntervalMinutes: number): Promise<FooterSettings> {
+    return apiRequest<FooterSettings>('PATCH', '/footer-messages-settings/', {
+      cycle_interval_minutes: cycleIntervalMinutes,
+    })
+  },
+
+  uploadLogo(file: File): Promise<{ success: boolean; logo_url: string }> {
+    const data = new FormData()
+    data.append('logo', file)
+    return apiRequest('POST', '/footer-messages-settings/logo/', data)
+  },
+
+  deleteLogo(): Promise<void> {
+    return apiRequest('DELETE', '/footer-messages-settings/logo/')
   },
 }
 

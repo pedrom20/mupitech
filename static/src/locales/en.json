@@ -232,12 +232,22 @@
     "subtitle": "Scrolling messages shown in a ticker bar at the bottom of the screen on selected devices.",
     "addMessage": "Add Message",
     "editMessage": "Edit Message",
-    "text": "Message text",
+    "titleField": "Title",
+    "titleFieldHint": "For your own reference in this list only — never shown on a device.",
+    "messageField": "Message",
+    "messageFieldHint": "What actually shows in the device's footer. You can write it across several lines here for your own convenience — it's always shown as a single line on the device.",
+    "noMessage": "No message text yet",
     "order": "Order",
     "active": "Active",
     "inactive": "Inactive",
     "targetsLockedHint": "Only an admin can change which devices show this message. You can still edit its text and ordering.",
-    "confirmDelete": "Are you sure you want to delete this message?"
+    "confirmDelete": "Are you sure you want to delete this message?",
+    "settingsTitle": "Footer settings",
+    "cycleInterval": "Show-again interval",
+    "cycleIntervalHint": "How long the footer stays hidden after a full pass before showing again. 0 = always visible (previous behavior). Applies to the whole fleet.",
+    "logo": "Logo",
+    "logoHint": "Shown at the left edge of the footer bar, overlapping it. Applies to the whole fleet. PNG, JPEG or GIF.",
+    "uploadLogo": "Upload"
   },
   "history": {
     "title": "Playback History",
@@ -785,6 +795,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "footerLogoAndCycle": "The footer message ticker now supports a fleet-wide logo (overlapping the bar's left edge) and a configurable interval between appearances — instead of always being visible, it shows, plays through the messages, and hides again until the next interval. The bar also now has rounded top corners and stops a bit short of the screen's right edge",
+      "footerTitleMessageSplit": "In footer message management, the text field is now split into Title (admin organization only) and Message (what shows on the device, always collapsed to one line even if written across several)",
       "alertsSubTabs": "The Email Alerts section is now split into three tabs — Settings (enable/threshold), Template (email subject and body), and Server settings (SMTP/Graph) — instead of everything on one page",
       "offlineAlertSubjectEditor": "The offline-alert message editor (Settings > Alerts) now also lets you customize the email's subject/title — separately for the single-device and multiple-device cases — in addition to the existing body editor",
       "settingsGroupedNav": "Reorganized the Settings menu — the various sections are now grouped into tabs (General, Security & Network, Content & Branding, Users & Access) with internal sub-navigation, substantially cutting down the number of options in the sidebar",

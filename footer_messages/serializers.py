@@ -15,7 +15,7 @@ class FooterMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = FooterMessage
         fields = [
-            'id', 'text', 'order', 'is_active',
+            'id', 'title', 'message', 'order', 'is_active',
             'target_players', 'target_players_detail',
             'target_groups', 'target_groups_detail',
             'target_locations', 'target_locations_detail',

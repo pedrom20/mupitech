@@ -18,19 +18,29 @@ def sync_footer_messages_for_players(self, player_ids):
     from players.models import Player
     from players.services import AnthiasAPIClient, PlayerConnectionError
 
-    from .services import compute_message_map_for_players
+    from .services import (
+        compute_message_map_for_players, footer_cycle_interval_minutes,
+        footer_logo_absolute_url,
+    )
 
     player_ids = list(dict.fromkeys(player_ids))
     if not player_ids:
         return
 
     message_map = compute_message_map_for_players(player_ids)
+    # Same for every player in this batch — resolved once rather than
+    # per-player, since both are fleet-wide (see the plan doc's
+    # "Decisão de arquitetura" note on why this isn't per-device).
+    cycle_interval_minutes = footer_cycle_interval_minutes()
+    logo_url = footer_logo_absolute_url()
 
     for player in Player.objects.filter(id__in=player_ids):
         texts = message_map.get(str(player.id), [])
         payload = {
             'footer_enabled': bool(texts),
             'footer_messages': texts,
+            'footer_cycle_interval_minutes': cycle_interval_minutes,
+            'footer_logo_url': logo_url,
         }
         try:
             AnthiasAPIClient(player).update_device_settings(payload)
@@ -38,3 +48,23 @@ def sync_footer_messages_for_players(self, player_ids):
             logger.warning('Could not push footer messages to %s: %s', player.name, exc)
         except Exception:
             logger.exception('Unexpected error pushing footer messages to %s', player.name)
+
+
+@shared_task(bind=True, max_retries=0)
+def sync_all_footer_players(self):
+    """Re-push every player that currently has at least one active
+    footer message — used when a fleet-wide footer setting changes
+    (cycle interval, logo), which affects every one of those players
+    at once rather than one message's own targets (see
+    footer_messages/views.py's footer_settings/footer_logo)."""
+    from players.models import Player
+
+    from .services import compute_message_map_for_players
+
+    all_ids = list(Player.objects.values_list('id', flat=True))
+    if not all_ids:
+        return
+    message_map = compute_message_map_for_players(all_ids)
+    affected = [pid for pid, texts in message_map.items() if texts]
+    if affected:
+        sync_footer_messages_for_players(affected)

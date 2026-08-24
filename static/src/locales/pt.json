@@ -232,12 +232,22 @@
     "subtitle": "Mensagens em rolamento mostradas numa barra no fundo do ecrã nos dispositivos selecionados.",
     "addMessage": "Adicionar Mensagem",
     "editMessage": "Editar Mensagem",
-    "text": "Texto da mensagem",
+    "titleField": "Título",
+    "titleFieldHint": "Só para sua referência nesta lista — nunca é mostrado num device.",
+    "messageField": "Mensagem",
+    "messageFieldHint": "O que realmente aparece no rodapé do device. Pode escrever em várias linhas aqui por conveniência — no device aparece sempre numa única linha.",
+    "noMessage": "Ainda sem texto de mensagem",
     "order": "Ordem",
     "active": "Ativa",
     "inactive": "Inativa",
     "targetsLockedHint": "Só um admin pode alterar em que dispositivos esta mensagem aparece. Pode continuar a editar o texto e a ordem.",
-    "confirmDelete": "Tem a certeza que quer eliminar esta mensagem?"
+    "confirmDelete": "Tem a certeza que quer eliminar esta mensagem?",
+    "settingsTitle": "Definições do rodapé",
+    "cycleInterval": "Intervalo até voltar a aparecer",
+    "cycleIntervalHint": "Quanto tempo o rodapé fica escondido depois de mostrar as mensagens, até voltar a aparecer. 0 = sempre visível (comportamento anterior). Aplica-se a toda a frota.",
+    "logo": "Logótipo",
+    "logoHint": "Mostrado à esquerda da barra do rodapé, sobrepondo-se a ela. Aplica-se a toda a frota. PNG, JPEG ou GIF.",
+    "uploadLogo": "Carregar"
   },
   "history": {
     "title": "Histórico de Reprodução",
@@ -785,6 +795,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "footerLogoAndCycle": "O rodapé de mensagens passa a suportar um logo (fleet-wide, sobreposto ao canto esquerdo da barra) e um intervalo configurável entre aparições — em vez de estar sempre visível, aparece, mostra as mensagens e volta a esconder-se até ao intervalo seguinte. A barra passa também a ter os cantos superiores arredondados e a parar um pouco antes da margem direita do ecrã",
+      "footerTitleMessageSplit": "Na gestão de mensagens de rodapé, o campo de texto passa a ser dividido em Título (só para organização no admin) e Mensagem (o que aparece no device, sempre reduzido a uma linha mesmo que escrito em várias)",
       "alertsSubTabs": "A secção Email e Alertas passa a estar dividida em três separadores — Configurações (ativar/limite), Template (assunto e corpo do email) e Definições do servidor (SMTP/Graph) — em vez de tudo junto numa única página",
       "offlineAlertSubjectEditor": "O editor de mensagem do alerta de device offline (Definições > Alertas) passa também a permitir personalizar o assunto/título do email — separadamente para o caso de um device e de vários — além do corpo já existente",
       "settingsGroupedNav": "Reorganizado o menu de Definições — as várias secções passam a estar agrupadas em separadores (Geral, Segurança e Rede, Conteúdo e Marca, Utilizadores e Acessos) com sub-navegação interna, reduzindo bastante o número de opções na barra lateral",

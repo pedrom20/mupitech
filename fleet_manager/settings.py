@@ -202,6 +202,16 @@ STORAGES = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# This FM's own public base URL (no trailing slash), e.g.
+# https://fm.example.com — needed anywhere an absolute URL has to be
+# built outside of a request/response cycle (request.build_absolute_uri()
+# isn't available there). Currently only footer_messages' footer logo
+# uses this: devices fetch it directly from this FM over HTTP, so they
+# need a real absolute URL, not the request-relative one the frontend
+# uses. Left blank by default — the footer logo just doesn't show
+# until this is set.
+FM_PUBLIC_URL = os.environ.get('FM_PUBLIC_URL', '').rstrip('/')
+
 # Allow large file uploads (500MB)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024

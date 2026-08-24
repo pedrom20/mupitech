@@ -6,15 +6,21 @@ from django.db import models
 class FooterMessage(models.Model):
     """A scrolling text snippet shown in the device's footer ticker bar.
 
+    ``title`` is admin-facing only (identifies this message in the
+    management UI) and never reaches a device. ``message`` is what
+    actually gets pushed to the device's ticker — authored as free
+    multi-line text here, but always flattened to a single line before
+    being sent (see services.py::compute_message_map_for_players).
+
     Several messages can target the same player: the device shows them
-    all, concatenated in ``order``, as a single ticker (see
-    ``resolve_ticker_text`` in tasks.py) — this mirrors how a Playlist's
-    items combine into one sequence rather than each item being its own
-    independent thing on the device.
+    all, concatenated in ``order``, as a single ticker — this mirrors
+    how a Playlist's items combine into one sequence rather than each
+    item being its own independent thing on the device.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    text = models.CharField(max_length=500)
+    title = models.CharField(max_length=500)
+    message = models.TextField(max_length=1000, blank=True, default='')
     order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
@@ -34,7 +40,7 @@ class FooterMessage(models.Model):
         ordering = ['order', 'created_at']
 
     def __str__(self):
-        return self.text[:50]
+        return self.title[:50]
 
     def resolve_target_players(self):
         """Same resolution rule as Playlist.resolve_target_players():

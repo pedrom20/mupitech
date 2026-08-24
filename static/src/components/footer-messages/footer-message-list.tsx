@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FaBullhorn,
@@ -8,6 +8,8 @@ import {
   FaDesktop,
   FaLayerGroup,
   FaMapMarkerAlt,
+  FaCog,
+  FaUpload,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -16,8 +18,8 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { footerMessages as footerMessagesApi } from '@/services/api'
 import { showToast } from '@/utils/toast'
-import { RoleContext, canEditPlaylistTargets } from '@/components/app'
-import type { FooterMessage } from '@/types'
+import { RoleContext, canEditPlaylistTargets, isAdminRole } from '@/components/app'
+import type { FooterMessage, FooterSettings } from '@/types'
 
 const FooterMessageList: React.FC = () => {
   const { t } = useTranslation()
@@ -33,7 +35,8 @@ const FooterMessageList: React.FC = () => {
 
   const [showForm, setShowForm] = useState(false)
   const [editingMessage, setEditingMessage] = useState<FooterMessage | null>(null)
-  const [formText, setFormText] = useState('')
+  const [formTitle, setFormTitle] = useState('')
+  const [formMessage, setFormMessage] = useState('')
   const [formOrder, setFormOrder] = useState(0)
   const [formIsActive, setFormIsActive] = useState(true)
   const [formTargetPlayers, setFormTargetPlayers] = useState<string[]>([])
@@ -41,21 +44,76 @@ const FooterMessageList: React.FC = () => {
   const [formTargetLocations, setFormTargetLocations] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
+  // Fleet-wide settings (admin only) — cycle interval + logo, both
+  // global rather than per-message (see the plan's architecture note:
+  // one image/interval for the whole fleet, not per player/group/
+  // location like splash/standby branding).
+  const isAdmin = isAdminRole(role)
+  const [footerSettings, setFooterSettings] = useState<FooterSettings | null>(null)
+  const [cycleIntervalMinutes, setCycleIntervalMinutes] = useState('0')
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
   const loadMessages = () => {
     setLoading(true)
     footerMessagesApi.list().then(setMessages).catch(() => {}).finally(() => setLoading(false))
   }
 
+  const loadFooterSettings = () => {
+    if (!isAdmin) return
+    footerMessagesApi.getSettings().then((res) => {
+      setFooterSettings(res)
+      setCycleIntervalMinutes(String(res.cycle_interval_minutes))
+    }).catch(() => {})
+  }
+
   useEffect(() => {
     loadMessages()
+    loadFooterSettings()
     dispatch(fetchPlayers())
     dispatch(fetchGroups())
     dispatch(fetchLocations())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch])
 
+  const handleSaveFooterSettings = () => {
+    setSavingSettings(true)
+    footerMessagesApi.updateSettings(parseInt(cycleIntervalMinutes, 10) || 0).then((res) => {
+      setFooterSettings(res)
+      setCycleIntervalMinutes(String(res.cycle_interval_minutes))
+      showToast('success', t('common.success'))
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }).finally(() => setSavingSettings(false))
+  }
+
+  const handleUploadLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingLogo(true)
+    footerMessagesApi.uploadLogo(file).then(() => {
+      loadFooterSettings()
+      showToast('success', t('common.success'))
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }).finally(() => {
+      setUploadingLogo(false)
+      if (logoInputRef.current) logoInputRef.current.value = ''
+    })
+  }
+
+  const handleDeleteLogo = () => {
+    footerMessagesApi.deleteLogo().then(() => {
+      loadFooterSettings()
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    })
+  }
+
   const resetForm = () => {
-    setFormText('')
+    setFormTitle('')
+    setFormMessage('')
     setFormOrder(messages.length)
     setFormIsActive(true)
     setFormTargetPlayers([])
@@ -71,7 +129,8 @@ const FooterMessageList: React.FC = () => {
 
   const handleEdit = (message: FooterMessage) => {
     setEditingMessage(message)
-    setFormText(message.text)
+    setFormTitle(message.title)
+    setFormMessage(message.message)
     setFormOrder(message.order)
     setFormIsActive(message.is_active)
     setFormTargetPlayers(message.target_players || [])
@@ -100,7 +159,8 @@ const FooterMessageList: React.FC = () => {
     // touches target_players/groups/locations at all, even with the
     // same values it already had.
     const data: Partial<FooterMessage> = {
-      text: formText,
+      title: formTitle,
+      message: formMessage,
       order: formOrder,
       is_active: formIsActive,
       ...(canEditTargets ? {
@@ -163,6 +223,85 @@ const FooterMessageList: React.FC = () => {
         </div>
       </div>
 
+      {isAdmin && (
+        <div className="fm-card fm-card-accent mb-3">
+          <div className="fm-card-header py-2">
+            <h5 className="card-title mb-0">
+              <FaCog className="me-2" />
+              {t('footerMessages.settingsTitle')}
+            </h5>
+          </div>
+          <div className="fm-card-body py-3">
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                  {t('footerMessages.cycleInterval')}
+                </label>
+                <div className="input-group input-group-sm" style={{ maxWidth: '220px' }}>
+                  <input
+                    type="number"
+                    className="form-control"
+                    min={0}
+                    value={cycleIntervalMinutes}
+                    onChange={(e) => setCycleIntervalMinutes(e.target.value)}
+                  />
+                  <span className="input-group-text">{t('settings.minutes')}</span>
+                </div>
+                <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('footerMessages.cycleIntervalHint')}</div>
+                <button
+                  className="fm-btn-primary btn-sm mt-2"
+                  onClick={handleSaveFooterSettings}
+                  disabled={savingSettings}
+                >
+                  {savingSettings ? t('common.loading') : t('common.save')}
+                </button>
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                  {t('footerMessages.logo')}
+                </label>
+                <div className="form-text mb-2" style={{ fontSize: '0.75rem' }}>{t('footerMessages.logoHint')}</div>
+                <div className="d-flex align-items-center gap-2">
+                  <div
+                    className="border rounded d-flex align-items-center justify-content-center"
+                    style={{ width: '64px', height: '64px', background: 'var(--bs-tertiary-bg, #f5f5f5)' }}
+                  >
+                    {footerSettings?.logo_url ? (
+                      <img src={footerSettings.logo_url} alt="" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                    ) : (
+                      <FaBullhorn className="text-muted" />
+                    )}
+                  </div>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept=".png,image/png,.jpg,.jpeg,image/jpeg,.gif,image/gif"
+                    className="d-none"
+                    onChange={handleUploadLogo}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                  >
+                    <FaUpload className="me-1" />
+                    {uploadingLogo ? t('common.loading') : t('footerMessages.uploadLogo')}
+                  </button>
+                  {footerSettings?.has_logo && (
+                    <button type="button" className="btn btn-sm btn-outline-danger" onClick={handleDeleteLogo}>
+                      <FaTrash className="me-1" />
+                      {t('common.delete')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="fm-loading"><div className="spinner" /></div>
       ) : messages.length === 0 ? (
@@ -180,7 +319,7 @@ const FooterMessageList: React.FC = () => {
             <div key={message.id} className="col-sm-6 col-lg-4">
               <div className="fm-card fm-card-accent">
                 <div className="fm-card-header">
-                  <h5 className="card-title mb-0 text-truncate" title={message.text}>{message.text}</h5>
+                  <h5 className="card-title mb-0 text-truncate" title={message.title}>{message.title}</h5>
                   <div className="card-actions">
                     <button className="fm-btn-icon" onClick={() => handleEdit(message)} title={t('common.edit')}>
                       <FaEdit />
@@ -197,6 +336,10 @@ const FooterMessageList: React.FC = () => {
                     </span>
                     <span className="text-muted" style={{ fontSize: '0.75rem' }}>{t('footerMessages.order')}: {message.order}</span>
                   </div>
+
+                  <p className="text-muted mb-2" style={{ fontSize: '0.8rem', whiteSpace: 'pre-line' }}>
+                    {message.message || <em>{t('footerMessages.noMessage')}</em>}
+                  </p>
 
                   <div className="mb-1">
                     <span className="fw-semibold" style={{ fontSize: '0.78rem' }}>{t('playlists.appliedTo')}</span>
@@ -242,15 +385,28 @@ const FooterMessageList: React.FC = () => {
               <form onSubmit={handleFormSubmit}>
                 <div className="modal-body">
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">{t('footerMessages.text')}</label>
-                    <textarea
+                    <label className="form-label fw-semibold">{t('footerMessages.titleField')}</label>
+                    <input
+                      type="text"
                       className="form-control"
-                      value={formText}
-                      onChange={(e) => setFormText(e.target.value)}
-                      rows={2}
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
                       maxLength={500}
                       required
                     />
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('footerMessages.titleFieldHint')}</div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">{t('footerMessages.messageField')}</label>
+                    <textarea
+                      className="form-control"
+                      value={formMessage}
+                      onChange={(e) => setFormMessage(e.target.value)}
+                      rows={3}
+                      maxLength={1000}
+                    />
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('footerMessages.messageFieldHint')}</div>
                   </div>
 
                   <div className="row">

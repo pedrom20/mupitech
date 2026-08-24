@@ -446,7 +446,8 @@ export interface Playlist {
 
 export interface FooterMessage {
   id: string
-  text: string
+  title: string
+  message: string
   order: number
   is_active: boolean
   target_players: string[]
@@ -456,6 +457,12 @@ export interface FooterMessage {
   target_locations: string[]
   target_locations_detail?: Location[]
   created_at: string
+}
+
+export interface FooterSettings {
+  cycle_interval_minutes: number
+  has_logo: boolean
+  logo_url: string | null
 }
 
 export interface ScheduledDeployment {
