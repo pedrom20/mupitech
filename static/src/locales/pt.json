@@ -785,6 +785,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "alertsSubTabs": "A secção Email e Alertas passa a estar dividida em três separadores — Configurações (ativar/limite), Template (assunto e corpo do email) e Definições do servidor (SMTP/Graph) — em vez de tudo junto numa única página",
       "offlineAlertSubjectEditor": "O editor de mensagem do alerta de device offline (Definições > Alertas) passa também a permitir personalizar o assunto/título do email — separadamente para o caso de um device e de vários — além do corpo já existente",
       "settingsGroupedNav": "Reorganizado o menu de Definições — as várias secções passam a estar agrupadas em separadores (Geral, Segurança e Rede, Conteúdo e Marca, Utilizadores e Acessos) com sub-navegação interna, reduzindo bastante o número de opções na barra lateral",
       "deviceIpUpdateNameFallback": "Corrigido o IP de um device sem MAC address não atualizar automaticamente no FM quando muda de endereço — criava sempre uma nova linha em vez de atualizar a existente. Passa a usar o nome do device como sinal de recurso, só quando identifica de forma inequívoca um único device já existente",
@@ -1174,6 +1175,9 @@
   },
   "alerts": {
     "title": "Alertas por Email",
+    "configTab": "Configurações",
+    "templateTab": "Template",
+    "serverTab": "Definições do servidor",
     "description": "Envia um email aos administradores quando um dispositivo está offline há mais tempo do que o limite abaixo. Precisa do envio de email configurado abaixo (SMTP ou Microsoft Graph).",
     "enable": "Ativar alertas por email",
     "threshold": "Limite de tempo offline",

@@ -785,6 +785,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "alertsSubTabs": "The Email Alerts section is now split into three tabs — Settings (enable/threshold), Template (email subject and body), and Server settings (SMTP/Graph) — instead of everything on one page",
       "offlineAlertSubjectEditor": "The offline-alert message editor (Settings > Alerts) now also lets you customize the email's subject/title — separately for the single-device and multiple-device cases — in addition to the existing body editor",
       "settingsGroupedNav": "Reorganized the Settings menu — the various sections are now grouped into tabs (General, Security & Network, Content & Branding, Users & Access) with internal sub-navigation, substantially cutting down the number of options in the sidebar",
       "deviceIpUpdateNameFallback": "Fixed a MAC-less device's IP not auto-updating in the FM when it changes address — it always created a new row instead of updating the existing one. It now uses the device's name as a fallback signal, only when it unambiguously identifies a single existing device",
@@ -1174,6 +1175,9 @@
   },
   "alerts": {
     "title": "Email Alerts",
+    "configTab": "Settings",
+    "templateTab": "Template",
+    "serverTab": "Server settings",
     "description": "Send admins an email when a device has been offline for longer than the threshold below. Needs email sending configured below (SMTP or Microsoft Graph).",
     "enable": "Enable offline alert emails",
     "threshold": "Offline threshold",

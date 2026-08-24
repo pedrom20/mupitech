@@ -255,7 +255,16 @@ const Settings: React.FC = () => {
               { id: 'registry', label: t('registryMirror.title') },
             ],
           },
-          { id: 'alerts', label: t('alerts.title'), show: isSuperAdminRole(role), subTabs: null },
+          {
+            id: 'alerts',
+            label: t('alerts.title'),
+            show: isSuperAdminRole(role),
+            subTabs: [
+              { id: 'alertsConfig', label: t('alerts.configTab') },
+              { id: 'alertsTemplate', label: t('alerts.templateTab') },
+              { id: 'alertsServer', label: t('alerts.serverTab') },
+            ],
+          },
           {
             id: 'content',
             label: t('settings.contentGroup'),
@@ -685,7 +694,7 @@ const Settings: React.FC = () => {
         )}
 
         {activeGroupId === 'alerts' && isSuperAdminRole(role) && (
-          <AlertSettings />
+          <AlertSettings section={activeSection as 'alertsConfig' | 'alertsTemplate' | 'alertsServer'} />
         )}
 
         {activeSection === 'registry' && isSuperAdminRole(role) && (
