@@ -795,6 +795,7 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "footerLogoReplaceFix": "Corrigido substituir o logo do rodapé por uma nova imagem não ter efeito nos devices — o nome do ficheiro nunca muda entre uploads, e o device evitava ir buscar de novo um URL que já tinha aplicado antes",
       "footerLogoAndCycle": "O rodapé de mensagens passa a suportar um logo (fleet-wide, sobreposto ao canto esquerdo da barra) e um intervalo configurável entre aparições — em vez de estar sempre visível, aparece, mostra as mensagens e volta a esconder-se até ao intervalo seguinte. A barra passa também a ter os cantos superiores arredondados e a parar um pouco antes da margem direita do ecrã",
       "footerTitleMessageSplit": "Na gestão de mensagens de rodapé, o campo de texto passa a ser dividido em Título (só para organização no admin) e Mensagem (o que aparece no device, sempre reduzido a uma linha mesmo que escrito em várias)",
       "alertsSubTabs": "A secção Email e Alertas passa a estar dividida em três separadores — Configurações (ativar/limite), Template (assunto e corpo do email) e Definições do servidor (SMTP/Graph) — em vez de tudo junto numa única página",

@@ -795,6 +795,7 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "footerLogoReplaceFix": "Fixed replacing the footer logo with a new image having no effect on devices — the filename never changes between uploads, and the device was skipping re-fetching a URL it had already applied",
       "footerLogoAndCycle": "The footer message ticker now supports a fleet-wide logo (overlapping the bar's left edge) and a configurable interval between appearances — instead of always being visible, it shows, plays through the messages, and hides again until the next interval. The bar also now has rounded top corners and stops a bit short of the screen's right edge",
       "footerTitleMessageSplit": "In footer message management, the text field is now split into Title (admin organization only) and Message (what shows on the device, always collapsed to one line even if written across several)",
       "alertsSubTabs": "The Email Alerts section is now split into three tabs — Settings (enable/threshold), Template (email subject and body), and Server settings (SMTP/Graph) — instead of everything on one page",

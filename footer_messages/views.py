@@ -11,8 +11,8 @@ from history.logging import log_action
 from .models import FooterMessage
 from .serializers import FooterMessageSerializer
 from .services import (
-    FOOTER_CYCLE_INTERVAL_MINUTES_KEY, FOOTER_LOGO_DIR, FOOTER_LOGO_FILENAME,
-    footer_cycle_interval_minutes, footer_logo_path,
+    FOOTER_CYCLE_INTERVAL_MINUTES_KEY, FOOTER_LOGO_DIR,
+    footer_cycle_interval_minutes, footer_logo_path, footer_logo_relative_url,
 )
 from .tasks import sync_all_footer_players, sync_footer_messages_for_players
 
@@ -56,7 +56,7 @@ def _footer_settings_response():
     return {
         'cycle_interval_minutes': footer_cycle_interval_minutes(),
         'has_logo': has_logo,
-        'logo_url': f'/media/footer/{FOOTER_LOGO_FILENAME}' if has_logo else None,
+        'logo_url': footer_logo_relative_url(),
     }
 
 
@@ -116,4 +116,4 @@ def footer_logo(request):
     log_action(request, 'upload', 'footer_logo')
     sync_all_footer_players.delay()
 
-    return Response({'success': True, 'logo_url': f'/media/footer/{FOOTER_LOGO_FILENAME}'})
+    return Response({'success': True, 'logo_url': footer_logo_relative_url()})

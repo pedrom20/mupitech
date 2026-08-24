@@ -385,4 +385,34 @@ class FooterLogoAbsoluteUrlTests(TestCase):
 
         with override_settings(FM_PUBLIC_URL='https://fm.example.com'):
             url = footer_logo_absolute_url()
-        self.assertEqual(url, f'https://fm.example.com/media/footer/{FOOTER_LOGO_FILENAME}')
+        self.assertTrue(url.startswith(f'https://fm.example.com/media/footer/{FOOTER_LOGO_FILENAME}?v='))
+
+    def test_absolute_url_changes_when_logo_file_is_replaced(self):
+        """The filename never changes across re-uploads, and the device
+        skips re-fetching a URL it already applied — without a cache-
+        buster reflecting the file's own mtime, replacing the logo
+        would silently keep showing the old one until the device's
+        next reboot."""
+        import os
+        import time
+        from django.test import override_settings
+        from .services import FOOTER_LOGO_DIR, footer_logo_absolute_url, footer_logo_path
+
+        os.makedirs(FOOTER_LOGO_DIR, exist_ok=True)
+        with open(footer_logo_path(), 'wb') as f:
+            f.write(b'first-upload')
+
+        with override_settings(FM_PUBLIC_URL='https://fm.example.com'):
+            first_url = footer_logo_absolute_url()
+
+            # Force a distinct mtime — same-second re-uploads in a fast
+            # test run could otherwise coincidentally share one.
+            future = time.time() + 5
+            os.utime(footer_logo_path(), (future, future))
+            with open(footer_logo_path(), 'wb') as f:
+                f.write(b'second-upload')
+            os.utime(footer_logo_path(), (future, future))
+
+            second_url = footer_logo_absolute_url()
+
+        self.assertNotEqual(first_url, second_url)

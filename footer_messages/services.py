@@ -21,6 +21,21 @@ def footer_cycle_interval_minutes():
     return cache.get(FOOTER_CYCLE_INTERVAL_MINUTES_KEY, 0)
 
 
+def footer_logo_relative_url():
+    """``/media/footer/footer-logo.png?v=<mtime>``, or None if nothing's
+    uploaded — used for the admin-facing preview in Settings.
+
+    The ``?v=`` cache-buster matters here too, not just for the device:
+    the filename never changes across re-uploads, so a browser that
+    already fetched the old one would otherwise keep showing it from
+    its own cache after a replace, same failure mode as the device's
+    applyFooterLogo() (see footer_logo_absolute_url)."""
+    if not os.path.isfile(footer_logo_path()):
+        return None
+    version = int(os.path.getmtime(footer_logo_path()))
+    return f'/media/footer/{FOOTER_LOGO_FILENAME}?v={version}'
+
+
 def footer_logo_absolute_url():
     """Absolute URL the device fetches the footer logo from, or '' if
     either no logo is uploaded or FM_PUBLIC_URL isn't configured.
@@ -31,10 +46,17 @@ def footer_logo_absolute_url():
     Celery task with no `request` to call build_absolute_uri() on —
     hence the dedicated env var instead of the usual per-request
     helper (see content/serializers.py for that request-based pattern,
-    not applicable here)."""
-    if not settings.FM_PUBLIC_URL or not os.path.isfile(footer_logo_path()):
+    not applicable here).
+
+    Carries the same ``?v=<mtime>`` cache-buster as footer_logo_relative_url
+    — the device's own applyFooterLogo() skips re-fetching a URL it
+    already applied, so without this, replacing the logo would
+    silently keep showing the old one until the device's next
+    reboot/respawn."""
+    relative = footer_logo_relative_url()
+    if not settings.FM_PUBLIC_URL or relative is None:
         return ''
-    return f'{settings.FM_PUBLIC_URL}{settings.MEDIA_URL}footer/{FOOTER_LOGO_FILENAME}'
+    return f'{settings.FM_PUBLIC_URL}{relative}'
 
 
 def _flatten_message(text):
