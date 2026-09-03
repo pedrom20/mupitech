@@ -795,6 +795,8 @@
     "title": "Notas de Versão",
     "subtitle": "Histórico de versões e notas de lançamento.",
     "changes": {
+      "deviceUrlOfflineEditFix": "Corrigido o separador Localização (onde se edita o URL/IP do device) nas definições do device ficar preso atrás de um spinner de carregamento até ~20 segundos ao abrir com o device offline — esse separador nunca dependeu do pedido de definições ao vivo pelo qual estava à espera",
+      "footerTextLeftClipFix": "Corrigido o texto do rodapé continuar a chegar mesmo até à borda esquerda da barra (junto ao logo) em cada passagem — agora é efetivamente cortado antes de lá chegar, em vez de só ser reiniciado depois de já lá ter chegado",
       "footerLogoReplaceFix": "Corrigido substituir o logo do rodapé por uma nova imagem não ter efeito nos devices — o nome do ficheiro nunca muda entre uploads, e o device evitava ir buscar de novo um URL que já tinha aplicado antes",
       "footerLogoAndCycle": "O rodapé de mensagens passa a suportar um logo (fleet-wide, sobreposto ao canto esquerdo da barra) e um intervalo configurável entre aparições — em vez de estar sempre visível, aparece, mostra as mensagens e volta a esconder-se até ao intervalo seguinte. A barra passa também a ter os cantos superiores arredondados e a parar um pouco antes da margem direita do ecrã",
       "footerTitleMessageSplit": "Na gestão de mensagens de rodapé, o campo de texto passa a ser dividido em Título (só para organização no admin) e Mensagem (o que aparece no device, sempre reduzido a uma linha mesmo que escrito em várias)",

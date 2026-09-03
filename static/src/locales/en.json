@@ -795,6 +795,8 @@
     "title": "Changelog",
     "subtitle": "Version history and release notes.",
     "changes": {
+      "deviceUrlOfflineEditFix": "Fixed the device settings modal's Location tab (where the device URL/IP is edited) being stuck behind a loading spinner for up to ~20 seconds when opened on an offline device — that tab never needed the live device settings fetch it was waiting on",
+      "footerTextLeftClipFix": "Fixed the footer ticker's scrolling text still reaching the bar's true left edge (next to the logo) on every pass — it's now actually clipped short of it, not just reset there after the fact",
       "footerLogoReplaceFix": "Fixed replacing the footer logo with a new image having no effect on devices — the filename never changes between uploads, and the device was skipping re-fetching a URL it had already applied",
       "footerLogoAndCycle": "The footer message ticker now supports a fleet-wide logo (overlapping the bar's left edge) and a configurable interval between appearances — instead of always being visible, it shows, plays through the messages, and hides again until the next interval. The bar also now has rounded top corners and stops a bit short of the screen's right edge",
       "footerTitleMessageSplit": "In footer message management, the text field is now split into Title (admin organization only) and Message (what shows on the device, always collapsed to one line even if written across several)",

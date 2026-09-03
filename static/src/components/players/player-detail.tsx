@@ -3272,7 +3272,69 @@ const PlayerDetail: React.FC = () => {
                 )}
               </ul>
               <div className="modal-body py-2" style={{ height: '560px', maxHeight: '78vh', overflowY: 'auto', fontSize: '0.9rem' }}>
-                {settingsLoading ? (
+                {settingsActiveTab === 'location' ? (
+                  // Fleet Manager-only fields (URL, group, location) — never
+                  // gated behind settingsLoading, since that promise is the
+                  // live device_settings fetch and can take the full
+                  // request-timeout (plus a Tailscale retry) to fail while
+                  // the device is offline, which is exactly when this tab
+                  // — the only place to fix a stale/wrong IP — matters most.
+                  <div>
+                    <p className="text-muted mb-3" style={{ fontSize: '0.85rem' }}>
+                      {t('playerSettings.locationHint')}
+                    </p>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                        <FaNetworkWired className="me-1" />
+                        {t('playerSettings.deviceUrl')}
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="http://192.168.1.10"
+                        value={locationForm.url}
+                        onChange={e => setLocationForm({ ...locationForm, url: e.target.value })}
+                      />
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('playerSettings.deviceUrlHint')}</div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                        <FaLayerGroup className="me-1" />
+                        {t('players.group')}
+                      </label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={locationForm.group}
+                        onChange={e => setLocationForm({ ...locationForm, group: e.target.value })}
+                      >
+                        <option value="">{t('players.noGroup')}</option>
+                        {allGroups.map(g => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mb-2">
+                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
+                        <FaMapMarkerAlt className="me-1" />
+                        {t('players.location')}
+                      </label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={locationForm.location}
+                        onChange={e => setLocationForm({ ...locationForm, location: e.target.value })}
+                        disabled={!!allGroups.find(g => g.id === locationForm.group)?.location}
+                      >
+                        <option value="">{t('players.noLocation')}</option>
+                        {allLocations.map(l => (
+                          <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
+                      </select>
+                      {!!allGroups.find(g => g.id === locationForm.group)?.location && (
+                        <small className="text-muted">{t('players.locationFromGroupHint')}</small>
+                      )}
+                    </div>
+                  </div>
+                ) : settingsLoading ? (
                   <div className="text-center py-4">
                     <div className="spinner-border" />
                   </div>
@@ -3632,62 +3694,6 @@ const PlayerDetail: React.FC = () => {
                   </div>
                   </div>
                   )
-                ) : settingsActiveTab === 'location' ? (
-                  <div>
-                    <p className="text-muted mb-3" style={{ fontSize: '0.85rem' }}>
-                      {t('playerSettings.locationHint')}
-                    </p>
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
-                        <FaNetworkWired className="me-1" />
-                        {t('playerSettings.deviceUrl')}
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="http://192.168.1.10"
-                        value={locationForm.url}
-                        onChange={e => setLocationForm({ ...locationForm, url: e.target.value })}
-                      />
-                      <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('playerSettings.deviceUrlHint')}</div>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
-                        <FaLayerGroup className="me-1" />
-                        {t('players.group')}
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        value={locationForm.group}
-                        onChange={e => setLocationForm({ ...locationForm, group: e.target.value })}
-                      >
-                        <option value="">{t('players.noGroup')}</option>
-                        {allGroups.map(g => (
-                          <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="mb-2">
-                      <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>
-                        <FaMapMarkerAlt className="me-1" />
-                        {t('players.location')}
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        value={locationForm.location}
-                        onChange={e => setLocationForm({ ...locationForm, location: e.target.value })}
-                        disabled={!!allGroups.find(g => g.id === locationForm.group)?.location}
-                      >
-                        <option value="">{t('players.noLocation')}</option>
-                        {allLocations.map(l => (
-                          <option key={l.id} value={l.id}>{l.name}</option>
-                        ))}
-                      </select>
-                      {!!allGroups.find(g => g.id === locationForm.group)?.location && (
-                        <small className="text-muted">{t('players.locationFromGroupHint')}</small>
-                      )}
-                    </div>
-                  </div>
                 ) : settingsActiveTab === 'branding' ? (
                   <div>
                 <div className="border rounded p-2 mb-3">
