@@ -26,6 +26,15 @@ $DOCKER compose pull
 echo "-- A recriar os containers..."
 $DOCKER compose up -d --build
 
+echo "-- A limpar imagens antigas (substituídas por este pull)..."
+# Só imagens "dangling" (sem tag, não referenciadas por nenhum container,
+# de ninguém) — nunca a de outra stack/serviço deste servidor partilhado,
+# nem nada ainda em uso. Sem isto, cada deploy (docker compose pull +
+# up --build) deixa a imagem anterior do :latest para trás, a ocupar
+# disco para sempre — foi assim que o disco deste servidor partilhado
+# chegou a 89% cheio.
+$DOCKER image prune -f
+
 echo "-- Pronto. Versão em execução:"
 $DOCKER compose exec -T web sh -c "grep -oP \"APP_VERSION = '\K[^']+\" /app/static/src/changelog.ts" 2>/dev/null \
     || echo "   (não foi possível ler a versão — confirma em Definições > Changelog na aplicação)"
