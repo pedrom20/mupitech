@@ -92,7 +92,7 @@ services:
   celery-worker:
     image: ghcr.io/pedrom20/mupitech:latest
     restart: unless-stopped
-    command: celery -A fleet_manager worker -l info --concurrency=4 -Q celery
+    command: celery -A fleet_manager worker -l info --concurrency=4 -Q interactive,celery
     environment: *app-env
     depends_on:
       db:

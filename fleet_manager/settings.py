@@ -277,6 +277,13 @@ CELERY_RESULT_EXPIRES = 3600
 CELERY_TASK_ROUTES = {
     'content.tasks.transcode_video': {'queue': 'transcode'},
     'content.tasks.generate_image_thumbnail': {'queue': 'transcode'},
+    # User-triggered, "expect this to happen now" actions — routed off
+    # the default 'celery' queue so they never queue up behind
+    # players.tasks.poll_player's backlog (see that task's docstring:
+    # thousands of slow per-player polls can pile up on 'celery' and
+    # starve out anything else sharing it for hours). celery-worker
+    # listens to 'interactive' before 'celery' (docker-compose.yml).
+    'playlists.tasks.deploy_playlist': {'queue': 'interactive'},
 }
 
 # Fleet Manager settings

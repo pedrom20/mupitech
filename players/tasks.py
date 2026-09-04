@@ -6,6 +6,10 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+def _poll_lock_key(player_id):
+    return f'poll_player_inflight_{player_id}'
+
+
 @shared_task(bind=True, max_retries=0)
 def poll_player(self, player_id):
     """
@@ -14,16 +18,34 @@ def poll_player(self, player_id):
     Fetches /v2/info from the player, updates is_online, last_seen,
     and last_status fields on the Player model.
     """
+    from django.core.cache import cache
+
     from .models import Player
-    from .services import AnthiasAPIClient, PlayerConnectionError
+    from .services import AnthiasAPIClient
 
     try:
         player = Player.objects.get(pk=player_id)
     except Player.DoesNotExist:
         logger.warning('poll_player called for non-existent player: %s', player_id)
+        cache.delete(_poll_lock_key(player_id))
         return
 
     client = AnthiasAPIClient(player)
+    try:
+        _poll_player_body(player, client)
+    finally:
+        # Released as soon as this poll actually finishes (success,
+        # failure, or crash) — not on a fixed TTL — so poll_all_players
+        # can safely skip re-dispatching this player next cycle for as
+        # long as (and only as long as) its previous poll is still
+        # genuinely in flight. See poll_all_players' docstring for why
+        # this matters.
+        cache.delete(_poll_lock_key(player_id))
+
+
+def _poll_player_body(player, client):
+    from .services import PlayerConnectionError
+
     try:
         info = client.get_info()
         player.is_online = True
@@ -134,8 +156,19 @@ def poll_all_players():
     """
     Poll all registered players for their current status.
 
-    Dispatches a poll_player task for each player in the database.
-    Uses a Redis lock to prevent overlapping poll cycles.
+    Dispatches a poll_player task for each player in the database —
+    but only for players whose *previous* poll_player has actually
+    finished (per-player lock, released by poll_player itself in a
+    finally block, TTL below as a crash safety net only). Without this,
+    an offline/slow player (each retry-laden poll can take up to ~90s
+    against PLAYER_POLL_INTERVAL's default 60s cadence) gets a fresh
+    poll_player enqueued on top of its still-running previous one every
+    cycle, forever — the shared 'celery' queue backlog grows without
+    bound (observed: 2000+ pending messages), starving out every other
+    task on that queue, including user-triggered ones like
+    playlists.tasks.deploy_playlist, for hours. The old lock here only
+    ever guarded the dispatch loop itself (milliseconds), not each
+    player's actual poll duration, so it never prevented this.
     """
     from django.core.cache import cache
     from .models import Player
@@ -148,10 +181,23 @@ def poll_all_players():
 
     try:
         player_ids = list(Player.objects.values_list('id', flat=True))
-        logger.info('Polling %d player(s).', len(player_ids))
+        dispatched = 0
+        skipped = 0
 
         for player_id in player_ids:
-            poll_player.delay(str(player_id))
+            player_id = str(player_id)
+            # Safety-net TTL only — poll_player's own finally block is
+            # what actually releases this the moment it's done.
+            if not cache.add(_poll_lock_key(player_id), 1, timeout=180):
+                skipped += 1
+                continue
+            poll_player.delay(player_id)
+            dispatched += 1
+
+        logger.info(
+            'Polling cycle: %d dispatched, %d skipped (previous poll still in flight).',
+            dispatched, skipped,
+        )
     finally:
         cache.delete(lock_id)
 
