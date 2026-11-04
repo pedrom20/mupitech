@@ -26,7 +26,7 @@ import os
 
 from django.conf import settings
 
-_SCOPES = ['User.Read']
+_SCOPES = ['User.Read', 'email']
 
 
 def m365_configured():
@@ -61,12 +61,47 @@ def start_flow(request):
     return flow['auth_uri']
 
 
+def _graph_profile(access_token):
+    """The ID token's own 'email' claim is an optional claim — only
+    present when requested, and even then not reliably the account's
+    real mailbox (can fall back to the UPN, which for plenty of tenants
+    is a different address than the one the person actually reads, e.g.
+    "pmartinho@..." vs their real "pedro.martinho@..." mailbox). Graph's
+    own profile is the authoritative source, and User.Read (already
+    requested for login) is enough to read it. Best-effort: any failure
+    here just means get_or_create_user falls back to the id_token claims
+    (preferred_username) same as before, not a login failure."""
+    import requests
+
+    try:
+        resp = requests.get(
+            'https://graph.microsoft.com/v1.0/me',
+            headers={'Authorization': f'Bearer {access_token}'},
+            params={'$select': 'mail,userPrincipalName,givenName,surname'},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.RequestException:
+        return {}
+
+    profile = {}
+    if data.get('mail'):
+        profile['email'] = data['mail']
+    if data.get('givenName'):
+        profile['given_name'] = data['givenName']
+    if data.get('surname'):
+        profile['family_name'] = data['surname']
+    return profile
+
+
 def complete_flow(request):
     """Validates the callback against the stashed flow and exchanges the
-    auth code for tokens. Returns the id_token claims (email, name, ...) on
-    success, raises ValueError on any failure (expired/missing flow, state
-    mismatch, token error) — callers should treat that as "send the user
-    back to /login"."""
+    auth code for tokens. Returns the claims dict (email, name, ...) on
+    success — Graph's own profile (see _graph_profile) takes priority
+    over the id_token's own claims, when available — raises ValueError on
+    any failure (expired/missing flow, state mismatch, token error) —
+    callers should treat that as "send the user back to /login"."""
     flow = request.session.pop('m365_flow', None)
     if not flow:
         raise ValueError('No pending Microsoft login flow for this session.')
@@ -78,7 +113,8 @@ def complete_flow(request):
     claims = result.get('id_token_claims')
     if not claims or not claims.get('preferred_username'):
         raise ValueError('Microsoft did not return an email/UPN for this account.')
-    return claims
+
+    return {**claims, **_graph_profile(result['access_token'])}
 
 
 def get_or_create_user(claims):
