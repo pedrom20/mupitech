@@ -22,9 +22,12 @@ Env vars (as três juntas — ver .env.example):
   MICROSOFT_CLIENT_SECRET
 """
 
+import logging
 import os
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 _SCOPES = ['User.Read', 'email']
 
@@ -82,9 +85,12 @@ def _graph_profile(access_token):
         )
         resp.raise_for_status()
         data = resp.json()
-    except requests.RequestException:
+    except requests.RequestException as exc:
+        body = getattr(exc.response, 'text', '')
+        logger.warning('M365 Graph /me call failed: %s %s', exc, body)
         return {}
 
+    logger.info('M365 Graph /me response: %s', data)
     profile = {}
     if data.get('mail'):
         profile['email'] = data['mail']
@@ -113,8 +119,11 @@ def complete_flow(request):
     claims = result.get('id_token_claims')
     if not claims or not claims.get('preferred_username'):
         raise ValueError('Microsoft did not return an email/UPN for this account.')
+    logger.info('M365 id_token claims: %s', claims)
 
-    return {**claims, **_graph_profile(result['access_token'])}
+    merged = {**claims, **_graph_profile(result['access_token'])}
+    logger.info('M365 claims used for account matching: %s', merged)
+    return merged
 
 
 def get_or_create_user(claims):
