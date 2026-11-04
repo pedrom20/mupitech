@@ -315,6 +315,8 @@
     "logout": "Вийти",
     "username": "Ім'я користувача",
     "password": "Пароль",
+    "loginWithMicrosoft": "Увійти через Microsoft",
+    "orDivider": "або",
     "invalidCredentials": "Невірне ім'я користувача або пароль",
     "brandSuffix": "Gestor de Mupis Digitais",
     "mfa": {
@@ -324,6 +326,11 @@
       "verify": "Перевірити",
       "back": "Назад",
       "invalidCode": "Невірний код"
+    },
+    "m365LoginError": "Не вдалося увійти через Microsoft — спробуйте ще раз.",
+    "pendingApproval": {
+      "title": "Очікує підтвердження",
+      "message": "Ваш обліковий запис створено, але ще не має призначеного доступу. Зверніться до адміністратора, щоб він призначив вам роль."
     }
   },
   "schedule": {

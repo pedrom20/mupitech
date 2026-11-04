@@ -328,13 +328,17 @@ export interface User {
   first_name: string
   last_name: string
   is_active: boolean
-  role: UserRole
+  role: UserRole | null
   scope: UserScope
   receive_offline_alerts?: boolean
   can_delete_content?: boolean
   mfa_enabled?: boolean
   must_change_password?: boolean
   force_mfa_enroll?: boolean
+  // True only for a brand-new Microsoft 365 account with no local match
+  // (fleet_manager/m365_backend.py::get_or_create_user) — authenticated
+  // but with no role/access until an admin assigns one on the Users page.
+  pending_approval?: boolean
   editor_capabilities?: EditorCapabilities
   last_login: string | null
   date_joined: string

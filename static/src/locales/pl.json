@@ -286,6 +286,8 @@
     "logout": "Wyloguj się",
     "username": "Nazwa użytkownika",
     "password": "Hasło",
+    "loginWithMicrosoft": "Zaloguj się przez Microsoft",
+    "orDivider": "lub",
     "invalidCredentials": "Nieprawidłowa nazwa użytkownika lub hasło",
     "brandSuffix": "Gestor de Mupis Digitais",
     "mfa": {
@@ -295,6 +297,11 @@
       "verify": "Zweryfikuj",
       "back": "Wstecz",
       "invalidCode": "Nieprawidłowy kod"
+    },
+    "m365LoginError": "Nie udało się zalogować przez Microsoft — spróbuj ponownie.",
+    "pendingApproval": {
+      "title": "Oczekuje na zatwierdzenie",
+      "message": "Twoje konto zostało utworzone, ale nie ma jeszcze przypisanego dostępu. Skontaktuj się z administratorem, aby przypisał Ci rolę."
     }
   },
   "schedule": {

@@ -74,17 +74,22 @@ class UserSerializer(serializers.ModelSerializer):
     must_change_password = serializers.SerializerMethodField()
     force_mfa_enroll = serializers.SerializerMethodField()
     editor_capabilities = serializers.SerializerMethodField()
+    pending_approval = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
                   'is_active', 'role', 'scope', 'receive_offline_alerts', 'can_delete_content',
                   'mfa_enabled', 'must_change_password', 'force_mfa_enroll', 'editor_capabilities',
-                  'last_login', 'date_joined']
+                  'pending_approval', 'last_login', 'date_joined']
         read_only_fields = ['id', 'last_login', 'date_joined']
 
     def get_role(self, obj):
         return _user_role(obj)
+
+    def get_pending_approval(self, obj):
+        scope = getattr(obj, 'access_scope', None)
+        return bool(scope and scope.pending_approval)
 
     def get_scope(self, obj):
         scope = getattr(obj, 'access_scope', None)
@@ -136,8 +141,13 @@ def _validate_role_escalation(role, context):
 def _assign_role(user, role):
     """Assign a role. Superadmin is backed by is_superuser/is_staff (full
     Django admin access too) rather than a plain Group — downgrading away
-    from it clears both flags."""
+    from it clears both flags.
+
+    Also clears pending_approval: an admin assigning any role at all is
+    exactly the approval a first-time M365 login (access/models.py::
+    UserAccessScope.pending_approval) is waiting on."""
     from django.contrib.auth.models import Group
+    UserAccessScope.objects.filter(user=user, pending_approval=True).update(pending_approval=False)
     user.groups.clear()
     if role == 'superadmin':
         user.is_superuser = True
@@ -155,7 +165,13 @@ def _assign_role(user, role):
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=6)
+    # Optional: blank means this account is meant for Microsoft 365 login
+    # only (pre-provisioned with a role already picked below, so its first
+    # M365 login never lands in the pending_approval screen) — create()
+    # gives it an unusable password instead of a throwaway one nobody will
+    # ever use. Matching min_length only when non-blank is enforced there,
+    # not here, since DRF's CharField(min_length=6) would also reject ''.
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin', 'superadmin'])
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
@@ -175,6 +191,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
         _validate_role_escalation(value, self.context)
         return value
 
+    def validate_password(self, value):
+        if value and len(value) < 6:
+            raise serializers.ValidationError('Ensure this field has at least 6 characters.')
+        return value
+
     def to_representation(self, instance):
         # `role` isn't a real User attribute (it's derived — see
         # _user_role) so the default ModelSerializer representation
@@ -185,7 +206,10 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         role = validated_data.pop('role')
-        password = validated_data.pop('password')
+        # set_password(None) (inside create_user) gives an unusable
+        # password, same as m365_backend.py's own accounts — see the
+        # 'password' field's own comment above for why.
+        password = validated_data.pop('password', '') or None
         location_ids = validated_data.pop('location_ids', None)
         group_ids = validated_data.pop('group_ids', None)
         player_ids = validated_data.pop('player_ids', None)

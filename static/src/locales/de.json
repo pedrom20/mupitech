@@ -298,6 +298,8 @@
     "logout": "Abmelden",
     "username": "Benutzername",
     "password": "Passwort",
+    "loginWithMicrosoft": "Mit Microsoft anmelden",
+    "orDivider": "oder",
     "invalidCredentials": "Ungültiger Benutzername oder Passwort",
     "brandSuffix": "Gestor de Mupis Digitais",
     "mfa": {
@@ -307,6 +309,11 @@
       "verify": "Bestätigen",
       "back": "Zurück",
       "invalidCode": "Ungültiger Code"
+    },
+    "m365LoginError": "Anmeldung mit Microsoft nicht möglich — bitte versuchen Sie es erneut.",
+    "pendingApproval": {
+      "title": "Genehmigung ausstehend",
+      "message": "Ihr Konto wurde erstellt, hat aber noch keinen zugewiesenen Zugriff. Bitten Sie einen Administrator, Ihnen eine Rolle zuzuweisen."
     }
   },
   "schedule": {

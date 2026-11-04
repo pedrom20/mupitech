@@ -45,6 +45,10 @@ services:
       AUTH_LDAP_BIND_PASSWORD: ${AUTH_LDAP_BIND_PASSWORD:-}
       AUTH_LDAP_USER_SEARCH_BASE: ${AUTH_LDAP_USER_SEARCH_BASE:-}
       AUTH_LDAP_USER_SEARCH_FILTER: ${AUTH_LDAP_USER_SEARCH_FILTER:-}
+      MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      MICROSOFT_ENFORCE_SSO: ${MICROSOFT_ENFORCE_SSO:-false}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       CSRF_COOKIE_SECURE: ${CSRF_COOKIE_SECURE:-false}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
@@ -83,9 +87,11 @@ services:
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-9000}:80"
+      - "${WEB_SSL_PORT:-9443}:443"
     volumes:
       - static_files:/app/staticfiles:ro
       - media_files:/app/media:ro
+      - nginx_ssl:/etc/nginx/ssl
     depends_on:
       - web
 
@@ -182,3 +188,4 @@ volumes:
   deploy_files:
   media_files:
   registry_data:
+  nginx_ssl:

@@ -211,6 +211,7 @@
     "content": "Content",
     "selectContent": "Select content to add...",
     "searchContent": "Search content...",
+    "uploadContent": "Upload file",
     "addContentHint": "Add \"{{name}}\" to the playlist",
     "playlistItems": "Playlist items",
     "noItemsYet": "No items yet — click a thumbnail above to add it.",
@@ -544,6 +545,8 @@
     "logout": "Sign Out",
     "username": "Username",
     "password": "Password",
+    "loginWithMicrosoft": "Sign in with Microsoft",
+    "orDivider": "or",
     "invalidCredentials": "Invalid username or password",
     "brandSuffix": "Gestor de Mupis Digitais",
     "forgotPassword": {
@@ -615,6 +618,11 @@
         "updateLine3": "installing mfa module...",
         "updateLine4": "restarting module... ok"
       }
+    },
+    "m365LoginError": "Couldn't sign in with Microsoft — please try again.",
+    "pendingApproval": {
+      "title": "Awaiting approval",
+      "message": "Your account was created but doesn't have access assigned yet. Contact an administrator to assign you a role."
     }
   },
   "schedule": {
@@ -1422,6 +1430,8 @@
     "lastName": "Last Name",
     "password": "Password",
     "leaveBlank": "leave blank to keep current",
+    "passwordBlankM365Hint": "Leave blank for an account that only signs in via Microsoft 365 (no local password).",
+    "emailM365Hint": "Also used to match a Microsoft 365 account at login (by email, case-insensitive).",
     "role": "Role",
     "role_superadmin": "Superadmin",
     "role_admin": "Admin",
@@ -1464,7 +1474,8 @@
     "resetMfa": "Reset 2FA",
     "resetMfaConfirmTitle": "Reset {{username}}'s two-factor authentication?",
     "resetMfaConfirmText": "They'll need to set up two-factor authentication again next time they sign in.",
-    "resetMfaSuccess": "Two-factor authentication reset."
+    "resetMfaSuccess": "Two-factor authentication reset.",
+    "pendingApproval": "Pending approval"
   },
   "audit": {
     "title": "Audit Log",

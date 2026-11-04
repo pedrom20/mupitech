@@ -94,6 +94,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'fleet_manager.middleware.PendingApprovalMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -166,6 +167,19 @@ from fleet_manager.ldap_backend import ldap_configured, ldap_settings  # noqa: E
 if ldap_configured():
     globals().update(ldap_settings())
     AUTHENTICATION_BACKENDS.append('django_auth_ldap.backend.LDAPBackend')
+
+# Optional — Login com Microsoft 365 / Entra ID (fleet_manager/m365_backend.py).
+# Stays off until all three MICROSOFT_* env vars below are set — see that
+# module's docstring for the flow and .env.example for what each one is.
+MICROSOFT_TENANT_ID = os.environ.get('MICROSOFT_TENANT_ID', '')
+MICROSOFT_CLIENT_ID = os.environ.get('MICROSOFT_CLIENT_ID', '')
+MICROSOFT_CLIENT_SECRET = os.environ.get('MICROSOFT_CLIENT_SECRET', '')
+# Safety net: configuring the three above only adds the "Entrar com
+# Microsoft" button as an extra option — password logins for everyone
+# keep working. Only flipping this ALSO to true (once M365 is confirmed
+# working end-to-end) disables password for non-admin/superadmin — see
+# fleet_manager/urls.py::auth_login.
+MICROSOFT_ENFORCE_SSO = os.environ.get('MICROSOFT_ENFORCE_SSO', 'false').lower() in ('true', '1')
 
 # Internationalization
 LANGUAGE_CODE = os.environ.get('LANGUAGE_CODE', 'pt')
@@ -320,8 +334,11 @@ PLAYER_REGISTER_TOKEN = os.environ.get('PLAYER_REGISTER_TOKEN', '')
 # Feature flags — lets a deployment turn off functionality it doesn't need
 # (e.g. CCTV) without removing the code. Read by the frontend via
 # GET /api/system/features/.
+from fleet_manager.m365_backend import m365_configured  # noqa: E402
+
 FEATURES = {
     'cctv': os.environ.get('FEATURE_CCTV_ENABLED', 'False').lower() in ('true', '1'),
+    'microsoft_login': m365_configured(),
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

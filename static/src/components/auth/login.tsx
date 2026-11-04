@@ -1,12 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { FaSignInAlt, FaArrowLeft, FaShieldAlt, FaEnvelope, FaCheckCircle } from 'react-icons/fa'
+import { FaSignInAlt, FaArrowLeft, FaShieldAlt, FaEnvelope, FaCheckCircle, FaMicrosoft } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { AuthContext, ThemeContext } from '@/components/app'
 import { auth, ApiError, type MfaChallenge } from '@/services/api'
 import CodeInput from '@/components/shared/code-input'
 import { MFA_METHOD_ICON } from '@/utils/mfaIcons'
+import { useFeatures } from '@/context/features-context'
 import MfaEasterEgg from './mfa-easter-egg'
 import type { MFAMethod } from '@/types'
 
@@ -15,9 +16,21 @@ const Login: React.FC = () => {
   const navigate = useNavigate()
   const { refresh } = useContext(AuthContext)
   const { retro: retroTheme, dos: dosTheme } = useContext(ThemeContext)
+  const { microsoftLogin } = useFeatures()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // auth_m365_callback (fleet_manager/urls.py) redirects back here with
+  // this query param on any failure — the success path redirects straight
+  // to '/' with a session already established, never back to /login.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('m365_error')) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: t('auth.m365LoginError') })
+      window.history.replaceState({}, '', '/login')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
@@ -246,6 +259,23 @@ const Login: React.FC = () => {
         <div className="fm-card-body">
           {!challengeId ? (
             <form onSubmit={handleCredentialsSubmit}>
+              {microsoftLogin && (
+                <>
+                  <button
+                    type="button"
+                    className="fm-btn-outline w-100 mb-3"
+                    onClick={() => { window.location.href = '/api/auth/m365/login/' }}
+                  >
+                    <FaMicrosoft />
+                    {t('auth.loginWithMicrosoft')}
+                  </button>
+                  <div className="d-flex align-items-center text-muted mb-3">
+                    <hr className="flex-grow-1" />
+                    <span className="px-2 small">{t('auth.orDivider')}</span>
+                    <hr className="flex-grow-1" />
+                  </div>
+                </>
+              )}
               <div className="mb-3">
                 <label className="form-label fw-semibold">{t('auth.username')}</label>
                 <input

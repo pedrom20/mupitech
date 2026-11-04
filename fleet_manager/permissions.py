@@ -23,8 +23,14 @@ EDITOR_ROLES = ('editor', 'editor_simplificado')
 
 def _user_role(user):
     """Return the highest role for a user: superadmin > admin > editor >
-    editor_simplificado > viewer."""
+    editor_simplificado > viewer. None means no access at all — either
+    not authenticated, or a Microsoft 365 first-login account still
+    awaiting an admin to assign it a role (access/models.py::
+    UserAccessScope.pending_approval) — unlike every other groupless
+    authenticated user below, which defaults to viewer."""
     if not user or not user.is_authenticated:
+        return None
+    if getattr(user, 'access_scope', None) and user.access_scope.pending_approval:
         return None
     if user.is_superuser:
         return 'superadmin'
@@ -44,10 +50,12 @@ def _user_role(user):
 
 
 class IsViewer(BasePermission):
-    """Any authenticated user (read-only access)."""
+    """Any authenticated user with a role (read-only access) — not just
+    anyone with a session, so a pending M365 account (_user_role() ==
+    None) doesn't get in here just by being authenticated."""
 
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated
+        return _user_role(request.user) is not None
 
 
 class IsEditor(BasePermission):
@@ -74,14 +82,15 @@ class IsSuperAdmin(BasePermission):
 
 
 class IsEditorOrReadOnly(BasePermission):
-    """Editor/admin/superadmin for write ops; any authenticated user for read."""
+    """Editor/admin/superadmin for write ops; any user with a role for read."""
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
+        role = _user_role(request.user)
+        if role is None:
             return False
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
-        return _user_role(request.user) in (*EDITOR_ROLES, 'admin', 'superadmin')
+        return role in (*EDITOR_ROLES, 'admin', 'superadmin')
 
 
 def user_can_delete_content(user):
@@ -98,11 +107,12 @@ def user_can_delete_content(user):
 
 
 class IsAdminOrReadOnly(BasePermission):
-    """Admin/superadmin for write ops; any authenticated user for read."""
+    """Admin/superadmin for write ops; any user with a role for read."""
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
+        role = _user_role(request.user)
+        if role is None:
             return False
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
-        return _user_role(request.user) in ('admin', 'superadmin')
+        return role in ('admin', 'superadmin')

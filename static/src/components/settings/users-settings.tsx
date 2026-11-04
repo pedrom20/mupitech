@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes, FaEye, FaMapMarkerAlt, FaLayerGroup, FaDesktop, FaShieldAlt } from 'react-icons/fa'
+import { FaUsers, FaPlus, FaEdit, FaTrash, FaTimes, FaEye, FaMapMarkerAlt, FaLayerGroup, FaDesktop, FaShieldAlt, FaHourglassHalf } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { users as usersApi, locations as locationsApi, groups as groupsApi, players as playersApi, audit as auditApi } from '@/services/api'
 import { RoleContext, AuthContext, isSuperAdminRole } from '@/components/app'
@@ -128,7 +128,11 @@ const UsersSettings: React.FC = () => {
     setEmail(u.email)
     setFirstName(u.first_name)
     setLastName(u.last_name)
-    setRole(u.role)
+    // u.role is only ever null while pending_approval (no role assigned
+    // yet) — default the select to 'viewer' rather than passing null into
+    // a controlled <select>; picking any role here clears pending_approval
+    // server-side (see fleet_manager/serializers.py::_assign_role).
+    setRole(u.role || 'viewer')
     setPassword('')
     setReceiveOfflineAlerts(u.receive_offline_alerts ?? true)
     setCanDeleteContent(u.can_delete_content ?? true)
@@ -262,9 +266,15 @@ const UsersSettings: React.FC = () => {
                     <td className="fw-semibold">{u.username}</td>
                     <td>{u.email || '—'}</td>
                     <td>
-                      <span className={`badge ${ROLE_BADGE[u.role] || 'bg-secondary'}`}>
-                        {t(`users.role_${u.role}`)}
-                      </span>
+                      {u.pending_approval ? (
+                        <span className="badge bg-warning text-dark">
+                          <FaHourglassHalf className="me-1" />{t('users.pendingApproval')}
+                        </span>
+                      ) : (
+                        <span className={`badge ${ROLE_BADGE[u.role as UserRole] || 'bg-secondary'}`}>
+                          {t(`users.role_${u.role}`)}
+                        </span>
+                      )}
                       {!u.is_active && <span className="badge bg-dark ms-1">{t('users.inactive')}</span>}
                       {u.mfa_enabled && (
                         <span className="badge bg-success ms-1">
@@ -423,6 +433,7 @@ const UsersSettings: React.FC = () => {
                   <div className="mb-2">
                     <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('users.email')}</label>
                     <input type="email" className="form-control form-control-sm" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('users.emailM365Hint')}</div>
                   </div>
                   <div className="row mb-2">
                     <div className="col">
@@ -438,7 +449,8 @@ const UsersSettings: React.FC = () => {
                     <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>
                       {t('users.password')} {editUser && <span className="text-muted fw-normal">({t('users.leaveBlank')})</span>}
                     </label>
-                    <input type="password" className="form-control form-control-sm" value={password} onChange={(e) => setPassword(e.target.value)} required={!editUser} minLength={6} />
+                    <input type="password" className="form-control form-control-sm" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} />
+                    <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('users.passwordBlankM365Hint')}</div>
                   </div>
                   </div>
 
@@ -565,9 +577,15 @@ const UsersSettings: React.FC = () => {
                   </div>
                   <div className="text-end">
                     <div className="mb-1">
-                      <span className={`badge ${ROLE_BADGE[viewUser.role] || 'bg-secondary'}`}>
-                        {t(`users.role_${viewUser.role}`)}
-                      </span>
+                      {viewUser.pending_approval ? (
+                        <span className="badge bg-warning text-dark">
+                          <FaHourglassHalf className="me-1" />{t('users.pendingApproval')}
+                        </span>
+                      ) : (
+                        <span className={`badge ${ROLE_BADGE[viewUser.role as UserRole] || 'bg-secondary'}`}>
+                          {t(`users.role_${viewUser.role}`)}
+                        </span>
+                      )}
                     </div>
                     <span className={`badge ${viewUser.is_active ? 'bg-success' : 'bg-dark'}`}>
                       {viewUser.is_active ? t('users.active') : t('users.inactive')}

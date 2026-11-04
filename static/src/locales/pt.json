@@ -211,6 +211,7 @@
     "content": "Conteúdo",
     "selectContent": "Selecione conteúdo para adicionar...",
     "searchContent": "Pesquisar conteúdo...",
+    "uploadContent": "Enviar ficheiro",
     "addContentHint": "Adicionar \"{{name}}\" à lista",
     "playlistItems": "Itens da lista",
     "noItemsYet": "Ainda sem itens — clique numa miniatura acima para adicionar.",
@@ -544,6 +545,8 @@
     "logout": "Terminar Sessão",
     "username": "Utilizador",
     "password": "Palavra-passe",
+    "loginWithMicrosoft": "Entrar com Microsoft",
+    "orDivider": "ou",
     "invalidCredentials": "Utilizador ou palavra-passe inválidos",
     "brandSuffix": "Gestor de Mupis Digitais",
     "forgotPassword": {
@@ -615,6 +618,11 @@
         "updateLine3": "a instalar módulo mfa...",
         "updateLine4": "a reiniciar módulo... ok"
       }
+    },
+    "m365LoginError": "Não foi possível iniciar sessão com a Microsoft — tente novamente.",
+    "pendingApproval": {
+      "title": "A aguardar aprovação",
+      "message": "A sua conta foi criada mas ainda não tem acesso atribuído. Contacte um administrador para lhe atribuir uma função."
     }
   },
   "schedule": {
@@ -1422,6 +1430,8 @@
     "lastName": "Último Nome",
     "password": "Palavra-passe",
     "leaveBlank": "deixe em branco para manter a atual",
+    "passwordBlankM365Hint": "Deixe em branco para uma conta que só entra por Microsoft 365 (sem password local).",
+    "emailM365Hint": "Também usado para fazer o match com uma conta Microsoft 365 no login (por email, sem distinguir maiúsculas/minúsculas).",
     "role": "Função",
     "role_superadmin": "Superadministrador",
     "role_admin": "Administrador",
@@ -1464,7 +1474,8 @@
     "resetMfa": "Repor 2FA",
     "resetMfaConfirmTitle": "Repor a autenticação de dois fatores de {{username}}?",
     "resetMfaConfirmText": "O utilizador terá de configurar novamente a autenticação de dois fatores no próximo início de sessão.",
-    "resetMfaSuccess": "Autenticação de dois fatores reposta."
+    "resetMfaSuccess": "Autenticação de dois fatores reposta.",
+    "pendingApproval": "Pendente de aprovação"
   },
   "audit": {
     "title": "Registo de Auditoria",

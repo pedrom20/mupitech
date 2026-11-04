@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import include, path, re_path
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
@@ -93,6 +93,26 @@ def auth_login(request):
         password=data.get('password'),
     )
     if user is not None:
+        # Once Microsoft 365 login is configured AND MICROSOFT_ENFORCE_SSO
+        # is explicitly turned on (a deliberate second switch — just
+        # setting the MICROSOFT_* creds only adds the button as an extra
+        # option, see settings.py — flipping this too is the admin
+        # confirming M365 actually works before cutting anyone's password),
+        # password stays available only as a break-glass path for admin/
+        # superadmin — everyone else must use the "Entrar com Microsoft"
+        # button (auth_m365_login below). Checked here, before MFA, so a
+        # non-admin never even sees a challenge for a method they're not
+        # allowed to finish logging in with this way.
+        from fleet_manager.m365_backend import m365_configured
+
+        if (m365_configured() and settings.MICROSOFT_ENFORCE_SSO
+                and _user_role(user) not in ('admin', 'superadmin')):
+            log_action(request, 'login_failed', 'session', target_name=user.username,
+                       details={'reason': 'm365_required'})
+            return Response(
+                {'detail': 'Use o botão "Entrar com Microsoft" para iniciar sessão.'},
+                status=403,
+            )
         # available_methods is every provider (see mfa/providers.py) this
         # user has a confirmed enrollment with, in priority order — push
         # methods first, since they're a single tap with no code to type.
@@ -410,6 +430,46 @@ def auth_email_otp_verify(request):
     return Response({'detail': 'Invalid code.'}, status=401)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def auth_m365_login(request):
+    """Entry point for the "Entrar com Microsoft" button — a full-page
+    browser redirect (not a fetch/XHR) into the Microsoft login page. See
+    fleet_manager/m365_backend.py for the flow this kicks off."""
+    from fleet_manager.m365_backend import m365_configured, start_flow
+
+    if not m365_configured():
+        return Response(status=404)
+    return redirect(start_flow(request))
+
+
+@ratelimit(group='auth_m365_callback', key='ip', rate='20/m', method='GET', block=True)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def auth_m365_callback(request):
+    """Where Microsoft redirects the browser back to after the user signs
+    in there. Establishes the Fleet Manager session directly (no MFA — see
+    auth_login's own m365_required check for why password callers don't get
+    this same bypass) and sends the browser on to the app."""
+    from history.logging import log_action
+
+    from fleet_manager.m365_backend import complete_flow, get_or_create_user, m365_configured
+
+    if not m365_configured():
+        return Response(status=404)
+
+    try:
+        claims = complete_flow(request)
+        user = get_or_create_user(claims)
+    except ValueError:
+        logger.warning('M365 login failed', exc_info=True)
+        return redirect('/login?m365_error=1')
+
+    login(request, user)
+    log_action(request, 'login', 'session', target_name=user.username, details={'via': 'm365'})
+    return redirect('/')
+
+
 @ratelimit(group='auth_device_login', key='ip', rate='20/m', method='POST', block=True)
 @ratelimit(group='auth_device_login', key='post:player_id', rate='10/m', method='POST', block=True)
 @api_view(['POST'])
@@ -685,6 +745,8 @@ urlpatterns = [
     path('api/auth/mfa/privacyidea-push-verify/', auth_privacyidea_push_verify),
     path('api/auth/mfa/email-send/', auth_email_otp_send),
     path('api/auth/mfa/email-verify/', auth_email_otp_verify),
+    path('api/auth/m365/login/', auth_m365_login),
+    path('api/auth/m365/callback/', auth_m365_callback),
     path('api/auth/device-login/', auth_device_login),
     path('api/auth/logout/', auth_logout),
     path('api/auth/status/', auth_status),

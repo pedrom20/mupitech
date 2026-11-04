@@ -27,6 +27,7 @@ import Settings from '@/components/settings/settings'
 import AuditLog from '@/components/settings/audit-log'
 import AccountPage from '@/components/account/account-page'
 import OnboardingWizard from '@/components/onboarding/onboarding-wizard'
+import PendingApproval from '@/components/auth/pending-approval'
 import SetupWizard from '@/components/setup/setup-wizard'
 import Login from '@/components/auth/login'
 import ResetPassword from '@/components/auth/reset-password'
@@ -294,6 +295,8 @@ const App: React.FC = () => {
           <main className={`fm-content ${checked && user && sidebarNavEnabled ? `fm-content--with-sidebar ${sidebarCollapsed ? 'fm-content--sidebar-collapsed' : ''}` : ''}`}>
             {checked && !user && setupRequired ? (
               <SetupWizard onComplete={() => { setSetupRequired(false); refresh() }} />
+            ) : user && user.pending_approval ? (
+              <PendingApproval />
             ) : user && (user.must_change_password || user.force_mfa_enroll) ? (
               <OnboardingWizard />
             ) : (

@@ -298,6 +298,8 @@
     "logout": "Déconnexion",
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
+    "loginWithMicrosoft": "Se connecter avec Microsoft",
+    "orDivider": "ou",
     "invalidCredentials": "Nom d'utilisateur ou mot de passe incorrect",
     "brandSuffix": "Gestor de Mupis Digitais",
     "mfa": {
@@ -307,6 +309,11 @@
       "verify": "Vérifier",
       "back": "Retour",
       "invalidCode": "Code invalide"
+    },
+    "m365LoginError": "Impossible de se connecter avec Microsoft — veuillez réessayer.",
+    "pendingApproval": {
+      "title": "En attente d'approbation",
+      "message": "Votre compte a été créé mais n'a pas encore d'accès attribué. Contactez un administrateur pour qu'il vous attribue un rôle."
     }
   },
   "schedule": {

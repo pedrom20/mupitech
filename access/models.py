@@ -61,6 +61,17 @@ class UserAccessScope(models.Model):
                    'mfa/policy.py::dual_mfa_required, the only reader.',
     )
 
+    pending_approval = models.BooleanField(
+        default=False,
+        help_text='Set when this account was auto-created by a first-time Microsoft 365 '
+                   'login with no matching local account (see fleet_manager/m365_backend.py '
+                   '::get_or_create_user) — the user is authenticated but has no role and no '
+                   'access until an admin assigns one. Cleared automatically the moment any '
+                   'role is assigned (see fleet_manager/serializers.py::_assign_role). Never '
+                   'set for an account that already existed (pre-created or matched by '
+                   'email) — those keep the existing "groupless == viewer" default.',
+    )
+
     def __str__(self):
         return f'Access scope for {self.user}'
 

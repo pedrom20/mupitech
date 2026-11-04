@@ -94,8 +94,11 @@ def system_version(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def system_features(request):
-    """Return which optional features are enabled for this deployment."""
+    """Return which optional features are enabled for this deployment.
+    AllowAny: the login page (pre-auth) needs 'microsoft_login' to decide
+    whether to show the "Entrar com Microsoft" button."""
     return Response(settings.FEATURES)
 
 
