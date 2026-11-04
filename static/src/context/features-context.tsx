@@ -3,12 +3,12 @@ import { system } from '@/services/api'
 
 interface Features {
   cctv: boolean
-  microsoftLogin: boolean
+  microsoft_login: boolean
 }
 
 const DEFAULT_FEATURES: Features = {
   cctv: false,
-  microsoftLogin: false,
+  microsoft_login: false,
 }
 
 const FeaturesContext = createContext<Features>(DEFAULT_FEATURES)

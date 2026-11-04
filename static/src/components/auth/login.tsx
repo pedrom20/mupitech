@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate()
   const { refresh } = useContext(AuthContext)
   const { retro: retroTheme, dos: dosTheme } = useContext(ThemeContext)
-  const { microsoftLogin } = useFeatures()
+  const { microsoft_login: microsoftLogin } = useFeatures()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
