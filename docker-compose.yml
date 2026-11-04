@@ -87,7 +87,7 @@ services:
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-9000}:80"
-      - "${WEB_SSL_PORT:-9443}:443"
+      - "${WEB_SSL_PORT:-9444}:443"
     volumes:
       - static_files:/app/staticfiles:ro
       - media_files:/app/media:ro
