@@ -101,6 +101,28 @@ def _graph_profile(access_token):
     return profile
 
 
+def _fetch_avatar(access_token):
+    """The account's M365 profile photo, as raw bytes, or None — Graph
+    returns 404 when the person simply has no photo set, which isn't a
+    failure any more than a missing mail/givenName is above, just means
+    no avatar to show."""
+    import requests
+
+    try:
+        resp = requests.get(
+            'https://graph.microsoft.com/v1.0/me/photo/$value',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10,
+        )
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        return resp.content
+    except requests.RequestException as exc:
+        logger.warning('M365 Graph /me/photo call failed: %s', exc)
+        return None
+
+
 def complete_flow(request):
     """Validates the callback against the stashed flow and exchanges the
     auth code for tokens. Returns the claims dict (email, name, ...) on
@@ -123,6 +145,10 @@ def complete_flow(request):
 
     merged = {**claims, **_graph_profile(result['access_token'])}
     logger.info('M365 claims used for account matching: %s', merged)
+    # Not a real claim, just piggy-backing the already-fetched access
+    # token's result through to get_or_create_user below — kept out of
+    # the log line above (binary, would just be noise).
+    merged['_avatar'] = _fetch_avatar(result['access_token'])
     return merged
 
 
@@ -134,7 +160,11 @@ def get_or_create_user(claims):
     Only a genuinely new account (no match at all) gets auto-created here,
     with no password and no role, and flagged pending_approval — see
     access/models.py::UserAccessScope and permissions.py::_user_role for
-    what that blocks until an admin assigns a role."""
+    what that blocks until an admin assigns a role.
+
+    Name and avatar are refreshed from Microsoft on every login, for both
+    new and already-matched accounts, so a photo/name change on the M365
+    side shows up here too without needing a re-link."""
     from django.contrib.auth.models import User
 
     from access.models import UserAccessScope
@@ -153,9 +183,17 @@ def get_or_create_user(claims):
         )
         user.set_unusable_password()
         user.save(update_fields=['password'])
-        UserAccessScope.objects.create(user=user, pending_approval=True)
-    elif user.first_name != first_name or user.last_name != last_name:
-        user.first_name = first_name
-        user.last_name = last_name
-        user.save(update_fields=['first_name', 'last_name'])
+        scope = UserAccessScope.objects.create(user=user, pending_approval=True)
+    else:
+        if user.first_name != first_name or user.last_name != last_name:
+            user.first_name = first_name
+            user.last_name = last_name
+            user.save(update_fields=['first_name', 'last_name'])
+        scope, _ = UserAccessScope.objects.get_or_create(user=user)
+
+    avatar_bytes = claims.get('_avatar')
+    if avatar_bytes:
+        from django.core.files.base import ContentFile
+        scope.avatar.save(f'{user.id}.jpg', ContentFile(avatar_bytes), save=True)
+
     return user

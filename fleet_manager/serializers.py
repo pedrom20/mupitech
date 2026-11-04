@@ -75,13 +75,14 @@ class UserSerializer(serializers.ModelSerializer):
     force_mfa_enroll = serializers.SerializerMethodField()
     editor_capabilities = serializers.SerializerMethodField()
     pending_approval = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
                   'is_active', 'role', 'scope', 'receive_offline_alerts', 'can_delete_content',
                   'mfa_enabled', 'must_change_password', 'force_mfa_enroll', 'editor_capabilities',
-                  'pending_approval', 'last_login', 'date_joined']
+                  'pending_approval', 'avatar_url', 'last_login', 'date_joined']
         read_only_fields = ['id', 'last_login', 'date_joined']
 
     def get_role(self, obj):
@@ -90,6 +91,18 @@ class UserSerializer(serializers.ModelSerializer):
     def get_pending_approval(self, obj):
         scope = getattr(obj, 'access_scope', None)
         return bool(scope and scope.pending_approval)
+
+    def get_avatar_url(self, obj):
+        """Only ever set for an M365 account (see
+        fleet_manager/m365_backend.py::get_or_create_user) — None for
+        everyone else, which the frontend reads as "show the generic
+        icon/initials instead."""
+        scope = getattr(obj, 'access_scope', None)
+        if not scope or not scope.avatar:
+            return None
+        request = self.context.get('request')
+        url = scope.avatar.url
+        return request.build_absolute_uri(url) if request else url
 
     def get_scope(self, obj):
         scope = getattr(obj, 'access_scope', None)

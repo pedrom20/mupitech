@@ -189,8 +189,12 @@ const UsersSettings: React.FC = () => {
   }
 
   const handleDelete = (u: User) => {
+    // A pending account (never had real access — see
+    // fleet_manager/user_views.py::UserViewSet.destroy) gets permanently
+    // removed instead of the usual soft-deactivate, so the confirm copy
+    // needs to say so rather than claim "deactivate".
     Swal.fire({
-      title: t('users.confirmDeactivate'),
+      title: t(u.pending_approval ? 'users.confirmDeletePending' : 'users.confirmDeactivate'),
       text: u.username,
       icon: 'warning',
       showCancelButton: true,
@@ -200,7 +204,12 @@ const UsersSettings: React.FC = () => {
       if (result.isConfirmed) {
         usersApi.delete(u.id).then(() => {
           loadUsers()
-          Swal.fire({ icon: 'success', title: t('users.deactivated'), timer: 1500, showConfirmButton: false })
+          Swal.fire({
+            icon: 'success',
+            title: t(u.pending_approval ? 'users.deletedPending' : 'users.deactivated'),
+            timer: 1500,
+            showConfirmButton: false,
+          })
         }).catch(() => {
           Swal.fire({ icon: 'error', title: t('common.error') })
         })
@@ -250,6 +259,7 @@ const UsersSettings: React.FC = () => {
               <thead>
                 <tr>
                   <th>{t('users.username')}</th>
+                  <th>{t('users.name')}</th>
                   <th>{t('users.email')}</th>
                   <th>{t('users.role')}</th>
                   <th>{t('users.access')}</th>
@@ -261,9 +271,11 @@ const UsersSettings: React.FC = () => {
                 {userList.map((u) => {
                   const scopedCount = (u.scope?.location_ids.length || 0)
                     + (u.scope?.group_ids.length || 0) + (u.scope?.player_ids.length || 0)
+                  const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ')
                   return (
                   <tr key={u.id} className={!u.is_active ? 'opacity-50' : ''}>
                     <td className="fw-semibold">{u.username}</td>
+                    <td>{fullName || '—'}</td>
                     <td>{u.email || '—'}</td>
                     <td>
                       {u.pending_approval ? (
@@ -305,7 +317,7 @@ const UsersSettings: React.FC = () => {
                           <FaShieldAlt />
                         </button>
                       )}
-                      {u.is_active && (u.role !== 'superadmin' || isSuperAdminRole(currentRole)) && (
+                      {(u.is_active || u.pending_approval) && (u.role !== 'superadmin' || isSuperAdminRole(currentRole)) && (
                         <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(u)} title={t('common.delete')}>
                           <FaTrash />
                         </button>

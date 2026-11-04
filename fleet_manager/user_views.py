@@ -54,6 +54,22 @@ class UserViewSet(viewsets.ModelViewSet):
                 {'error': 'Only a superadmin can deactivate another superadmin'},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        # A pending M365 account (access/models.py::UserAccessScope.
+        # pending_approval) never had real access or did anything — nothing
+        # worth a soft-delete's audit trail for, and leaving a dead "pending"
+        # row around after someone's deliberately removed it is just
+        # clutter (e.g. a duplicate created by a since-fixed email-matching
+        # bug). Every other account keeps the normal deactivate-only
+        # behaviour below. User.delete() cascades the UserAccessScope row;
+        # AuditLog.user is SET_NULL so history/audit entries survive.
+        scope = getattr(user, 'access_scope', None)
+        if scope and scope.pending_approval:
+            username = user.username
+            user_id = user.id
+            user.delete()
+            log_action(request, 'delete', 'user', target_id=user_id, target_name=username)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         user.is_active = False
         user.save(update_fields=['is_active'])
         log_action(request, 'deactivate', 'user', target_id=user.id, target_name=user.username)

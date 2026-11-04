@@ -61,6 +61,12 @@ class UserAccessScope(models.Model):
                    'mfa/policy.py::dual_mfa_required, the only reader.',
     )
 
+    avatar = models.ImageField(
+        upload_to='avatars/', blank=True, null=True,
+        help_text='Fetched from Microsoft Graph (/me/photo) on every M365 login — '
+                   'see fleet_manager/m365_backend.py::_fetch_avatar. Never set for '
+                   'password/LDAP-only accounts (no equivalent source for those).',
+    )
     pending_approval = models.BooleanField(
         default=False,
         help_text='Set when this account was auto-created by a first-time Microsoft 365 '

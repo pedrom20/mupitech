@@ -339,6 +339,9 @@ export interface User {
   // (fleet_manager/m365_backend.py::get_or_create_user) — authenticated
   // but with no role/access until an admin assigns one on the Users page.
   pending_approval?: boolean
+  // Only ever set for an M365 account (fleet_manager/m365_backend.py) —
+  // null/undefined for everyone else, meaning "show the generic icon".
+  avatar_url?: string | null
   editor_capabilities?: EditorCapabilities
   last_login: string | null
   date_joined: string

@@ -104,7 +104,7 @@ const UserMenu: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
     navigate('/login')
   }
 
-  const displayName = user.first_name || user.username
+  const displayName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username
 
   return (
     <div className="position-relative" ref={dropdownRef}>
@@ -114,7 +114,16 @@ const UserMenu: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <FaUserCircle size={20} />
+        {user.avatar_url ? (
+          <img
+            src={user.avatar_url}
+            alt=""
+            className="rounded-circle"
+            style={{ width: 20, height: 20, objectFit: 'cover' }}
+          />
+        ) : (
+          <FaUserCircle size={20} />
+        )}
         <span className="d-none d-xl-inline">{displayName}</span>
       </button>
 
