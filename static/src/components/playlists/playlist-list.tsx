@@ -36,6 +36,18 @@ interface FormItem {
   duration: number | null
 }
 
+// dispatch(...).unwrap() rejects with a plain {name, message, ...} object
+// (Redux Toolkit's SerializedError), not an Error instance — String() on a
+// plain object always gives "[object Object]" (no custom toString), unlike
+// an ApiError/Error whose own toString() does return the message.
+const unwrapErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message
+  if (err && typeof err === 'object' && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message
+  }
+  return String(err)
+}
+
 const PlaylistList: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
@@ -217,7 +229,7 @@ const PlaylistList: React.FC = () => {
       showToast('success', t('common.success'))
       handleFormClose()
     } catch (error) {
-      Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
+      Swal.fire({ icon: 'error', title: t('common.error'), text: unwrapErrorMessage(error) })
     } finally {
       setSaving(false)
     }
@@ -236,7 +248,7 @@ const PlaylistList: React.FC = () => {
       try {
         await dispatch(deletePlaylist(playlist.id)).unwrap()
       } catch (error) {
-        Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
+        Swal.fire({ icon: 'error', title: t('common.error'), text: unwrapErrorMessage(error) })
       }
     }
   }
@@ -248,7 +260,7 @@ const PlaylistList: React.FC = () => {
       showToast('success', t('playlists.deployStarted'), t('playlists.deployStartedDesc', { count: res.target_count }))
       setTimeout(() => dispatch(fetchPlaylists()), 4000)
     } catch (error) {
-      Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
+      Swal.fire({ icon: 'error', title: t('common.error'), text: unwrapErrorMessage(error) })
     } finally {
       setDeployingId(null)
     }
@@ -298,7 +310,7 @@ const PlaylistList: React.FC = () => {
       showToast('success', t('common.success'))
       setApplyingPlaylist(null)
     } catch (error) {
-      Swal.fire({ icon: 'error', title: t('common.error'), text: String(error) })
+      Swal.fire({ icon: 'error', title: t('common.error'), text: unwrapErrorMessage(error) })
     } finally {
       setApplying(false)
     }
