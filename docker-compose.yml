@@ -88,6 +88,8 @@ services:
     ports:
       - "${WEB_PORT:-9000}:80"
       - "${WEB_SSL_PORT:-9444}:443"
+    environment:
+      WEB_SSL_SAN: ${WEB_SSL_SAN:-}
     volumes:
       - static_files:/app/staticfiles:ro
       - media_files:/app/media:ro
