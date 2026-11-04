@@ -425,6 +425,12 @@ const ContentPage: React.FC = () => {
   const [showRecycleBin, setShowRecycleBin] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [uploadStats, setUploadStats] = useState<{ current: number; total: number } | null>(null)
+  // Accumulates results across separate handleUpload() calls (one per
+  // drag/drop or file-picker action) so dragging several files in one by
+  // one doesn't pop up its own summary each time — only read/reset once
+  // uploadNotifyTimerRef's debounce fires with no new activity in between.
+  const uploadBatchRef = useRef({ uploaded: 0, duplicates: [] as string[], failed: [] as { name: string; msg: string }[] })
+  const uploadNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null)
@@ -550,6 +556,30 @@ const ContentPage: React.FC = () => {
     return () => window.removeEventListener('keydown', handler)
   }, [previewFile, showAddModal])
 
+  // Shows one summary for everything accumulated in uploadBatchRef since
+  // the last time this fired, then resets it — scheduled (never called
+  // directly) from handleUpload below so several separate upload actions
+  // in quick succession collapse into a single notification.
+  const flushUploadNotification = () => {
+    const { uploaded, duplicates, failed } = uploadBatchRef.current
+    uploadBatchRef.current = { uploaded: 0, duplicates: [], failed: [] }
+    uploadNotifyTimerRef.current = null
+
+    if (failed.length > 0) {
+      // Needs actual reading (which files, why) — kept as a dialog
+      // rather than a toast, but still just one for the whole batch.
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error'),
+        text: failed.map((f) => `${f.name}: ${f.msg}`).join('\n'),
+      })
+    } else if (duplicates.length > 0) {
+      showToast('info', t('content.duplicateTitle'), duplicates.join(', '))
+    } else if (uploaded > 0) {
+      showToast('success', t('common.success'), uploaded === 1 ? t('content.fileUploaded') : `${uploaded} ${t('content.filesUploaded')}`)
+    }
+  }
+
   // --- Upload handler ---
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return
@@ -557,49 +587,33 @@ const ContentPage: React.FC = () => {
     // and gets cleared when input.value = '' runs after first await
     const files = Array.from(fileList)
     const total = files.length
-    let uploaded = 0
-    let failed = 0
-    const duplicates: string[] = []
     for (let i = 0; i < total; i++) {
       const file = files[i]
       setUploadProgress(0)
       setUploadStats({ current: i + 1, total })
       try {
         await mediaApi.upload(file, file.name, (pct) => setUploadProgress(pct))
-        uploaded++
+        uploadBatchRef.current.uploaded++
       } catch (err) {
         const msg = String(err)
         if (msg.toLowerCase().includes('already exists')) {
-          duplicates.push(file.name)
+          uploadBatchRef.current.duplicates.push(file.name)
         } else {
-          failed++
-          Swal.fire({ icon: 'error', title: t('common.error'), text: `${file.name}: ${msg}` })
+          uploadBatchRef.current.failed.push({ name: file.name, msg })
         }
       } finally {
         setUploadProgress(null)
       }
     }
     setUploadStats(null)
-    // Refresh file list first so new files appear immediately
+    // Refresh file list first so new files appear immediately — this
+    // runs for every call, independent of the debounced notification
+    // below, so the grid never waits on the quiet period to update.
     await loadFiles()
     await loadFolders()
-    if (duplicates.length > 0) {
-      Swal.fire({
-        icon: 'info',
-        title: t('content.duplicateTitle'),
-        text: duplicates.join(', '),
-        timer: 3000,
-        showConfirmButton: false,
-      })
-    } else if (uploaded > 0 && failed === 0) {
-      Swal.fire({
-        icon: 'success',
-        title: t('common.success'),
-        text: total === 1 ? t('content.fileUploaded') : `${uploaded} ${t('content.filesUploaded')}`,
-        timer: 1500,
-        showConfirmButton: false,
-      })
-    }
+
+    if (uploadNotifyTimerRef.current) clearTimeout(uploadNotifyTimerRef.current)
+    uploadNotifyTimerRef.current = setTimeout(flushUploadNotification, 1200)
   }
 
   // --- Add URL handler ---

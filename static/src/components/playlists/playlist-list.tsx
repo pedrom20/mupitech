@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -15,6 +15,7 @@ import {
   FaDesktop,
   FaLayerGroup,
   FaMapMarkerAlt,
+  FaCloudUploadAlt,
 } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { useAppDispatch, useAppSelector } from '@/store/index'
@@ -24,6 +25,7 @@ import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { media as mediaApi, playlists as playlistsApi } from '@/services/api'
 import { FilePreview } from '@/components/shared/media-preview'
+import UploadMediaModal from '@/components/shared/upload-media-modal'
 import { showToast } from '@/utils/toast'
 import { RoleContext, canEditPlaylistTargets } from '@/components/app'
 import type { Playlist, PlaylistItem, MediaFile } from '@/types'
@@ -54,6 +56,16 @@ const PlaylistList: React.FC = () => {
   const [contentSearch, setContentSearch] = useState('')
   const [saving, setSaving] = useState(false)
   const [deployingId, setDeployingId] = useState<string | null>(null)
+
+  // Upload-from-here (shared/upload-media-modal.tsx) — lets a new file be
+  // added without leaving the playlist form to go to the Content page
+  // first. Same debounced-summary pattern as deploy-form.tsx::handleUpload
+  // (kept separate here rather than a shared hook — see plan notes).
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploadStats, setUploadStats] = useState<{ current: number; total: number } | null>(null)
+  const uploadBatchRef = useRef({ uploaded: 0, duplicates: [] as string[], failed: [] as { name: string; msg: string }[] })
+  const uploadNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Apply-to (players/groups/locations) — a separate modal from
   // add/edit, so picking where a playlist plays never risks touching
@@ -134,6 +146,53 @@ const PlaylistList: React.FC = () => {
 
   const handleItemDurationChange = (index: number, value: string) => {
     setFormItems((prev) => prev.map((it, i) => i === index ? { ...it, duration: value ? Number(value) : null } : it))
+  }
+
+  // Same "one summary, not one per drop" debouncing as
+  // deploy-form.tsx::flushUploadNotification.
+  const flushUploadNotification = () => {
+    const { uploaded, duplicates, failed } = uploadBatchRef.current
+    uploadBatchRef.current = { uploaded: 0, duplicates: [], failed: [] }
+    uploadNotifyTimerRef.current = null
+
+    if (failed.length > 0) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: failed.map((f) => `${f.name}: ${f.msg}`).join('\n') })
+    } else if (duplicates.length > 0) {
+      showToast('info', t('content.duplicateTitle'), duplicates.join(', '))
+    } else if (uploaded > 0) {
+      showToast('success', t('common.success'), uploaded === 1 ? t('content.fileUploaded') : `${uploaded} ${t('content.filesUploaded')}`)
+    }
+  }
+
+  // Uploads straight from the playlist form (upload-media-modal.tsx) —
+  // new files land in mediaFiles so they show up in the content picker
+  // grid right away, without a refetch of the whole library.
+  const handleUploadContent = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return
+    const uploadFiles = Array.from(fileList)
+    const total = uploadFiles.length
+    for (let i = 0; i < total; i++) {
+      const file = uploadFiles[i]
+      setUploadProgress(0)
+      setUploadStats({ current: i + 1, total })
+      try {
+        const uploaded = await mediaApi.upload(file, file.name, (pct) => setUploadProgress(pct))
+        setMediaFiles((prev) => [...prev, uploaded])
+        uploadBatchRef.current.uploaded++
+      } catch (err) {
+        const msg = String(err)
+        if (msg.toLowerCase().includes('already exists')) {
+          uploadBatchRef.current.duplicates.push(file.name)
+        } else {
+          uploadBatchRef.current.failed.push({ name: file.name, msg })
+        }
+      } finally {
+        setUploadProgress(null)
+      }
+    }
+    setUploadStats(null)
+    if (uploadNotifyTimerRef.current) clearTimeout(uploadNotifyTimerRef.current)
+    uploadNotifyTimerRef.current = setTimeout(flushUploadNotification, 1200)
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -373,9 +432,30 @@ const PlaylistList: React.FC = () => {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">{t('playlists.content')}</label>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <label className="form-label fw-semibold mb-0">{t('playlists.content')}</label>
+                      <button
+                        type="button"
+                        className="fm-btn-outline btn-sm"
+                        onClick={() => setShowUploadModal(true)}
+                      >
+                        <FaCloudUploadAlt /> {t('playlists.uploadContent')}
+                      </button>
+                    </div>
 
-                    <div className="input-group input-group-sm mb-2">
+                    {uploadStats && (
+                      <div className="mb-2 mt-1" style={{ fontSize: '0.8rem' }}>
+                        <div className="d-flex justify-content-between text-muted">
+                          <small>{t('content.uploading')} ({uploadStats.current}/{uploadStats.total})</small>
+                          <small>{uploadProgress}%</small>
+                        </div>
+                        <div className="progress" style={{ height: '4px' }}>
+                          <div className="progress-bar" style={{ width: `${uploadProgress}%` }} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="input-group input-group-sm mb-2 mt-2">
                       <span className="input-group-text"><FaSearch /></span>
                       <input
                         type="text"
@@ -547,6 +627,12 @@ const PlaylistList: React.FC = () => {
           </div>
         </div>
       )}
+
+      <UploadMediaModal
+        show={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUpload={handleUploadContent}
+      />
     </div>
   )
 }
