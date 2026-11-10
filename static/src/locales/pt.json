@@ -166,7 +166,13 @@
     "ssoDisable": "Desativar login SSO para este dispositivo",
     "ssoDisabledHint": "O login SSO está desativado para este dispositivo",
     "ssoEnabledToast": "Login SSO ativado para este dispositivo",
-    "ssoDisabledToast": "Login SSO desativado para este dispositivo"
+    "ssoDisabledToast": "Login SSO desativado para este dispositivo",
+    "slaExclude": "Relatório de SLA",
+    "slaExcludeHint": "Excluir este dispositivo do cálculo de disponibilidade (%) da frota nos Relatórios — por exemplo, um dispositivo mantido deliberadamente desligado para testes.",
+    "slaExcludeAction": "Excluir do SLA",
+    "slaInclude": "Incluir no SLA",
+    "slaExcludedToast": "Dispositivo excluído do SLA da frota",
+    "slaIncludedToast": "Dispositivo voltou a contar para o SLA da frota"
   },
   "groups": {
     "title": "Grupos",
@@ -1661,6 +1667,9 @@
     "logins": "Logins",
     "topUsers": "Utilizadores mais ativos",
     "byAction": "Por tipo de ação",
-    "actions": "Ações"
+    "actions": "Ações",
+    "excludeFromSla": "Excluir do SLA",
+    "includeInSla": "Incluir no SLA",
+    "excluded": "Excluído"
   }
 }

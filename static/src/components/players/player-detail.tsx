@@ -741,6 +741,18 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  const handleToggleExcludeFromSla = async () => {
+    if (!id || !player) return
+    const nextExcluded = !player.exclude_from_sla
+    try {
+      await playersApi.partialUpdate(id, { exclude_from_sla: nextExcluded })
+      setPlayer({ ...player, exclude_from_sla: nextExcluded })
+      showToast('success', nextExcluded ? t('players.slaExcludedToast') : t('players.slaIncludedToast'))
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: error instanceof ApiError ? error.message : String(error) })
+    }
+  }
+
   const handleRevealCredentials = async () => {
     if (!id) return
     const { value: adminPassword } = await Swal.fire({
@@ -4038,6 +4050,21 @@ const PlayerDetail: React.FC = () => {
                       {player.sso_enabled === false && (
                         <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('players.ssoDisabledHint')}</div>
                       )}
+                    </div>
+
+                    <hr className="my-0" />
+
+                    <div>
+                      <h6 className="fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('players.slaExclude')}</h6>
+                      <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>{t('players.slaExcludeHint')}</p>
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={handleToggleExcludeFromSla}
+                      >
+                        {player.exclude_from_sla ? <FaToggleOff className="me-1" /> : <FaToggleOn className="me-1" />}
+                        {player.exclude_from_sla ? t('players.slaInclude') : t('players.slaExcludeAction')}
+                      </button>
                     </div>
 
                     <hr className="my-0" />

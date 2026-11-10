@@ -83,8 +83,13 @@ def sla(request):
         counts = by_player.get(player.id)
         online = counts['online'] if counts else 0
         total = counts['total'] if counts else 0
-        fleet_online += online
-        fleet_total += total
+        # Still listed below (transparency — see Player.exclude_from_sla's
+        # own docstring) but left out of the fleet-wide rollup, which is
+        # the whole point: a device deliberately kept offline for testing
+        # shouldn't drag everyone else's number down.
+        if not player.exclude_from_sla:
+            fleet_online += online
+            fleet_total += total
         # A group's own location takes precedence over a player's direct
         # one — same rule players/models.py::Player.location documents.
         location = player.group.location if player.group and player.group.location else player.location
@@ -98,6 +103,7 @@ def sla(request):
             'online_snapshots': online,
             'total_snapshots': total,
             'uptime_pct': round(online / total * 100, 2) if total else None,
+            'excluded': player.exclude_from_sla,
         })
 
     return Response({

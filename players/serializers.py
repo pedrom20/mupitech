@@ -69,6 +69,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             'ssh_port',
             'has_ssh_credentials',
             'sso_enabled',
+            'exclude_from_sla',
             'created_at',
         ]
         read_only_fields = [

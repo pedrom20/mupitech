@@ -54,3 +54,19 @@ class SlaReportTests(TestCase):
         self.client.force_authenticate(user=viewer)
         resp = self.client.get('/api/reports/sla/')
         self.assertEqual(resp.status_code, 403)
+
+    def test_excluded_device_still_listed_but_not_in_fleet_total(self):
+        # Always-offline test device, excluded so it doesn't drag the
+        # fleet number down — see Player.exclude_from_sla.
+        excluded = Player.objects.create(name='Test rig', url='http://10.0.0.2', exclude_from_sla=True)
+        PlayerSnapshot.objects.create(player=excluded, is_online=False)
+        self._snapshot(True)
+        self._snapshot(True)
+
+        resp = self.client.get('/api/reports/sla/')
+        data = resp.json()
+        self.assertEqual(data['fleet_uptime_pct'], 100.0)
+
+        excluded_row = next(d for d in data['devices'] if d['player_id'] == str(excluded.id))
+        self.assertTrue(excluded_row['excluded'])
+        self.assertEqual(excluded_row['uptime_pct'], 0.0)

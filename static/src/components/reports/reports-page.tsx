@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaChartLine, FaPhotoVideo, FaUsers } from 'react-icons/fa'
+import { FaChartLine, FaPhotoVideo, FaUsers, FaToggleOn, FaToggleOff } from 'react-icons/fa'
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts'
-import { reports as reportsApi } from '@/services/api'
+import Swal from 'sweetalert2'
+import { reports as reportsApi, players as playersApi, ApiError } from '@/services/api'
 import type { SlaReport, ContentReport, UsersReport } from '@/types'
 
 // Single-hue chart ink (dataviz skill's categorical slot 1 / sequential
@@ -73,11 +74,28 @@ const SlaSection: React.FC<{ start: string; end: string }> = ({ start, end }) =>
   const { t } = useTranslation()
   const [data, setData] = useState<SlaReport | null>(null)
   const [loading, setLoading] = useState(true)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = () => {
     setLoading(true)
     reportsApi.sla({ start, end }).then(setData).catch(() => setData(null)).finally(() => setLoading(false))
-  }, [start, end])
+  }
+
+  useEffect(load, [start, end])
+
+  const handleToggleExclude = async (playerId: string, currentlyExcluded: boolean) => {
+    setTogglingId(playerId)
+    try {
+      await playersApi.partialUpdate(playerId, { exclude_from_sla: !currentlyExcluded })
+      // Refetch rather than patch local state — flipping this one device
+      // also changes fleet_uptime_pct, which only the backend recomputes.
+      load()
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: error instanceof ApiError ? error.message : String(error) })
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   if (loading) return <p className="text-muted">{t('common.loading')}</p>
   if (!data) return <p className="text-muted">{t('common.error')}</p>
@@ -104,18 +122,33 @@ const SlaSection: React.FC<{ start: string; end: string }> = ({ start, end }) =>
               <th>{t('locations.title')}</th>
               <th>{t('reports.uptime')}</th>
               <th>{t('reports.snapshots')}</th>
+              <th>{t('reports.excludeFromSla')}</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((d) => (
-              <tr key={d.player_id}>
-                <td className="fw-semibold">{d.player_name}</td>
+              <tr key={d.player_id} className={d.excluded ? 'opacity-50' : ''}>
+                <td className="fw-semibold">
+                  {d.player_name}
+                  {d.excluded && <span className="badge bg-secondary ms-2">{t('reports.excluded')}</span>}
+                </td>
                 <td>{d.group_name || '—'}</td>
                 <td>{d.location_name || '—'}</td>
                 <td className={`fw-semibold ${uptimeClass(d.uptime_pct)}`}>
                   {d.uptime_pct === null ? t('reports.noData') : `${d.uptime_pct}%`}
                 </td>
                 <td className="text-muted">{d.online_snapshots}/{d.total_snapshots}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    disabled={togglingId === d.player_id}
+                    onClick={() => handleToggleExclude(d.player_id, d.excluded)}
+                    title={t(d.excluded ? 'reports.includeInSla' : 'reports.excludeFromSla')}
+                  >
+                    {d.excluded ? <FaToggleOff /> : <FaToggleOn />}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

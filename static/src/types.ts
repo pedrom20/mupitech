@@ -44,6 +44,7 @@ export interface Player {
   ssh_port?: number
   has_ssh_credentials?: boolean
   sso_enabled?: boolean
+  exclude_from_sla?: boolean
   created_at: string
 }
 
@@ -502,6 +503,9 @@ export interface SlaDeviceReport {
   total_snapshots: number
   // null = no PlayerSnapshot rows at all in the period (not "0% uptime").
   uptime_pct: number | null
+  // Mirrors Player.exclude_from_sla — still listed here, just left out of
+  // SlaReport.fleet_uptime_pct server-side.
+  excluded: boolean
 }
 
 export interface SlaReport {

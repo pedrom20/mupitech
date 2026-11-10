@@ -166,7 +166,13 @@
     "ssoDisable": "Disable SSO login for this device",
     "ssoDisabledHint": "SSO login is disabled for this device",
     "ssoEnabledToast": "SSO login enabled for this device",
-    "ssoDisabledToast": "SSO login disabled for this device"
+    "ssoDisabledToast": "SSO login disabled for this device",
+    "slaExclude": "SLA report",
+    "slaExcludeHint": "Leave this device out of the fleet's uptime % in Reports — e.g. a device deliberately kept offline for testing.",
+    "slaExcludeAction": "Exclude from SLA",
+    "slaInclude": "Include in SLA",
+    "slaExcludedToast": "Device excluded from fleet SLA",
+    "slaIncludedToast": "Device counts toward fleet SLA again"
   },
   "groups": {
     "title": "Groups",
@@ -1660,6 +1666,9 @@
     "logins": "Logins",
     "topUsers": "Most active users",
     "byAction": "By action type",
-    "actions": "Actions"
+    "actions": "Actions",
+    "excludeFromSla": "Exclude from SLA",
+    "includeInSla": "Include in SLA",
+    "excluded": "Excluded"
   }
 }
