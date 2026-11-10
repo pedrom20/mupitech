@@ -521,6 +521,7 @@
     "securityGroup": "Segurança e Rede",
     "contentGroup": "Conteúdo e Marca",
     "usersGroup": "Utilizadores e Acessos",
+    "reportsGroup": "Relatórios",
     "pollInterval": "Intervalo de Verificação",
     "pollIntervalDesc": "Com que frequência os dispositivos são verificados quanto ao estado.",
     "seconds": "segundos",
@@ -1638,5 +1639,28 @@
     "createError": "Não foi possível criar a conta. Tente novamente.",
     "brandingStepHint": "Opcional — mostra o logótipo de um parceiro ao lado do MupiTech no menu. Pode configurar isto mais tarde em Definições.",
     "finishButton": "Concluir"
+  },
+  "reports": {
+    "title": "Relatórios",
+    "slaTab": "SLA",
+    "contentTab": "Conteúdo",
+    "usersTab": "Utilizadores",
+    "lastNDays": "Últimos {{count}} dias",
+    "rangeTo": "até",
+    "fleetUptime": "Disponibilidade da frota",
+    "device": "Dispositivo",
+    "uptime": "Disponibilidade",
+    "snapshots": "Leituras",
+    "noData": "Sem dados",
+    "uploads": "Uploads",
+    "playlistDeploys": "Publicações de playlists",
+    "topContent": "Conteúdo mais reproduzido",
+    "minutesPlayed": "Minutos reproduzidos",
+    "min": "min",
+    "loginsByDay": "Logins por dia",
+    "logins": "Logins",
+    "topUsers": "Utilizadores mais ativos",
+    "byAction": "Por tipo de ação",
+    "actions": "Ações"
   }
 }

@@ -15,6 +15,7 @@ import AlertSettings from './alert-settings'
 import RegistrySettings from './registry-settings'
 import MFAProviderSettings from './mfa-provider-settings'
 import ContentLibrarySettings from './content-library-settings'
+import ReportsPage from '@/components/reports/reports-page'
 
 const UPDATE_POLL_INTERVAL = 5000 // 5s
 const UPDATE_TIMEOUT = 120000 // 120s
@@ -282,6 +283,14 @@ const Settings: React.FC = () => {
               { id: 'users', label: t('users.title') },
               { id: 'editorPermissions', label: t('editorPermissions.title') },
               { id: 'audit', label: t('audit.title') },
+            ],
+          },
+          {
+            id: 'reportsGroup',
+            label: t('settings.reportsGroup'),
+            show: isAdminRole(role),
+            subTabs: [
+              { id: 'reports', label: t('reports.title') },
             ],
           },
         ].filter((group) => group.show)
@@ -744,6 +753,10 @@ const Settings: React.FC = () => {
             </div>
           </div>
           </div>
+        )}
+
+        {activeSection === 'reports' && isAdminRole(role) && (
+          <ReportsPage />
         )}
         </div>
       </div>

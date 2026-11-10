@@ -490,3 +490,39 @@ export interface ScheduledDeployment {
   last_deploy_status: Record<string, { name: string; success: boolean; error?: string }>
   created_at: string
 }
+
+export interface SlaDeviceReport {
+  player_id: string
+  player_name: string
+  group_id: string | null
+  group_name: string | null
+  location_id: string | null
+  location_name: string | null
+  online_snapshots: number
+  total_snapshots: number
+  // null = no PlayerSnapshot rows at all in the period (not "0% uptime").
+  uptime_pct: number | null
+}
+
+export interface SlaReport {
+  start: string
+  end: string
+  fleet_uptime_pct: number | null
+  devices: SlaDeviceReport[]
+}
+
+export interface ContentReport {
+  start: string
+  end: string
+  top_content: { name: string; seconds: number }[]
+  uploads: number
+  playlist_deploys: number
+}
+
+export interface UsersReport {
+  start: string
+  end: string
+  logins_by_day: { date: string; count: number }[]
+  top_users: { user_id: number; username: string; count: number }[]
+  by_action: { action: string; count: number }[]
+}

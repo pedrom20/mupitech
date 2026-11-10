@@ -1,6 +1,21 @@
-import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, EditorCapabilities, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus, FooterMessage, FooterSettings } from '@/types'
+import type { Player, Group, Location, Playlist, PlayerInfo, PlayerAsset, DeployTask, MediaFile, MediaFolder, PlaybackLogResponse, PlaybackStatsResponse, CctvConfig, CecStatus, IrStatus, PlayerUpdateCheckResult, ProvisionTask, ServerTelemetry, TailscaleSettings, AlertSettings, EditorCapabilities, RegistryMirrorSettings, RegistryMirrorSyncStatus, User, AuditLogResponse, BulkProvisionTask, ScheduledDeployment, MFAMethod, MFAProviderConfigStatus, FooterMessage, FooterSettings, SlaReport, ContentReport, UsersReport } from '@/types'
 
 const BASE_URL = '/api'
+
+// Shared by every reports.* call below — {} means "let the backend default
+// to its own last-30-days window" (reports/views.py::_parse_range).
+interface DateRange {
+  start?: string
+  end?: string
+}
+
+function rangeQuery(range: DateRange): string {
+  const params = new URLSearchParams()
+  if (range.start) params.set('start', range.start)
+  if (range.end) params.set('end', range.end)
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/)
@@ -1311,5 +1326,19 @@ export const bulkProvision = {
 
   list(): Promise<BulkProvisionTask[]> {
     return apiRequest<BulkProvisionTask[]>('GET', '/bulk-provision/')
+  },
+}
+
+export const reports = {
+  sla(range: DateRange = {}): Promise<SlaReport> {
+    return apiRequest<SlaReport>('GET', `/reports/sla/${rangeQuery(range)}`)
+  },
+
+  content(range: DateRange = {}): Promise<ContentReport> {
+    return apiRequest<ContentReport>('GET', `/reports/content/${rangeQuery(range)}`)
+  },
+
+  users(range: DateRange = {}): Promise<UsersReport> {
+    return apiRequest<UsersReport>('GET', `/reports/users/${rangeQuery(range)}`)
   },
 }

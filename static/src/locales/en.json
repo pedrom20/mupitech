@@ -521,6 +521,7 @@
     "securityGroup": "Security & Network",
     "contentGroup": "Content & Branding",
     "usersGroup": "Users & Access",
+    "reportsGroup": "Reports",
     "pollInterval": "Poll Interval",
     "pollIntervalDesc": "How often players are checked for status updates.",
     "seconds": "seconds",
@@ -1637,5 +1638,28 @@
     "createError": "Couldn't create the account — please try again.",
     "brandingStepHint": "Optional — shows a partner logo next to MupiTech in the menu. You can set this up later in Settings.",
     "finishButton": "Finish"
+  },
+  "reports": {
+    "title": "Reports",
+    "slaTab": "SLA",
+    "contentTab": "Content",
+    "usersTab": "Users",
+    "lastNDays": "Last {{count}} days",
+    "rangeTo": "to",
+    "fleetUptime": "Fleet uptime",
+    "device": "Device",
+    "uptime": "Uptime",
+    "snapshots": "Snapshots",
+    "noData": "No data",
+    "uploads": "Uploads",
+    "playlistDeploys": "Playlist deploys",
+    "topContent": "Most played content",
+    "minutesPlayed": "Minutes played",
+    "min": "min",
+    "loginsByDay": "Logins per day",
+    "logins": "Logins",
+    "topUsers": "Most active users",
+    "byAction": "By action type",
+    "actions": "Actions"
   }
 }

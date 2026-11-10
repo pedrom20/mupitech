@@ -324,6 +324,10 @@ class PlayerSnapshot(models.Model):
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['player', '-timestamp']),
+            # Fleet-wide aggregates (reports/views.py::sla) filter by
+            # timestamp range across every player, not one at a time — the
+            # composite index above doesn't help there.
+            models.Index(fields=['-timestamp'], name='idx_playersnapshot_timestamp'),
         ]
 
     def __str__(self):

@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'access',
     'mfa',
     'footer_messages',
+    'reports',
 ]
 
 MIDDLEWARE = [

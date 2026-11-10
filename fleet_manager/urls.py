@@ -780,6 +780,7 @@ urlpatterns = [
     path('api/system/theme/partner-logo/delete/', fm_theme_delete_partner_logo),
     path('api/', include(user_router.urls)),
     path('api/', include('history.urls')),
+    path('api/reports/', include('reports.urls')),
     path('api/', include('locations.urls')),
     path('api/', include('playlists.urls')),
     path('api/', include('groups.urls')),
