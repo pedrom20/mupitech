@@ -76,13 +76,18 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, compa
       <div className="fm-player-card fm-player-card-compact" onClick={handleCardClick} title={player.name}>
         <span className={`status-dot ${player.is_online ? 'status-online' : 'status-offline'}`} />
         <span className="player-name-compact text-truncate">{player.name}</span>
-        {isPortrait && (
-          <span
-            aria-hidden="true"
-            className="flex-shrink-0"
-            style={{ width: '7px', height: '11px', border: '1.5px solid currentColor', borderRadius: '1px', opacity: 0.5 }}
-          />
-        )}
+        <span
+          aria-hidden="true"
+          className="flex-shrink-0"
+          title={t(`players.rotation${rotation}` as const)}
+          style={{
+            width: isPortrait ? '7px' : '11px',
+            height: isPortrait ? '11px' : '7px',
+            border: '1.5px solid currentColor',
+            borderRadius: '1px',
+            opacity: 0.5,
+          }}
+        />
       </div>
     )
   }
