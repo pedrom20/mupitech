@@ -746,6 +746,8 @@
     "playerName": "Player Name",
     "defaultDuration": "Default Duration",
     "defaultStreamingDuration": "Default Streaming Duration",
+    "transitionDuration": "Transition Duration",
+    "transitionDurationHint": "Fade/crossfade duration between assets (images, GIFs, web pages). 0 = instant, no effect.",
     "audioOutput": "Audio Output",
     "hdmi": "HDMI",
     "jack35mm": "3.5mm Jack",

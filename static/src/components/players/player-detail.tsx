@@ -307,6 +307,7 @@ const PlayerDetail: React.FC = () => {
     player_name: '',
     default_duration: '',
     default_streaming_duration: '',
+    transition_duration_ms: '',
     audio_output: 'hdmi',
     date_format: 'mm/dd/yyyy',
     resolution: '',
@@ -1386,6 +1387,7 @@ const PlayerDetail: React.FC = () => {
         player_name: player?.name || String(data.player_name || ''),
         default_duration: String(data.default_duration ?? ''),
         default_streaming_duration: String(data.default_streaming_duration ?? ''),
+        transition_duration_ms: String(data.transition_duration_ms ?? ''),
         audio_output: String(data.audio_output || 'hdmi'),
         date_format: String(data.date_format || 'mm/dd/yyyy'),
         resolution: String(data.resolution || ''),
@@ -1463,6 +1465,7 @@ const PlayerDetail: React.FC = () => {
         player_name: settingsForm.player_name,
         default_duration: settingsForm.default_duration ? parseInt(settingsForm.default_duration, 10) : 0,
         default_streaming_duration: settingsForm.default_streaming_duration ? parseInt(settingsForm.default_streaming_duration, 10) : 0,
+        transition_duration_ms: settingsForm.transition_duration_ms ? parseInt(settingsForm.transition_duration_ms, 10) : 0,
         audio_output: settingsForm.audio_output,
         date_format: settingsForm.date_format,
         resolution: settingsForm.resolution,
@@ -3396,6 +3399,25 @@ const PlayerDetail: React.FC = () => {
                           />
                           <span className="input-group-text">{t('assets.seconds')}</span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Transition duration — fade/crossfade between assets */}
+                    <div className="row g-2 mb-2">
+                      <div className="col-6">
+                        <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>{t('playerSettings.transitionDuration')}</label>
+                        <div className="input-group input-group-sm">
+                          <input
+                            type="number"
+                            className="form-control"
+                            min="0"
+                            max="2000"
+                            value={settingsForm.transition_duration_ms}
+                            onChange={e => setSettingsForm({ ...settingsForm, transition_duration_ms: e.target.value })}
+                          />
+                          <span className="input-group-text">ms</span>
+                        </div>
+                        <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('playerSettings.transitionDurationHint')}</div>
                       </div>
                     </div>
 

@@ -746,6 +746,8 @@
     "playerName": "Nome do Dispositivo",
     "defaultDuration": "Duração Padrão",
     "defaultStreamingDuration": "Duração Padrão de Transmissão",
+    "transitionDuration": "Duração da Transição",
+    "transitionDurationHint": "Duração do fade/crossfade entre conteúdos (imagens, GIFs, páginas web). 0 = instantâneo, sem efeito.",
     "audioOutput": "Saída de Áudio",
     "hdmi": "HDMI",
     "jack35mm": "Jack 3,5mm",
