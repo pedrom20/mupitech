@@ -36,6 +36,7 @@ import { media as mediaApi, folders as foldersApi, playbackLog, cctv as cctvApi 
 import { CctvFormContent } from '@/components/cctv/cctv-form-modal'
 import CctvFormModal from '@/components/cctv/cctv-form-modal'
 import AppsTab from './apps-tab'
+import FolderTree, { DRAG_MIME, readDragItem } from './folder-tree'
 import { useFeatures } from '@/context/features-context'
 import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchPlayers } from '@/store/playersSlice'
@@ -483,6 +484,10 @@ const ContentPage: React.FC = () => {
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderLocation, setNewFolderLocation] = useState('')
   const [newFolderGroup, setNewFolderGroup] = useState('')
+  // Drag-and-drop — which folder tile (in the main grid) is currently
+  // being hovered over by a drag, for the dashed-border highlight.
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
+  const [dragOverRoot, setDragOverRoot] = useState(false)
 
   // Playback stats
   const [playbackStats, setPlaybackStats] = useState<Record<string, number>>({})
@@ -846,6 +851,29 @@ const ContentPage: React.FC = () => {
     }
   }
 
+  const handleMoveFolder = async (folderId: string, newParentId: string | null) => {
+    try {
+      await foldersApi.update(folderId, { parent: newParentId })
+      loadFolders()
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }
+  }
+
+  // Shared drop handler for both the main grid's folder tiles and the
+  // breadcrumb's root crumb — reads the single custom MIME set by
+  // draggable file/folder tiles and routes to the right move call.
+  const handleDropOnFolder = (e: React.DragEvent, targetFolderId: string | null) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverFolderId(null)
+    setDragOverRoot(false)
+    const item = readDragItem(e)
+    if (!item) return
+    if (item.type === 'file') handleMoveToFolder(item.id, targetFolderId)
+    else if (item.id !== targetFolderId) handleMoveFolder(item.id, targetFolderId)
+  }
+
   // --- CCTV edit handler ---
   const handleCctvEdit = async (file: MediaFile) => {
     if (!file.cctv_config) {
@@ -949,6 +977,22 @@ const ContentPage: React.FC = () => {
           </h5>
         </div>
         <div className="fm-card-body">
+          <div className="row g-3">
+          {/* Folder tree — persistent sidebar, always showing the full
+              hierarchy (vs. the breadcrumb/grid below, which only ever
+              show the current level). Selecting a node here drives the
+              exact same browsingFolderId/activeFolder state as clicking
+              a folder tile in the grid, so both stay in sync. */}
+          <div className="col-md-3 col-lg-2">
+            <FolderTree
+              folders={folders}
+              selectedFolderId={browsingFolderId}
+              onSelect={(folderId) => { setBrowsingFolderId(folderId); setActiveFolder(folderId) }}
+              onMoveFile={handleMoveToFolder}
+              onMoveFolder={handleMoveFolder}
+            />
+          </div>
+          <div className="col-md-9 col-lg-10">
           {/* Type filters + view toggle */}
           <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
             {filterButtons.map((fb) => (
@@ -1030,6 +1074,11 @@ const ContentPage: React.FC = () => {
                 type="button"
                 className="btn btn-link btn-sm p-0 text-decoration-none"
                 onClick={() => setBrowsingFolderId(null)}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={(e) => { e.preventDefault(); setDragOverRoot(true) }}
+                onDragLeave={() => setDragOverRoot(false)}
+                onDrop={(e) => handleDropOnFolder(e, null)}
+                style={dragOverRoot ? { outline: '2px dashed var(--bs-primary)', borderRadius: '4px' } : undefined}
               >
                 {t('content.rootFolder')}
               </button>
@@ -1055,12 +1104,15 @@ const ContentPage: React.FC = () => {
                   <div
                     key={folder.id}
                     className="text-center position-relative"
+                    draggable
                     style={{
                       width: '96px',
                       cursor: 'pointer',
                       padding: '8px 4px',
                       borderRadius: '8px',
-                      border: activeFolder === folder.id ? '2px solid var(--bs-primary)' : '2px solid transparent',
+                      border: dragOverFolderId === folder.id
+                        ? '2px dashed var(--bs-primary)'
+                        : activeFolder === folder.id ? '2px solid var(--bs-primary)' : '2px solid transparent',
                       background: activeFolder === folder.id ? 'var(--bs-primary-bg-subtle)' : 'transparent',
                       transition: 'all 0.15s',
                     }}
@@ -1069,6 +1121,14 @@ const ContentPage: React.FC = () => {
                       e.preventDefault()
                       handleDeleteFolder(e as unknown as React.MouseEvent, folder)
                     }}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: 'folder', id: folder.id }))
+                      e.dataTransfer.effectAllowed = 'move'
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(folder.id) }}
+                    onDragLeave={() => setDragOverFolderId((prev) => (prev === folder.id ? null : prev))}
+                    onDrop={(e) => handleDropOnFolder(e, folder.id)}
                     title={[
                       `${folder.name} (${folder.file_count})`,
                       folder.effective_location_name ? `${t('content.scopedLocation')}: ${folder.effective_location_name}` : '',
@@ -1620,6 +1680,11 @@ const ContentPage: React.FC = () => {
                 <div key={file.id} className="col-6 col-sm-4 col-md-3 col-lg-2">
                   <div
                     className="card h-100"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: 'file', id: file.id }))
+                      e.dataTransfer.effectAllowed = 'move'
+                    }}
                     style={{ cursor: 'pointer', transition: 'all 0.15s' }}
                     onClick={() => {
                       if (editingId !== file.id && file.processing_status !== 'processing') setPreviewFile(file)
@@ -1881,6 +1946,8 @@ const ContentPage: React.FC = () => {
               ))}
             </div>
           )}
+          </div>
+          </div>
         </div>
       </div>
 
