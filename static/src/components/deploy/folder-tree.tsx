@@ -22,6 +22,16 @@ export function readDragItem(e: React.DragEvent): DragItem | null {
   }
 }
 
+// dragenter/dragleave bubble from every child element (icon, label,
+// counter badge), so a plain "clear on dragleave" flickers the
+// highlight on/off as the pointer crosses them inside the same row.
+// Only treat it as a real leave once the pointer lands outside the
+// row entirely.
+function isRealDragLeave(e: React.DragEvent): boolean {
+  const related = e.relatedTarget as Node | null
+  return !related || !e.currentTarget.contains(related)
+}
+
 interface FolderTreeProps {
   folders: MediaFolder[]
   selectedFolderId: string | null
@@ -35,6 +45,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({ folders, selectedFolderId, onSe
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dragOverRoot, setDragOverRoot] = useState(false)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
 
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => {
@@ -70,24 +81,39 @@ const FolderTree: React.FC<FolderTreeProps> = ({ folders, selectedFolderId, onSe
           onDragStart={(e) => {
             e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: 'folder', id: folder.id }))
             e.dataTransfer.effectAllowed = 'move'
+            setDraggingId(folder.id)
           }}
-          onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+          onDragEnd={() => setDraggingId(null)}
+          onDragOver={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            e.dataTransfer.dropEffect = 'move'
+          }}
           onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverId(folder.id) }}
-          onDragLeave={(e) => { e.stopPropagation(); setDragOverId((prev) => (prev === folder.id ? null : prev)) }}
+          onDragLeave={(e) => {
+            e.stopPropagation()
+            if (isRealDragLeave(e)) setDragOverId((prev) => (prev === folder.id ? null : prev))
+          }}
           onDrop={(e) => handleDrop(e, folder.id)}
           onClick={() => onSelect(folder.id)}
           className="d-flex align-items-center gap-1"
           style={{
             paddingLeft: `${depth * 16 + 4}px`,
-            paddingTop: '4px',
-            paddingBottom: '4px',
+            paddingTop: '6px',
+            paddingBottom: '6px',
             paddingRight: '4px',
-            marginBottom: '1px',
+            minHeight: '30px',
+            marginBottom: '2px',
             borderRadius: '6px',
             cursor: 'pointer',
             fontSize: '0.82rem',
-            border: isDragOver ? '2px dashed var(--bs-primary)' : '2px solid transparent',
-            background: isSelected ? 'var(--bs-primary-bg-subtle)' : 'transparent',
+            opacity: draggingId === folder.id ? 0.4 : 1,
+            border: isDragOver ? '2px solid var(--bs-primary)' : '2px solid transparent',
+            background: isDragOver
+              ? 'var(--bs-primary-bg-subtle)'
+              : isSelected ? 'var(--bs-primary-bg-subtle)' : 'transparent',
+            boxShadow: isDragOver ? '0 0 0 2px var(--bs-primary-border-subtle, var(--bs-primary)) inset' : 'none',
+            transition: 'background 0.1s, border-color 0.1s',
           }}
           title={`${folder.name} (${folder.file_count})`}
         >
@@ -124,19 +150,23 @@ const FolderTree: React.FC<FolderTreeProps> = ({ folders, selectedFolderId, onSe
     <div>
       <div
         onClick={() => onSelect(null)}
-        onDragOver={(e) => e.preventDefault()}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
         onDragEnter={(e) => { e.preventDefault(); setDragOverRoot(true) }}
-        onDragLeave={() => setDragOverRoot(false)}
+        onDragLeave={(e) => { if (isRealDragLeave(e)) setDragOverRoot(false) }}
         onDrop={(e) => handleDrop(e, null)}
         className="d-flex align-items-center gap-1 mb-1"
         style={{
-          padding: '4px',
+          padding: '7px 4px',
+          minHeight: '32px',
           borderRadius: '6px',
           cursor: 'pointer',
           fontSize: '0.85rem',
           fontWeight: 600,
-          border: dragOverRoot ? '2px dashed var(--bs-primary)' : '2px solid transparent',
-          background: selectedFolderId === null ? 'var(--bs-primary-bg-subtle)' : 'transparent',
+          border: dragOverRoot ? '2px solid var(--bs-primary)' : '2px solid transparent',
+          background: dragOverRoot
+            ? 'var(--bs-primary-bg-subtle)'
+            : selectedFolderId === null ? 'var(--bs-primary-bg-subtle)' : 'transparent',
+          transition: 'background 0.1s, border-color 0.1s',
         }}
       >
         <FaPhotoVideo style={{ flexShrink: 0 }} />

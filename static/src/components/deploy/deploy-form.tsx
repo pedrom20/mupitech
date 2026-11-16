@@ -485,9 +485,11 @@ const ContentPage: React.FC = () => {
   const [newFolderLocation, setNewFolderLocation] = useState('')
   const [newFolderGroup, setNewFolderGroup] = useState('')
   // Drag-and-drop — which folder tile (in the main grid) is currently
-  // being hovered over by a drag, for the dashed-border highlight.
+  // being hovered over by a drag, for the highlight; draggingItemId
+  // dims the tile actually being picked up.
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
   const [dragOverRoot, setDragOverRoot] = useState(false)
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null)
 
   // Playback stats
   const [playbackStats, setPlaybackStats] = useState<Record<string, number>>({})
@@ -860,6 +862,15 @@ const ContentPage: React.FC = () => {
     }
   }
 
+  // dragenter/dragleave bubble from every child inside a drop target
+  // (thumbnail, name, buttons...), so clearing the highlight on every
+  // dragleave flickers it on/off as the pointer crosses those children.
+  // Only clear once the pointer has actually left the target element.
+  const isRealDragLeave = (e: React.DragEvent): boolean => {
+    const related = e.relatedTarget as Node | null
+    return !related || !e.currentTarget.contains(related)
+  }
+
   // Shared drop handler for both the main grid's folder tiles and the
   // breadcrumb's root crumb — reads the single custom MIME set by
   // draggable file/folder tiles and routes to the right move call.
@@ -1072,13 +1083,18 @@ const ContentPage: React.FC = () => {
             <div className="d-flex align-items-center flex-wrap gap-1 mb-2" style={{ fontSize: '0.8rem' }}>
               <button
                 type="button"
-                className="btn btn-link btn-sm p-0 text-decoration-none"
+                className="btn btn-link btn-sm text-decoration-none"
                 onClick={() => setBrowsingFolderId(null)}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
                 onDragEnter={(e) => { e.preventDefault(); setDragOverRoot(true) }}
-                onDragLeave={() => setDragOverRoot(false)}
+                onDragLeave={(e) => { if (isRealDragLeave(e)) setDragOverRoot(false) }}
                 onDrop={(e) => handleDropOnFolder(e, null)}
-                style={dragOverRoot ? { outline: '2px dashed var(--bs-primary)', borderRadius: '4px' } : undefined}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: dragOverRoot ? '2px solid var(--bs-primary)' : '2px solid transparent',
+                  background: dragOverRoot ? 'var(--bs-primary-bg-subtle)' : 'transparent',
+                }}
               >
                 {t('content.rootFolder')}
               </button>
@@ -1110,11 +1126,15 @@ const ContentPage: React.FC = () => {
                       cursor: 'pointer',
                       padding: '8px 4px',
                       borderRadius: '8px',
+                      opacity: draggingItemId === folder.id ? 0.4 : 1,
                       border: dragOverFolderId === folder.id
-                        ? '2px dashed var(--bs-primary)'
+                        ? '2px solid var(--bs-primary)'
                         : activeFolder === folder.id ? '2px solid var(--bs-primary)' : '2px solid transparent',
-                      background: activeFolder === folder.id ? 'var(--bs-primary-bg-subtle)' : 'transparent',
-                      transition: 'all 0.15s',
+                      background: dragOverFolderId === folder.id
+                        ? 'var(--bs-primary-bg-subtle)'
+                        : activeFolder === folder.id ? 'var(--bs-primary-bg-subtle)' : 'transparent',
+                      boxShadow: dragOverFolderId === folder.id ? '0 0 0 2px var(--bs-primary) inset' : 'none',
+                      transition: 'background 0.1s, border-color 0.1s, transform 0.15s, box-shadow 0.15s',
                     }}
                     onClick={() => { setBrowsingFolderId(folder.id); setActiveFolder(folder.id) }}
                     onContextMenu={(e) => {
@@ -1124,10 +1144,15 @@ const ContentPage: React.FC = () => {
                     onDragStart={(e) => {
                       e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: 'folder', id: folder.id }))
                       e.dataTransfer.effectAllowed = 'move'
+                      setDraggingItemId(folder.id)
                     }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+                    onDragEnd={() => setDraggingItemId(null)}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move' }}
                     onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(folder.id) }}
-                    onDragLeave={() => setDragOverFolderId((prev) => (prev === folder.id ? null : prev))}
+                    onDragLeave={(e) => {
+                      e.stopPropagation()
+                      if (isRealDragLeave(e)) setDragOverFolderId((prev) => (prev === folder.id ? null : prev))
+                    }}
                     onDrop={(e) => handleDropOnFolder(e, folder.id)}
                     title={[
                       `${folder.name} (${folder.file_count})`,
@@ -1684,8 +1709,10 @@ const ContentPage: React.FC = () => {
                     onDragStart={(e) => {
                       e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: 'file', id: file.id }))
                       e.dataTransfer.effectAllowed = 'move'
+                      setDraggingItemId(file.id)
                     }}
-                    style={{ cursor: 'pointer', transition: 'all 0.15s' }}
+                    onDragEnd={() => setDraggingItemId(null)}
+                    style={{ cursor: 'pointer', transition: 'all 0.15s', opacity: draggingItemId === file.id ? 0.4 : 1 }}
                     onClick={() => {
                       if (editingId !== file.id && file.processing_status !== 'processing') setPreviewFile(file)
                     }}
