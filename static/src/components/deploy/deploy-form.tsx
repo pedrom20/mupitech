@@ -19,7 +19,6 @@ import {
   FaSpinner,
   FaExclamationTriangle,
   FaFolder,
-  FaFolderOpen,
   FaFolderPlus,
   FaClock,
   FaTh,
@@ -472,11 +471,11 @@ const ContentPage: React.FC = () => {
 
   // Folders
   const [folders, setFolders] = useState<MediaFolder[]>([])
-  const [activeFolder, setActiveFolder] = useState<string | null>(null) // null = all, 'none' = no folder, uuid = specific — filters the FILE list only
-  // Which level of the folder tree the grid below is showing — separate
-  // from activeFolder above: navigating into a folder always sets both,
-  // but clearing the file filter (the "x Folder Name" chip) doesn't
-  // need to also back out of the folder you're browsing.
+  // The folder currently being browsed — null is the root level. Drives
+  // both the sidebar tree/breadcrumb navigation AND which files show in
+  // the grid below (f.folder === browsingFolderId, same rule as a real
+  // file explorer: a folder's contents are only visible inside it, not
+  // also mixed into its parent/root).
   const [browsingFolderId, setBrowsingFolderId] = useState<string | null>(null)
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -484,10 +483,8 @@ const ContentPage: React.FC = () => {
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderLocation, setNewFolderLocation] = useState('')
   const [newFolderGroup, setNewFolderGroup] = useState('')
-  // Drag-and-drop — which folder tile (in the main grid) is currently
-  // being hovered over by a drag, for the highlight; draggingItemId
-  // dims the tile actually being picked up.
-  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
+  // Drag-and-drop — dragOverRoot highlights the breadcrumb's root
+  // crumb; draggingItemId dims the file tile actually being dragged.
   const [dragOverRoot, setDragOverRoot] = useState(false)
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null)
 
@@ -533,7 +530,6 @@ const ContentPage: React.FC = () => {
     if (!folderId || folders.length === 0) return
     if (folders.some((f) => f.id === folderId)) {
       setBrowsingFolderId(folderId)
-      setActiveFolder(folderId)
     }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -832,7 +828,6 @@ const ContentPage: React.FC = () => {
     if (result.isConfirmed) {
       try {
         await foldersApi.delete(folder.id)
-        if (activeFolder === folder.id) setActiveFolder(null)
         if (browsingFolderId === folder.id) setBrowsingFolderId(folder.parent)
         loadFolders()
         loadFiles()
@@ -871,13 +866,12 @@ const ContentPage: React.FC = () => {
     return !related || !e.currentTarget.contains(related)
   }
 
-  // Shared drop handler for both the main grid's folder tiles and the
-  // breadcrumb's root crumb — reads the single custom MIME set by
-  // draggable file/folder tiles and routes to the right move call.
+  // Drop handler for the breadcrumb's root crumb — reads the single
+  // custom MIME set by draggable file/folder tiles and routes to the
+  // right move call.
   const handleDropOnFolder = (e: React.DragEvent, targetFolderId: string | null) => {
     e.preventDefault()
     e.stopPropagation()
-    setDragOverFolderId(null)
     setDragOverRoot(false)
     const item = readDragItem(e)
     if (!item) return
@@ -919,18 +913,17 @@ const ContentPage: React.FC = () => {
   }
 
   // --- Filtering ---
+  // Strict hierarchy, like a real file explorer: only the files that
+  // live directly in the folder being browsed show here (root/null
+  // means only unfiled files) — a folder's contents never also leak
+  // into its parent or the root view.
   const filteredFiles = files.filter((f) => {
     if (activeFilter !== 'all' && f.file_type !== activeFilter) return false
-    if (activeFolder === 'none' && f.folder !== null) return false
-    if (activeFolder && activeFolder !== 'none' && f.folder !== activeFolder) return false
+    if (f.folder !== browsingFolderId) return false
     return true
   })
 
-  // --- Folder tree navigation ---
-  // Only the current level's subfolders show in the grid — clicking one
-  // navigates into it (see the folder tile's onClick below). Root level
-  // is parent === null.
-  const visibleFolders = folders.filter((f) => f.parent === browsingFolderId)
+  // --- Folder breadcrumb ---
   const folderBreadcrumb: MediaFolder[] = []
   {
     let node = folders.find((f) => f.id === browsingFolderId)
@@ -990,17 +983,86 @@ const ContentPage: React.FC = () => {
         <div className="fm-card-body">
           <div className="row g-3">
           {/* Folder tree — persistent sidebar, always showing the full
-              hierarchy (vs. the breadcrumb/grid below, which only ever
-              show the current level). Selecting a node here drives the
-              exact same browsingFolderId/activeFolder state as clicking
-              a folder tile in the grid, so both stay in sync. */}
+              hierarchy. Selecting a node here drives browsingFolderId,
+              the single source of truth for which folder's files show
+              in the grid on the right, same as a real file explorer. */}
           <div className="col-md-3 col-lg-2">
+            <div className="d-flex align-items-center justify-content-between mb-1">
+              <small className="text-muted fw-semibold" style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}>
+                {t('content.folders')}
+              </small>
+              <button
+                type="button"
+                className="btn btn-sm p-0"
+                style={{ fontSize: '0.8rem', lineHeight: 1 }}
+                title={t('content.createFolder')}
+                onClick={() => {
+                  setEditingFolderId(null)
+                  setNewFolderName('')
+                  setNewFolderLocation('')
+                  setNewFolderGroup('')
+                  setShowNewFolder(true)
+                }}
+              >
+                <FaFolderPlus className="text-muted" />
+              </button>
+            </div>
+            {showNewFolder && (
+              <div className="mb-2 p-2" style={{ border: '1px solid var(--bs-border-color)', borderRadius: '8px' }}>
+                <input
+                  type="text"
+                  className="form-control form-control-sm mb-1"
+                  style={{ fontSize: '0.75rem' }}
+                  placeholder={t('content.folderName')}
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveFolder()
+                    if (e.key === 'Escape') closeFolderForm()
+                  }}
+                  autoFocus
+                />
+                <select
+                  className="form-select form-select-sm mb-1"
+                  style={{ fontSize: '0.72rem' }}
+                  value={newFolderLocation}
+                  onChange={(e) => setNewFolderLocation(e.target.value)}
+                >
+                  <option value="">{t('content.inheritScope')}</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-select form-select-sm mb-1"
+                  style={{ fontSize: '0.72rem' }}
+                  value={newFolderGroup}
+                  onChange={(e) => setNewFolderGroup(e.target.value)}
+                >
+                  <option value="">{t('content.inheritScope')}</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+                <div className="d-flex gap-1 justify-content-end">
+                  <button className="btn btn-sm btn-primary py-0 px-2" onClick={handleSaveFolder}>
+                    <FaCheck style={{ fontSize: '0.6rem' }} />
+                  </button>
+                  <button className="btn btn-sm btn-secondary py-0 px-2" onClick={closeFolderForm}>
+                    <FaTimes style={{ fontSize: '0.6rem' }} />
+                  </button>
+                </div>
+              </div>
+            )}
             <FolderTree
               folders={folders}
               selectedFolderId={browsingFolderId}
-              onSelect={(folderId) => { setBrowsingFolderId(folderId); setActiveFolder(folderId) }}
+              onSelect={setBrowsingFolderId}
               onMoveFile={handleMoveToFolder}
               onMoveFolder={handleMoveFolder}
+              canEdit={isAdminRole(role)}
+              onEdit={handleOpenEditFolder}
+              onDelete={handleDeleteFolder}
             />
           </div>
           <div className="col-md-9 col-lg-10">
@@ -1017,22 +1079,22 @@ const ContentPage: React.FC = () => {
                 {fb.label}
               </button>
             ))}
-            {activeFolder && (
+            {browsingFolderId && (
               <button
                 className="btn btn-sm btn-outline-secondary"
                 style={{ borderRadius: '20px', fontSize: '0.78rem', padding: '3px 12px' }}
-                onClick={() => setActiveFolder(null)}
+                onClick={() => setBrowsingFolderId(null)}
               >
                 <FaTimes className="me-1" style={{ fontSize: '0.6rem' }} />
-                {activeFolder === 'none' ? t('content.noFolder') : folders.find(f => f.id === activeFolder)?.name}
+                {folders.find(f => f.id === browsingFolderId)?.name}
               </button>
             )}
-            {activeFolder && activeFolder !== 'none' && (
+            {browsingFolderId && (
               <button
                 className="btn btn-sm btn-outline-danger"
                 style={{ borderRadius: '20px', fontSize: '0.78rem', padding: '3px 12px' }}
                 onClick={(e) => {
-                  const folder = folders.find(f => f.id === activeFolder)
+                  const folder = folders.find(f => f.id === browsingFolderId)
                   if (folder) handleDeleteFolder(e, folder)
                 }}
               >
@@ -1113,156 +1175,7 @@ const ContentPage: React.FC = () => {
             </div>
           )}
 
-          {/* Folders grid — Windows-style icons, showing the current level only */}
-          <div className="mb-3">
-              <div className="d-flex flex-wrap gap-3 align-items-start">
-                {visibleFolders.map((folder) => (
-                  <div
-                    key={folder.id}
-                    className="text-center position-relative"
-                    draggable
-                    style={{
-                      width: '96px',
-                      cursor: 'pointer',
-                      padding: '8px 4px',
-                      borderRadius: '8px',
-                      opacity: draggingItemId === folder.id ? 0.4 : 1,
-                      border: dragOverFolderId === folder.id
-                        ? '2px solid var(--bs-primary)'
-                        : activeFolder === folder.id ? '2px solid var(--bs-primary)' : '2px solid transparent',
-                      background: dragOverFolderId === folder.id
-                        ? 'var(--bs-primary-bg-subtle)'
-                        : activeFolder === folder.id ? 'var(--bs-primary-bg-subtle)' : 'transparent',
-                      boxShadow: dragOverFolderId === folder.id ? '0 0 0 2px var(--bs-primary) inset' : 'none',
-                      transition: 'background 0.1s, border-color 0.1s, transform 0.15s, box-shadow 0.15s',
-                    }}
-                    onClick={() => { setBrowsingFolderId(folder.id); setActiveFolder(folder.id) }}
-                    onContextMenu={(e) => {
-                      e.preventDefault()
-                      handleDeleteFolder(e as unknown as React.MouseEvent, folder)
-                    }}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: 'folder', id: folder.id }))
-                      e.dataTransfer.effectAllowed = 'move'
-                      setDraggingItemId(folder.id)
-                    }}
-                    onDragEnd={() => setDraggingItemId(null)}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move' }}
-                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(folder.id) }}
-                    onDragLeave={(e) => {
-                      e.stopPropagation()
-                      if (isRealDragLeave(e)) setDragOverFolderId((prev) => (prev === folder.id ? null : prev))
-                    }}
-                    onDrop={(e) => handleDropOnFolder(e, folder.id)}
-                    title={[
-                      `${folder.name} (${folder.file_count})`,
-                      folder.effective_location_name ? `${t('content.scopedLocation')}: ${folder.effective_location_name}` : '',
-                      folder.effective_group_name ? `${t('content.scopedGroup')}: ${folder.effective_group_name}` : '',
-                      folder.effective_is_common ? t('content.commonFolder') : '',
-                    ].filter(Boolean).join('\n')}
-                  >
-                    {isAdminRole(role) && (
-                      <button
-                        type="button"
-                        className="btn btn-sm p-0 position-absolute"
-                        style={{ top: 0, right: 4, fontSize: '0.65rem', lineHeight: 1, background: 'transparent', border: 'none' }}
-                        onClick={(e) => handleOpenEditFolder(e, folder)}
-                        title={t('common.edit')}
-                      >
-                        <FaPen className="text-muted" />
-                      </button>
-                    )}
-                    {activeFolder === folder.id ? (
-                      <FaFolderOpen style={{ fontSize: '2.4rem', color: '#ffc107' }} />
-                    ) : (
-                      <FaFolder style={{ fontSize: '2.4rem', color: '#ffc107' }} />
-                    )}
-                    <div
-                      className="mt-1"
-                      style={{ fontSize: '0.75rem', lineHeight: '1.2', wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                    >
-                      {folder.name}
-                      {folder.effective_is_common && <FaCheck className="ms-1 text-success" style={{ fontSize: '0.6rem' }} title={t('content.commonFolder')} />}
-                    </div>
-                    <small className="text-muted" style={{ fontSize: '0.62rem' }}>{folder.file_count}</small>
-                  </div>
-                ))}
-
-                {/* Create/edit folder */}
-                {showNewFolder ? (
-                  <div className="text-start" style={{ width: '210px', padding: '8px' }}>
-                    <div className="d-flex align-items-center gap-1 mb-1">
-                      <FaFolderPlus style={{ fontSize: '1.2rem', color: 'var(--bs-secondary)' }} />
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        style={{ fontSize: '0.75rem' }}
-                        placeholder={t('content.folderName')}
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveFolder()
-                          if (e.key === 'Escape') closeFolderForm()
-                        }}
-                        autoFocus
-                      />
-                    </div>
-                    <select
-                      className="form-select form-select-sm mb-1"
-                      style={{ fontSize: '0.72rem' }}
-                      value={newFolderLocation}
-                      onChange={(e) => setNewFolderLocation(e.target.value)}
-                    >
-                      <option value="">{t('content.inheritScope')}</option>
-                      {locations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>{loc.name}</option>
-                      ))}
-                    </select>
-                    <select
-                      className="form-select form-select-sm mb-1"
-                      style={{ fontSize: '0.72rem' }}
-                      value={newFolderGroup}
-                      onChange={(e) => setNewFolderGroup(e.target.value)}
-                    >
-                      <option value="">{t('content.inheritScope')}</option>
-                      {groups.map((g) => (
-                        <option key={g.id} value={g.id}>{g.name}</option>
-                      ))}
-                    </select>
-                    <div className="d-flex gap-1 justify-content-end">
-                      <button className="btn btn-sm btn-primary py-0 px-2" onClick={handleSaveFolder}>
-                        <FaCheck style={{ fontSize: '0.6rem' }} />
-                      </button>
-                      <button className="btn btn-sm btn-secondary py-0 px-2" onClick={closeFolderForm}>
-                        <FaTimes style={{ fontSize: '0.6rem' }} />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="text-center"
-                    style={{
-                      width: '96px',
-                      cursor: 'pointer',
-                      padding: '8px 4px',
-                      borderRadius: '8px',
-                      border: '2px dashed var(--bs-border-color)',
-                      opacity: 0.5,
-                      transition: 'all 0.15s',
-                    }}
-                    onClick={() => setShowNewFolder(true)}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5' }}
-                  >
-                    <FaFolderPlus style={{ fontSize: '2.4rem', color: 'var(--bs-secondary)' }} />
-                    <div className="mt-1" style={{ fontSize: '0.72rem', lineHeight: '1.2', color: 'var(--bs-secondary-color)' }}>
-                      {t('content.createFolder')}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {(visibleFolders.length > 0 || folderBreadcrumb.length > 0) && <hr className="my-3" />}
-            </div>
+          {folderBreadcrumb.length > 0 && <hr className="my-3" />}
 
           {/* File grid / list */}
           {loadingFiles ? (

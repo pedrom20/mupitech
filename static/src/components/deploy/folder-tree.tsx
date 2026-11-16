@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaFolder, FaFolderOpen, FaChevronRight, FaChevronDown, FaPhotoVideo } from 'react-icons/fa'
+import { FaFolder, FaFolderOpen, FaChevronRight, FaChevronDown, FaPhotoVideo, FaPen } from 'react-icons/fa'
 import type { MediaFolder } from '@/types'
 
 // Single custom MIME used for both files and folders being dragged —
@@ -38,9 +38,14 @@ interface FolderTreeProps {
   onSelect: (folderId: string | null) => void
   onMoveFile: (fileId: string, folderId: string | null) => void
   onMoveFolder: (folderId: string, newParentId: string | null) => void
+  canEdit: boolean
+  onEdit: (e: React.MouseEvent, folder: MediaFolder) => void
+  onDelete: (e: React.MouseEvent, folder: MediaFolder) => void
 }
 
-const FolderTree: React.FC<FolderTreeProps> = ({ folders, selectedFolderId, onSelect, onMoveFile, onMoveFolder }) => {
+const FolderTree: React.FC<FolderTreeProps> = ({
+  folders, selectedFolderId, onSelect, onMoveFile, onMoveFolder, canEdit, onEdit, onDelete,
+}) => {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [dragOverId, setDragOverId] = useState<string | null>(null)
@@ -96,6 +101,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({ folders, selectedFolderId, onSe
           }}
           onDrop={(e) => handleDrop(e, folder.id)}
           onClick={() => onSelect(folder.id)}
+          onContextMenu={(e) => { e.preventDefault(); onDelete(e, folder) }}
           className="d-flex align-items-center gap-1"
           style={{
             paddingLeft: `${depth * 16 + 4}px`,
@@ -134,6 +140,17 @@ const FolderTree: React.FC<FolderTreeProps> = ({ folders, selectedFolderId, onSe
           )}
           <span className="text-truncate flex-grow-1">{folder.name}</span>
           <small className="text-muted" style={{ fontSize: '0.65rem' }}>{folder.file_count}</small>
+          {canEdit && (
+            <button
+              type="button"
+              className="btn btn-sm p-0"
+              style={{ fontSize: '0.6rem', lineHeight: 1, background: 'transparent', border: 'none', flexShrink: 0 }}
+              onClick={(e) => onEdit(e, folder)}
+              title={t('common.edit')}
+            >
+              <FaPen className="text-muted" />
+            </button>
+          )}
         </div>
         {hasChildren && isExpanded && (
           <div>
