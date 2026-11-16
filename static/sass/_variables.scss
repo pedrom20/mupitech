@@ -86,7 +86,10 @@ $navbar-height-sidebar: 72px;
 $footer-height:    44px;
 $sidebar-width:    260px;
 $sidebar-width-collapsed: 64px;
-$content-max-width: 1400px;
+// Widened from 1400px so the navbar's nav items (Dashboard, Parque,
+// Playlists, Conteúdo, Relatórios, Mais...) fit on one line at common
+// desktop widths instead of wrapping to two.
+$content-max-width: 1600px;
 
 // -----------------------------------------------------------------------------
 // Borders & Radius

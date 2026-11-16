@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt, FaBullhorn } from 'react-icons/fa'
+import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt, FaBullhorn, FaChartLine, FaEllipsisH } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi, system as systemApi } from '@/services/api'
-import { AuthContext } from '@/components/app'
+import { AuthContext, RoleContext, isAdminRole } from '@/components/app'
 import { useTapTrigger } from '@/hooks/use-tap-trigger'
 
 const FLEET_ROUTES = ['/fleet', '/players', '/groups', '/locations']
@@ -46,6 +46,71 @@ const FleetMenu: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
       >
         <FaServer className="nav-icon" />
         {t('nav.fleet')}
+        <FaChevronDown style={{ fontSize: '0.7em' }} />
+      </button>
+      {isOpen && (
+        <div
+          className="position-absolute start-0 mt-1 py-1 bg-white rounded shadow-lg"
+          style={{ minWidth: '190px', zIndex: 1060 }}
+        >
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive: itemActive }) =>
+                `d-flex align-items-center gap-2 px-3 py-2 text-decoration-none ${itemActive ? 'fw-bold' : ''}`
+              }
+              style={{ fontSize: '0.875rem', color: '#1a1a2e' }}
+              onClick={() => { setIsOpen(false); onNavigate() }}
+            >
+              {item.icon}
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </li>
+  )
+}
+
+const MORE_ROUTES = ['/footer-messages', '/scheduling', '/deploy']
+
+const MoreMenu: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
+  const { t } = useTranslation()
+  const location = useLocation()
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLLIElement>(null)
+
+  const isActive = MORE_ROUTES.some((r) => location.pathname.startsWith(r))
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const items = [
+    { to: '/footer-messages', icon: <FaBullhorn className="nav-icon" />, label: t('nav.footerMessages') },
+    { to: '/scheduling', icon: <FaCalendarAlt className="nav-icon" />, label: t('nav.scheduling') },
+    { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history') },
+  ]
+
+  return (
+    <li className="position-relative" ref={dropdownRef}>
+      <button
+        type="button"
+        className={`nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}
+        style={{ border: 'none', background: 'transparent', font: 'inherit' }}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+      >
+        <FaEllipsisH className="nav-icon" />
+        {t('nav.more')}
         <FaChevronDown style={{ fontSize: '0.7em' }} />
       </button>
       {isOpen && (
@@ -180,6 +245,7 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems }) => {
   const { t } = useTranslation()
   const { user, checked } = useContext(AuthContext)
+  const role = useContext(RoleContext)
   const [isOpen, setIsOpen] = useState(false)
   const [partnerLogoUrl, setPartnerLogoUrl] = useState<string | null>(null)
   const registerLogoTap = useTapTrigger(() => onLogoTapSequence?.())
@@ -194,13 +260,17 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems 
   const navItemsBefore = [
     { to: '/', icon: <FaThLarge className="nav-icon" />, label: t('nav.dashboard'), end: true },
   ]
+  // Footer Messages / Scheduling / History moved into MoreMenu below, and
+  // Settings into a gear-icon link next to UserMenu — both to keep this
+  // row short enough to fit on one line (see $content-max-width's own
+  // comment). Reports is admin-only at the API level (fleet_manager/
+  // reports/views.py), so — unlike every item here, which is shown to
+  // everyone regardless of role and lets the page itself decide what's
+  // visible — it's conditionally added further down rather than always
+  // 403-ing for most users.
   const navItemsAfter = [
     { to: '/playlists', icon: <FaListUl className="nav-icon" />, label: t('nav.playlists'), end: false },
-    { to: '/footer-messages', icon: <FaBullhorn className="nav-icon" />, label: t('nav.footerMessages'), end: false },
-    { to: '/scheduling', icon: <FaCalendarAlt className="nav-icon" />, label: t('nav.scheduling'), end: false },
     { to: '/content', icon: <FaPhotoVideo className="nav-icon" />, label: t('nav.content'), end: true },
-    { to: '/deploy/history', icon: <FaHistory className="nav-icon" />, label: t('nav.history'), end: false },
-    { to: '/settings', icon: <FaCog className="nav-icon" />, label: t('nav.settings'), end: false },
   ]
 
   // Before login (or while the auth check hasn't resolved yet), show a bare
@@ -270,18 +340,41 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems 
                     </NavLink>
                   </li>
                 ))}
+                {isAdminRole(role) && (
+                  <li>
+                    <NavLink
+                      to="/reports"
+                      className={({ isActive }) =>
+                        `nav-link ${isActive ? 'active' : ''}`
+                      }
+                      onClick={closeMenu}
+                    >
+                      <FaChartLine className="nav-icon" />
+                      {t('nav.reports')}
+                    </NavLink>
+                  </li>
+                )}
+                <MoreMenu onNavigate={closeMenu} />
               </ul>
             </div>
           )}
 
           <div className={`navbar-actions d-none d-lg-flex align-items-center gap-2 ${isAuthenticated ? '' : 'ms-auto'}`}>
             <LanguageSwitcher />
+            {isAuthenticated && (
+              <NavLink to="/settings" className="btn-navbar" title={t('nav.settings')} aria-label={t('nav.settings')}>
+                <FaCog size={18} />
+              </NavLink>
+            )}
             {isAuthenticated && <UserMenu />}
           </div>
 
           {isOpen && isAuthenticated && (
             <div className="d-lg-none position-absolute end-0 p-3 d-flex align-items-center gap-2" style={{ top: '100%', zIndex: 1031 }}>
               <LanguageSwitcher onNavigate={closeMenu} />
+              <NavLink to="/settings" className="btn-navbar" title={t('nav.settings')} aria-label={t('nav.settings')} onClick={closeMenu}>
+                <FaCog size={18} />
+              </NavLink>
               <UserMenu onNavigate={closeMenu} />
             </div>
           )}

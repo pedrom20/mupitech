@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 import {
   FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup,
   FaMapMarkerAlt, FaListUl, FaSitemap, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaChevronDown,
-  FaBullhorn,
+  FaBullhorn, FaChartLine,
 } from 'react-icons/fa'
-import { SidebarNavContext } from '@/components/app'
+import { SidebarNavContext, RoleContext, isAdminRole } from '@/components/app'
 
 const FLEET_EXPANDED_STORAGE_KEY = 'fm_sidebar_fleet_expanded'
 
@@ -19,6 +19,7 @@ const FLEET_EXPANDED_STORAGE_KEY = 'fm_sidebar_fleet_expanded'
 const SidebarNav: React.FC = () => {
   const { t } = useTranslation()
   const { collapsed, setCollapsed } = useContext(SidebarNavContext)
+  const role = useContext(RoleContext)
   // Independent from the whole-sidebar collapse above — this just
   // expands/collapses the "Fleet" group of links (an accordion), and
   // only makes sense while the sidebar itself has room for text: when
@@ -52,6 +53,10 @@ const SidebarNav: React.FC = () => {
     { to: '/scheduling', icon: FaCalendarAlt, label: t('nav.scheduling'), end: false },
     { to: '/content', icon: FaPhotoVideo, label: t('nav.content'), end: true },
     { to: '/deploy/history', icon: FaHistory, label: t('nav.history'), end: false },
+    // Admin-only at the API level (fleet_manager/reports/views.py) — see
+    // navbar.tsx's own comment on why this one item, unlike the rest
+    // here, is conditional rather than always shown.
+    ...(isAdminRole(role) ? [{ to: '/reports', icon: FaChartLine, label: t('nav.reports'), end: false }] : []),
     { to: '/settings', icon: FaCog, label: t('nav.settings'), end: false },
   ]
 

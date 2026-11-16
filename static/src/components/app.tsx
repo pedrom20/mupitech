@@ -25,6 +25,7 @@ import DeployHistory from '@/components/deploy/deploy-history'
 import DeployProgress from '@/components/deploy/deploy-progress'
 import Settings from '@/components/settings/settings'
 import AuditLog from '@/components/settings/audit-log'
+import ReportsPage from '@/components/reports/reports-page'
 import AccountPage from '@/components/account/account-page'
 import OnboardingWizard from '@/components/onboarding/onboarding-wizard'
 import PendingApproval from '@/components/auth/pending-approval'
@@ -316,6 +317,7 @@ const App: React.FC = () => {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/audit" element={<AuditLog />} />
+                <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/changelog" element={<ChangelogPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/reset-password" element={<ResetPassword />} />

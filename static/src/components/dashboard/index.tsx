@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
+  FaChartLine,
   FaDesktop,
   FaLayerGroup,
   FaMapMarkerAlt,
@@ -12,26 +13,48 @@ import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
+import { reports as reportsApi } from '@/services/api'
+import { RoleContext, isAdminRole } from '@/components/app'
 import ServerTelemetryCard from './server-telemetry'
 import FleetStatusPanel from './fleet-status'
 import StatusGauge from './status-gauge'
 import AddPlayerModal from '../players/add-player-modal'
 
+// Same thresholds/classes as reports-page.tsx's own uptimeClass — kept
+// as a separate copy rather than a shared import since this one drives
+// a stat-card icon class, not a text/badge class.
+const slaIconClass = (pct: number | null): string => {
+  if (pct === null) return 'stat-icon-purple'
+  if (pct >= 98) return 'stat-icon-green'
+  if (pct >= 90) return 'stat-icon-yellow'
+  return 'stat-icon-red'
+}
+
 const Dashboard: React.FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const role = useContext(RoleContext)
   const { players } = useAppSelector((state) => state.players)
   const { groups } = useAppSelector((state) => state.groups)
   const { locations } = useAppSelector((state) => state.locations)
 
   const [showPlayerForm, setShowPlayerForm] = useState(false)
+  // Admin-only at the API level (fleet_manager/reports/views.py) — only
+  // fetched for admin/superadmin, same gate the Reports page itself and
+  // its navbar/sidebar links already use.
+  const [fleetUptimePct, setFleetUptimePct] = useState<number | null>(null)
 
   useEffect(() => {
     dispatch(fetchPlayers())
     dispatch(fetchGroups())
     dispatch(fetchLocations())
   }, [dispatch])
+
+  useEffect(() => {
+    if (!isAdminRole(role)) return
+    reportsApi.sla().then((res) => setFleetUptimePct(res.fleet_uptime_pct)).catch(() => {})
+  }, [role])
 
   const stats = useMemo(() => {
     const total = players.length
@@ -55,6 +78,13 @@ const Dashboard: React.FC = () => {
       label: t('dashboard.locations'),
       to: '/locations',
     },
+    ...(isAdminRole(role) ? [{
+      icon: <FaChartLine />,
+      iconClass: slaIconClass(fleetUptimePct),
+      value: fleetUptimePct === null ? '—' : `${fleetUptimePct}%`,
+      label: t('reports.fleetUptime'),
+      to: '/reports',
+    }] : []),
   ]
 
   return (
