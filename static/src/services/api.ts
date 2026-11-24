@@ -141,6 +141,13 @@ export const players = {
     return apiRequest('POST', `/players/${playerId}/asset-delete/`, { asset_id: assetId })
   },
 
+  /** Sets the device's full play order — asset_ids must include every
+   * asset currently on the device (active and inactive), comma-joined
+   * server-side and forwarded to Anthias's native /assets/order. */
+  reorderAssets(playerId: string, assetIds: string[]): Promise<{ success: boolean }> {
+    return apiRequest('POST', `/players/${playerId}/asset-order/`, { asset_ids: assetIds })
+  },
+
   createAsset(playerId: string, data: Record<string, unknown>): Promise<PlayerAsset> {
     return apiRequest('POST', `/players/${playerId}/asset-create/`, data)
   },

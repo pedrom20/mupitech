@@ -304,7 +304,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
     # passthrough) or is one of the content actions listed in
     # _CONTENT_ACTIONS below.
     _CONTENT_ACTIONS = (
-        'asset_update', 'asset_delete', 'asset_create',
+        'asset_update', 'asset_delete', 'asset_create', 'asset_order',
         'clone_content', 'playback_control',
     )
 
@@ -1070,6 +1070,36 @@ class PlayerViewSet(viewsets.ModelViewSet):
             logger.exception('Error updating asset on %s', player.name)
             return Response(
                 {'error': f'Update failed: {exc}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=True, methods=['post'], url_path='asset-order')
+    def asset_order(self, request, pk=None):
+        """Set the device's full play order (proxies Anthias's native
+        /api/v2/assets/order, which takes every asset id on the device,
+        comma-joined, in the desired sequence)."""
+        player = self.get_object()
+        client = self._get_client(player)
+        asset_ids = request.data.get('asset_ids')
+        if not isinstance(asset_ids, list) or not asset_ids:
+            return Response(
+                {'error': 'asset_ids is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            client.set_playlist_order(','.join(str(a) for a in asset_ids))
+            from history.logging import log_action
+            log_action(request, 'update', 'asset_order', target_id=str(player.id), target_name=player.name)
+            return Response({'success': True})
+        except PlayerConnectionError as exc:
+            return Response(
+                {'error': str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except Exception as exc:
+            logger.exception('Error reordering assets on %s', player.name)
+            return Response(
+                {'error': f'Reorder failed: {exc}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

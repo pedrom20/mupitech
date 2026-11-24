@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   FaArrowLeft,
+  FaArrowUp,
+  FaArrowDown,
   FaSyncAlt,
   FaDesktop,
   FaMemory,
@@ -1268,6 +1270,30 @@ const PlayerDetail: React.FC = () => {
     }
   }
 
+  // Play order — Anthias's native /assets/order endpoint takes every
+  // asset id on the device at once, so inactive assets are kept at the
+  // end in their existing order (they aren't eligible to play, only
+  // the relative order of active assets affects what's shown).
+  const handleMoveAsset = async (assetId: string, direction: 'up' | 'down') => {
+    if (!id) return
+    const activeIds = activeAssets.map(a => a.asset_id)
+    const idx = activeIds.indexOf(assetId)
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (idx === -1 || swapIdx < 0 || swapIdx >= activeIds.length) return
+    const reordered = [...activeIds]
+    ;[reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]]
+    const fullOrder = [...reordered, ...inactiveAssets.map(a => a.asset_id)]
+    try {
+      await playersApi.reorderAssets(id, fullOrder)
+      setAssets(prev => {
+        const byId = new Map(prev.map(a => [a.asset_id, a]))
+        return fullOrder.map(aid => byId.get(aid)).filter((a): a is PlayerAsset => !!a)
+      })
+    } catch {
+      Swal.fire({ icon: 'error', title: t('assets.reorderFailed') })
+    }
+  }
+
   // Open edit modal
   const handleOpenEdit = (asset: PlayerAsset) => {
     setEditAsset(asset)
@@ -1765,7 +1791,7 @@ const PlayerDetail: React.FC = () => {
     return <FaFile className="me-2 text-secondary" />
   }
 
-  const renderAssetRow = (asset: PlayerAsset) => (
+  const renderAssetRow = (asset: PlayerAsset, reorder?: { index: number; total: number }) => (
     <tr key={asset.asset_id}>
       <td>
         <input
@@ -1817,6 +1843,26 @@ const PlayerDetail: React.FC = () => {
       </td>
       <td>
         <div className="d-flex gap-1">
+          {reorder && (
+            <>
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={() => handleMoveAsset(asset.asset_id, 'up')}
+                disabled={reorder.index === 0}
+                title={t('assets.moveUp')}
+              >
+                <FaArrowUp />
+              </button>
+              <button
+                className="fm-btn-outline fm-btn-sm"
+                onClick={() => handleMoveAsset(asset.asset_id, 'down')}
+                disabled={reorder.index === reorder.total - 1}
+                title={t('assets.moveDown')}
+              >
+                <FaArrowDown />
+              </button>
+            </>
+          )}
           <button
             className="fm-btn-outline fm-btn-sm"
             onClick={() => handleOpenEdit(asset)}
@@ -1847,6 +1893,11 @@ const PlayerDetail: React.FC = () => {
 
   const renderAssetsTable = (assetList: PlayerAsset[], title: string) => {
     const sorted = sortAssets(assetList)
+    // Reordering only makes sense for the active-assets table, and only
+    // while no column sort is applied — otherwise the displayed order
+    // wouldn't match the play order the arrows would actually change.
+    const canReorder = sortField === null && title === t('assets.activeAssets')
+    const orderIndexById = new Map(sorted.map((a, i) => [a.asset_id, i]))
     const listAssetIds = assetList.map(a => a.asset_id)
     const selectedInList = listAssetIds.filter(aid => selectedAssetIds.has(aid))
     const allSelectedInList = listAssetIds.length > 0 && selectedInList.length === listAssetIds.length
@@ -1867,6 +1918,11 @@ const PlayerDetail: React.FC = () => {
         <h5 className="card-title mb-0">
           {title}
           <span className="badge bg-secondary ms-2">{assetList.length}</span>
+          {title === t('assets.activeAssets') && sortField !== null && (
+            <small className="text-muted ms-2 fw-normal" style={{ fontSize: '0.75rem' }}>
+              {t('assets.reorderDisabledHint')}
+            </small>
+          )}
         </h5>
         <div className="d-flex align-items-center gap-2">
           {selectedInList.length > 0 && (
@@ -1940,7 +1996,10 @@ const PlayerDetail: React.FC = () => {
                 const rows: React.ReactNode[] = []
                 sorted.forEach((asset) => {
                   if (!asset.playlist) {
-                    rows.push(renderAssetRow(asset))
+                    rows.push(renderAssetRow(
+                      asset,
+                      canReorder ? { index: orderIndexById.get(asset.asset_id)!, total: sorted.length } : undefined,
+                    ))
                     return
                   }
                   const playlistId = asset.playlist.id
@@ -1994,7 +2053,10 @@ const PlayerDetail: React.FC = () => {
                     </tr>
                   )
                   if (isExpanded) {
-                    groupAssets.forEach((a) => rows.push(renderAssetRow(a)))
+                    groupAssets.forEach((a) => rows.push(renderAssetRow(
+                      a,
+                      canReorder ? { index: orderIndexById.get(a.asset_id)!, total: sorted.length } : undefined,
+                    )))
                   }
                 })
                 return rows
