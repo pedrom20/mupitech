@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaCheck, FaTimes, FaPlug } from 'react-icons/fa'
 import Swal from 'sweetalert2'
@@ -6,6 +6,7 @@ import { pairing, type PendingPairing } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import { useAppDispatch } from '@/store/index'
 import { fetchPlayers } from '@/store/playersSlice'
+import { RoleContext } from '@/components/app'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -16,6 +17,8 @@ const POLL_INTERVAL_MS = 5000
 // there's nothing pending, so it never clutters the common case.
 const PendingPairings: React.FC = () => {
   const { t } = useTranslation()
+  const role = useContext(RoleContext)
+  const canDecide = role !== 'admin_viewer'
   const dispatch = useAppDispatch()
   const [pending, setPending] = useState<PendingPairing[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -100,6 +103,7 @@ const PendingPairings: React.FC = () => {
                   <span className="badge bg-secondary">{t('pairing.expired')}</span>
                 )}
               </div>
+              {canDecide && (
               <div className="d-flex gap-2">
                 <button
                   type="button"
@@ -120,6 +124,7 @@ const PendingPairings: React.FC = () => {
                   {t('pairing.rejectButton')}
                 </button>
               </div>
+              )}
             </div>
           ))}
         </div>

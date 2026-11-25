@@ -15,7 +15,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin
+from fleet_manager.permissions import IsAdmin, IsAdminOrAdminViewerReadOnly
 
 from .models import PendingPairing, Player
 from .views import _normalize_mac
@@ -92,7 +92,7 @@ def pairing_status(request, pairing_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def pairing_list(request):
     """Everything still awaiting a decision — the Fleet Manager's own
     'Pending Devices' panel polls this. Expired rows are reported here

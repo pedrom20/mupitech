@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaChartLine, FaPhotoVideo, FaUsers, FaToggleOn, FaToggleOff } from 'react-icons/fa'
 import {
@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import Swal from 'sweetalert2'
 import { reports as reportsApi, players as playersApi, ApiError } from '@/services/api'
+import { RoleContext } from '@/components/app'
 import type { SlaReport, ContentReport, UsersReport } from '@/types'
 
 // Single-hue chart ink (dataviz skill's categorical slot 1 / sequential
@@ -72,6 +73,7 @@ const PeriodSelector: React.FC<{
 
 const SlaSection: React.FC<{ start: string; end: string }> = ({ start, end }) => {
   const { t } = useTranslation()
+  const role = useContext(RoleContext)
   const [data, setData] = useState<SlaReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -142,7 +144,7 @@ const SlaSection: React.FC<{ start: string; end: string }> = ({ start, end }) =>
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-secondary"
-                    disabled={togglingId === d.player_id}
+                    disabled={togglingId === d.player_id || role === 'admin_viewer'}
                     onClick={() => handleToggleExclude(d.player_id, d.excluded)}
                     title={t(d.excluded ? 'reports.includeInSla' : 'reports.excludeFromSla')}
                   >

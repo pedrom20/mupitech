@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 
 from rest_framework.permissions import BasePermission
 
-from fleet_manager.permissions import EDITOR_ROLES, IsEditorOrReadOnly, _user_role
+from fleet_manager.permissions import EDITOR_ROLES, IsEditorOrReadOnly, _user_role, has_granted_device_access
 
 from content.models import MediaFile
 from .editor_capabilities import action_allowed_for_editor
@@ -267,10 +267,13 @@ def _update_player_status(player, online, info=None):
 
 
 class _IsAdminOrCapableEditor(BasePermission):
-    """Admin/superadmin always pass; editor passes only if an admin has
-    opted this specific action's capability group back in via
-    editor_capabilities.py — otherwise editors are limited to
-    PlayerViewSet._CONTENT_ACTIONS."""
+    """Admin/superadmin always pass; admin_viewer passes for read, or for
+    write only on a device explicitly granted to them (access/models.py::
+    UserAccessScope.admin_players) — this covers device_settings' GET+PATCH
+    sharing one action name, and blocks `create` outright since it has no
+    pk to check; editor passes only if an admin has opted this specific
+    action's capability group back in via editor_capabilities.py —
+    otherwise editors are limited to PlayerViewSet._CONTENT_ACTIONS."""
 
     def __init__(self, action):
         self.action = action
@@ -279,8 +282,35 @@ class _IsAdminOrCapableEditor(BasePermission):
         role = _user_role(request.user)
         if role in ('admin', 'superadmin'):
             return True
+        if role == 'admin_viewer':
+            if request.method in ('GET', 'HEAD', 'OPTIONS'):
+                return True
+            pk = view.kwargs.get('pk')
+            return bool(pk) and has_granted_device_access(request.user, pk)
         if role in EDITOR_ROLES:
             return action_allowed_for_editor(self.action)
+        return False
+
+
+class _ContentActionPermission(BasePermission):
+    """For PlayerViewSet._CONTENT_ACTIONS: identical to IsEditorOrReadOnly
+    (any role may read; editor/editor_simplificado/admin/superadmin may
+    write unconditionally, no capability-gating — that's deliberate,
+    content actions have never been capability-gated for editors), plus
+    one extra branch: admin_viewer may write only on a device explicitly
+    granted to them."""
+
+    def has_permission(self, request, view):
+        role = _user_role(request.user)
+        if role is None:
+            return False
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return True
+        if role in (*EDITOR_ROLES, 'admin', 'superadmin'):
+            return True
+        if role == 'admin_viewer':
+            pk = view.kwargs.get('pk')
+            return bool(pk) and has_granted_device_access(request.user, pk)
         return False
 
 
@@ -323,7 +353,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in self._CONTENT_ACTIONS:
-            return super().get_permissions()
+            return [_ContentActionPermission()]
         if self.action in self._ADMIN_GATED_ACTIONS:
             return [_IsAdminOrCapableEditor(self.action)]
         return super().get_permissions()

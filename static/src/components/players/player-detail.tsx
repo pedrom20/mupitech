@@ -60,7 +60,7 @@ import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
 import type { Player, PlayerInfo, PlayerAsset, MediaFile, MediaFolder, PlayerUpdateCheckResult, CecStatus, IrStatus, Group, Location } from '@/types'
 import PlayerTerminal from './player-terminal'
 import { ScheduleTimeline } from './schedule-timeline'
-import { RoleContext, AuthContext, isAdminRole, canEditorManage } from '@/components/app'
+import { RoleContext, AuthContext, isAdminRole, canEditorManage, GrantedDevicesContext } from '@/components/app'
 
 const getAssetTypeIcon = (mimetype: string) => {
   if (!mimetype) return <FaFile />
@@ -175,6 +175,7 @@ const PlayerDetail: React.FC = () => {
   const role = useContext(RoleContext)
   const { user } = useContext(AuthContext)
   const editorCapabilities = user?.editor_capabilities
+  const grantedDeviceIds = useContext(GrantedDevicesContext)
 
   const [player, setPlayer] = useState<Player | null>(null)
   const [showTerminal, setShowTerminal] = useState(false)
@@ -2131,7 +2132,7 @@ const PlayerDetail: React.FC = () => {
             >
               <FaCog />
             </button>
-            {canEditorManage(role, editorCapabilities, 'power_control') && (
+            {canEditorManage(role, editorCapabilities, 'power_control', !!id && grantedDeviceIds.includes(id)) && (
               <button
                 className="fm-btn-accent fm-btn-sm"
                 onClick={handleReboot}
@@ -2141,7 +2142,7 @@ const PlayerDetail: React.FC = () => {
                 <FaSyncAlt />
               </button>
             )}
-            {canEditorManage(role, editorCapabilities, 'image_management') && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
+            {canEditorManage(role, editorCapabilities, 'image_management', !!id && grantedDeviceIds.includes(id)) && player.device_type !== 'pi4' && player.device_type !== 'pi5' && (
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={() => handleOpenSettings('image')}
@@ -2150,7 +2151,7 @@ const PlayerDetail: React.FC = () => {
                 <FaCloudUploadAlt />
               </button>
             )}
-            {canEditorManage(role, editorCapabilities, 'credentials') && player.is_online && (
+            {canEditorManage(role, editorCapabilities, 'credentials', !!id && grantedDeviceIds.includes(id)) && player.is_online && (
               <button
                 className="fm-btn-outline fm-btn-sm"
                 onClick={() => setShowTerminal(!showTerminal)}
@@ -2159,7 +2160,7 @@ const PlayerDetail: React.FC = () => {
                 <FaTerminalIcon />
               </button>
             )}
-            {canEditorManage(role, editorCapabilities, 'manage_devices') && (
+            {canEditorManage(role, editorCapabilities, 'manage_devices', !!id && grantedDeviceIds.includes(id)) && (
               <button
                 className="fm-btn-sm"
                 style={{ background: '#dc3545', color: '#fff', border: 'none' }}
@@ -3311,7 +3312,7 @@ const PlayerDetail: React.FC = () => {
                     {t('playerSettings.tabLocation')}
                   </button>
                 </li>
-                {canEditorManage(role, editorCapabilities, 'branding') && (
+                {canEditorManage(role, editorCapabilities, 'branding', !!id && grantedDeviceIds.includes(id)) && (
                   <li className="nav-item">
                     <button
                       type="button"
@@ -3323,7 +3324,7 @@ const PlayerDetail: React.FC = () => {
                     </button>
                   </li>
                 )}
-                {canEditorManage(role, editorCapabilities, 'image_management') && (
+                {canEditorManage(role, editorCapabilities, 'image_management', !!id && grantedDeviceIds.includes(id)) && (
                   <li className="nav-item">
                     <button
                       type="button"
@@ -3335,7 +3336,7 @@ const PlayerDetail: React.FC = () => {
                     </button>
                   </li>
                 )}
-                {(canEditorManage(role, editorCapabilities, 'credentials') || canEditorManage(role, editorCapabilities, 'sso')) && (
+                {(canEditorManage(role, editorCapabilities, 'credentials', !!id && grantedDeviceIds.includes(id)) || canEditorManage(role, editorCapabilities, 'sso', !!id && grantedDeviceIds.includes(id))) && (
                   <li className="nav-item">
                     <button
                       type="button"

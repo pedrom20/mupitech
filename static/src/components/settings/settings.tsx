@@ -6,7 +6,7 @@ import Swal from 'sweetalert2'
 import { pushLanguageToPlayers, system } from '@/services/api'
 import type { TailscaleSettings } from '@/types'
 import { APP_VERSION } from '../../changelog'
-import { RoleContext, ThemeContext, SidebarNavContext, isAdminRole, isSuperAdminRole } from '@/components/app'
+import { RoleContext, ThemeContext, SidebarNavContext, canViewAdminAreas, isSuperAdminRole } from '@/components/app'
 import UsersSettings from './users-settings'
 import EditorPermissionsSettings from './editor-permissions-settings'
 import BrandingSettings from './branding-settings'
@@ -269,7 +269,7 @@ const Settings: React.FC = () => {
           {
             id: 'content',
             label: t('settings.contentGroup'),
-            show: isAdminRole(role),
+            show: canViewAdminAreas(role),
             subTabs: [
               { id: 'contentLibrary', label: t('contentLibrary.title') },
               { id: 'branding', label: t('branding.title') },
@@ -278,7 +278,7 @@ const Settings: React.FC = () => {
           {
             id: 'usersGroup',
             label: t('settings.usersGroup'),
-            show: isAdminRole(role),
+            show: canViewAdminAreas(role),
             subTabs: [
               { id: 'users', label: t('users.title') },
               { id: 'editorPermissions', label: t('editorPermissions.title') },
@@ -288,7 +288,7 @@ const Settings: React.FC = () => {
           {
             id: 'reportsGroup',
             label: t('settings.reportsGroup'),
-            show: isAdminRole(role),
+            show: canViewAdminAreas(role),
             subTabs: [
               { id: 'reports', label: t('reports.title') },
             ],
@@ -714,11 +714,11 @@ const Settings: React.FC = () => {
           <MFAProviderSettings />
         )}
 
-        {activeSection === 'contentLibrary' && isAdminRole(role) && (
+        {activeSection === 'contentLibrary' && canViewAdminAreas(role) && (
           <ContentLibrarySettings />
         )}
 
-        {activeSection === 'branding' && isAdminRole(role) && (
+        {activeSection === 'branding' && canViewAdminAreas(role) && (
           <div className="row g-3">
             <div className="col-lg-8">
               <BrandingSettings />
@@ -729,15 +729,15 @@ const Settings: React.FC = () => {
           </div>
         )}
 
-        {activeSection === 'editorPermissions' && isAdminRole(role) && (
+        {activeSection === 'editorPermissions' && canViewAdminAreas(role) && (
           <EditorPermissionsSettings />
         )}
 
-        {activeSection === 'users' && isAdminRole(role) && (
+        {activeSection === 'users' && canViewAdminAreas(role) && (
           <UsersSettings />
         )}
 
-        {activeSection === 'audit' && isAdminRole(role) && (
+        {activeSection === 'audit' && canViewAdminAreas(role) && (
           <div className="row g-3">
           <div className="col-12">
             <div className="fm-card fm-card-accent">
@@ -755,7 +755,7 @@ const Settings: React.FC = () => {
           </div>
         )}
 
-        {activeSection === 'reports' && isAdminRole(role) && (
+        {activeSection === 'reports' && canViewAdminAreas(role) && (
           <ReportsPage />
         )}
         </div>

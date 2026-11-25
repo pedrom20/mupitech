@@ -8,7 +8,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly, IsSuperAdmin, user_can_delete_content
+from fleet_manager.permissions import IsAdmin, IsAdminOrAdminViewerReadOnly, IsEditorOrReadOnly, IsSuperAdmin, user_can_delete_content
 from history.logging import log_action
 
 from .models import MediaFile, MediaFolder, ScheduledDeployment, detect_file_type
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def content_library_settings(request):
     """Admin-only content-library-wide settings — currently just whether
     root-level (folderless) content is visible to editors. Separate from

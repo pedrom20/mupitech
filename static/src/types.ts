@@ -277,7 +277,7 @@ export interface ProvisionStep {
   timestamp: string
 }
 
-export type UserRole = 'viewer' | 'editor_simplificado' | 'editor' | 'admin' | 'superadmin'
+export type UserRole = 'viewer' | 'editor_simplificado' | 'editor' | 'admin_viewer' | 'admin' | 'superadmin'
 
 // Keep in sync with mfa/providers.py::PROVIDERS keys. 'authpoint' isn't
 // offered by the backend yet (mfa.authpoint.authpoint_configured() is
@@ -320,6 +320,7 @@ export interface UserScope {
   location_ids: string[]
   group_ids: string[]
   player_ids: string[]
+  admin_player_ids: string[]
 }
 
 export interface User {

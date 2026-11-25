@@ -6,7 +6,7 @@ import {
   FaMapMarkerAlt, FaListUl, FaSitemap, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaChevronDown,
   FaBullhorn, FaChartLine,
 } from 'react-icons/fa'
-import { SidebarNavContext, RoleContext, isAdminRole } from '@/components/app'
+import { SidebarNavContext, RoleContext, canViewAdminAreas } from '@/components/app'
 
 const FLEET_EXPANDED_STORAGE_KEY = 'fm_sidebar_fleet_expanded'
 
@@ -56,7 +56,7 @@ const SidebarNav: React.FC = () => {
     // Admin-only at the API level (fleet_manager/reports/views.py) — see
     // navbar.tsx's own comment on why this one item, unlike the rest
     // here, is conditional rather than always shown.
-    ...(isAdminRole(role) ? [{ to: '/reports', icon: FaChartLine, label: t('nav.reports'), end: false }] : []),
+    ...(canViewAdminAreas(role) ? [{ to: '/reports', icon: FaChartLine, label: t('nav.reports'), end: false }] : []),
     { to: '/settings', icon: FaCog, label: t('nav.settings'), end: false },
   ]
 

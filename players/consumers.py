@@ -7,7 +7,7 @@ import logging
 import paramiko
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from fleet_manager.permissions import _user_role
+from fleet_manager.permissions import _user_role, has_granted_device_access
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +31,11 @@ class TerminalConsumer(AsyncWebsocketConsumer):
 
         role = await asyncio.to_thread(_user_role, user)
         if role not in ('admin', 'superadmin'):
-            await self.close(code=4003)
-            return
+            if role != 'admin_viewer' or not await asyncio.to_thread(
+                has_granted_device_access, user, self.player_id,
+            ):
+                await self.close(code=4003)
+                return
 
         # Get player
         from .models import Player

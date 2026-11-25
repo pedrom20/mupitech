@@ -20,7 +20,7 @@ import AddPlayerModal from './add-player-modal'
 import BulkProvision from './bulk-provision'
 import PendingPairings from './pending-pairings'
 import PlayerCard from '@/components/dashboard/player-card'
-import { RoleContext, AuthContext, isAdminRole, canEditorManage } from '@/components/app'
+import { RoleContext, AuthContext, isAdminRole, canEditorManage, canViewAdminAreas } from '@/components/app'
 import type { Player } from '@/types'
 
 type PlayerListLayout = 'cards' | 'table'
@@ -148,7 +148,7 @@ const PlayerList: React.FC = () => {
         </div>
       </div>
 
-      {isAdminRole(role) && <PendingPairings />}
+      {canViewAdminAreas(role) && <PendingPairings />}
 
       <div className="fm-search-bar d-flex align-items-center gap-2">
         <div className="search-input-wrapper flex-grow-1">

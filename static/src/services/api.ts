@@ -1275,7 +1275,7 @@ export const users = {
   create(data: {
     username: string; email?: string; password: string; role: string
     first_name?: string; last_name?: string
-    location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
+    location_ids?: string[]; group_ids?: string[]; player_ids?: string[]; admin_player_ids?: string[]
     receive_offline_alerts?: boolean; can_delete_content?: boolean
     must_change_password?: boolean; force_mfa_enroll?: boolean
   }): Promise<User> {
@@ -1284,7 +1284,7 @@ export const users = {
 
   update(id: number, data: Partial<User> & {
     password?: string; role?: string
-    location_ids?: string[]; group_ids?: string[]; player_ids?: string[]
+    location_ids?: string[]; group_ids?: string[]; player_ids?: string[]; admin_player_ids?: string[]
     receive_offline_alerts?: boolean; can_delete_content?: boolean
     must_change_password?: boolean; force_mfa_enroll?: boolean
   }): Promise<User> {

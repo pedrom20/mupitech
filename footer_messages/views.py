@@ -5,7 +5,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, IsEditorOrReadOnly
+from fleet_manager.permissions import IsAdmin, IsAdminOrAdminViewerReadOnly, IsEditorOrReadOnly
 from history.logging import log_action
 
 from .models import FooterMessage
@@ -61,7 +61,7 @@ def _footer_settings_response():
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def footer_settings(request):
     """Get or update the fleet-wide footer settings: how many minutes
     between automatic show cycles (0 = always visible, the pre-existing

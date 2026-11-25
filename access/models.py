@@ -26,6 +26,13 @@ class UserAccessScope(models.Model):
     players = models.ManyToManyField(
         'players.Player', blank=True, related_name='scoped_users',
     )
+    admin_players = models.ManyToManyField(
+        'players.Player', blank=True, related_name='admin_granted_users',
+        help_text="Devices where this user (if role 'admin_viewer') has full "
+                  "admin-equivalent control — independent of the visibility "
+                  "scope above, which admin_viewer always ignores (same as "
+                  "admin/superadmin, see access/scoping.py::is_restricted).",
+    )
     receive_offline_alerts = models.BooleanField(
         default=True,
         help_text='Whether this user (if admin/superadmin) receives device-offline '

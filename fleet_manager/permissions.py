@@ -1,13 +1,16 @@
 """
 Custom DRF permission classes for role-based access control.
 
-Five roles: viewer (read-only), editor_simplificado (viewer + create/
+Six roles: viewer (read-only), editor_simplificado (viewer + create/
 update, same as editor, but can't change which devices/groups/
 locations a playlist targets — see playlists/serializers.py), editor
-(full create/update), admin (full access except superadmin-only areas,
-e.g. Tailscale), superadmin (full access to everything, backed by
-Django's is_superuser). Non-superadmin roles are stored as Django Group
-memberships.
+(full create/update), admin_viewer (sees everything an admin sees —
+reports, users, settings — but can only write to devices explicitly
+granted via access/models.py::UserAccessScope.admin_players; see
+has_granted_device_access below), admin (full access except
+superadmin-only areas, e.g. Tailscale), superadmin (full access to
+everything, backed by Django's is_superuser). Non-superadmin roles are
+stored as Django Group memberships.
 
 editor_simplificado is a restricted variant of editor, not a separate
 tier below it in capability — EDITOR_ROLES below is the tuple to use
@@ -22,12 +25,12 @@ EDITOR_ROLES = ('editor', 'editor_simplificado')
 
 
 def _user_role(user):
-    """Return the highest role for a user: superadmin > admin > editor >
-    editor_simplificado > viewer. None means no access at all — either
-    not authenticated, or a Microsoft 365 first-login account still
-    awaiting an admin to assign it a role (access/models.py::
-    UserAccessScope.pending_approval) — unlike every other groupless
-    authenticated user below, which defaults to viewer."""
+    """Return the highest role for a user: superadmin > admin >
+    admin_viewer > editor > editor_simplificado > viewer. None means no
+    access at all — either not authenticated, or a Microsoft 365
+    first-login account still awaiting an admin to assign it a role
+    (access/models.py::UserAccessScope.pending_approval) — unlike every
+    other groupless authenticated user below, which defaults to viewer."""
     if not user or not user.is_authenticated:
         return None
     if getattr(user, 'access_scope', None) and user.access_scope.pending_approval:
@@ -39,6 +42,8 @@ def _user_role(user):
         return 'superadmin'
     if 'admin' in groups:
         return 'admin'
+    if 'admin_viewer' in groups:
+        return 'admin_viewer'
     if 'editor' in groups:
         return 'editor'
     if 'editor_simplificado' in groups:
@@ -47,6 +52,15 @@ def _user_role(user):
         return 'viewer'
     # Authenticated user with no group — treat as viewer
     return 'viewer'
+
+
+def has_granted_device_access(user, player_pk):
+    """Whether this user (expected to be admin_viewer, but harmless for
+    any role) has been explicitly granted full admin-equivalent control
+    over this specific device — access/models.py::UserAccessScope.
+    admin_players."""
+    scope = getattr(user, 'access_scope', None)
+    return bool(scope and scope.admin_players.filter(pk=player_pk).exists())
 
 
 class IsViewer(BasePermission):
@@ -116,3 +130,19 @@ class IsAdminOrReadOnly(BasePermission):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
         return role in ('admin', 'superadmin')
+
+
+class IsAdminOrAdminViewerReadOnly(BasePermission):
+    """Admin/superadmin for everything; admin_viewer for read (GET/HEAD/
+    OPTIONS) only — same areas an admin sees (reports, users list,
+    settings), but never allowed to write them. Drop-in replacement for
+    IsAdmin on a view/viewset that should now also admit admin_viewer's
+    read-only visibility."""
+
+    def has_permission(self, request, view):
+        role = _user_role(request.user)
+        if role in ('admin', 'superadmin'):
+            return True
+        if role == 'admin_viewer':
+            return request.method in ('GET', 'HEAD', 'OPTIONS')
+        return False

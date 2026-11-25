@@ -1,13 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaImage, FaUpload, FaTrash, FaPaperPlane, FaFolderOpen } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { system } from '@/services/api'
 import { showToast } from '@/utils/toast'
 import BrandingLibraryPicker from '@/components/shared/branding-library-picker'
+import { RoleContext } from '@/components/app'
 
 const BrandingSettings: React.FC = () => {
   const { t } = useTranslation()
+  // admin_viewer sees this page (settings.tsx's canViewAdminAreas gate)
+  // but must never be able to write it — this page has no other role
+  // check of its own otherwise.
+  const role = useContext(RoleContext)
+  const readOnly = role === 'admin_viewer'
   const [hasLogo, setHasLogo] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [hasStandby, setHasStandby] = useState(false)
@@ -200,6 +206,8 @@ const BrandingSettings: React.FC = () => {
                   <span className="badge bg-light text-muted border align-self-start" style={{ fontSize: '0.7rem' }}>
                     {hasLogo ? t('branding.customSet') : t('branding.usingDefault')}
                   </span>
+                  {!readOnly && (
+                  <>
                   <input
                     ref={logoInputRef}
                     type="file"
@@ -231,6 +239,8 @@ const BrandingSettings: React.FC = () => {
                       <FaTrash className="me-1" />
                       {t('branding.revertToDefault')}
                     </button>
+                  )}
+                  </>
                   )}
                 </div>
               </div>
@@ -265,6 +275,8 @@ const BrandingSettings: React.FC = () => {
                   <span className="badge bg-light text-muted border align-self-start" style={{ fontSize: '0.7rem' }}>
                     {hasStandby ? t('branding.customSet') : t('branding.notSet')}
                   </span>
+                  {!readOnly && (
+                  <>
                   <input
                     ref={standbyInputRef}
                     type="file"
@@ -297,12 +309,16 @@ const BrandingSettings: React.FC = () => {
                       {t('common.delete')}
                     </button>
                   )}
+                  </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
 
+        {!readOnly && (
+        <>
         <p className="text-muted mt-3 mb-2" style={{ fontSize: '0.78rem' }}>
           {t('branding.pushHint')}
         </p>
@@ -310,6 +326,8 @@ const BrandingSettings: React.FC = () => {
           <FaPaperPlane className="me-1" />
           {t('branding.pushAllTitle')}
         </button>
+        </>
+        )}
       </div>
 
       {showPushAllModal && (

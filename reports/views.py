@@ -13,7 +13,7 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin
+from fleet_manager.permissions import IsAdminOrAdminViewerReadOnly
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def _parse_range(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def sla(request):
     """Uptime % per device over the period, from players.PlayerSnapshot
     (one row per 60s poll — see players/tasks.py::poll_player). No
@@ -115,7 +115,7 @@ def sla(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def content(request):
     """Content/playlist activity over the period: top assets by playback
     time (same LEAD()-window technique as history/views.py::playback_stats,
@@ -169,7 +169,7 @@ def content(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def users(request):
     """User activity over the period, from history.AuditLog — logins per
     day (trend), top users by action count, and a breakdown by action

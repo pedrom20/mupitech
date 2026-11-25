@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { FaThLarge, FaPhotoVideo, FaHistory, FaCog, FaDesktop, FaLayerGroup, FaMapMarkerAlt, FaListUl, FaUserCircle, FaUserCog, FaSignOutAlt, FaChevronDown, FaServer, FaSitemap, FaCalendarAlt, FaBullhorn, FaChartLine, FaEllipsisH } from 'react-icons/fa'
 import LanguageSwitcher from './language-switcher'
 import { auth as authApi, system as systemApi } from '@/services/api'
-import { AuthContext, RoleContext, isAdminRole } from '@/components/app'
+import { AuthContext, RoleContext, canViewAdminAreas } from '@/components/app'
 import { useTapTrigger } from '@/hooks/use-tap-trigger'
 
 const FLEET_ROUTES = ['/fleet', '/players', '/groups', '/locations']
@@ -340,7 +340,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogoTapSequence, hideDesktopNavItems 
                     </NavLink>
                   </li>
                 ))}
-                {isAdminRole(role) && (
+                {canViewAdminAreas(role) && (
                   <li>
                     <NavLink
                       to="/reports"

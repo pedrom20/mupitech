@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaUserShield, FaSave } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { system } from '@/services/api'
 import { showToast } from '@/utils/toast'
+import { RoleContext } from '@/components/app'
 import type { EditorCapabilities } from '@/types'
 
 const CAPABILITIES: Array<{ key: keyof EditorCapabilities; labelKey: string; descKey: string }> = [
@@ -19,6 +20,8 @@ const CAPABILITIES: Array<{ key: keyof EditorCapabilities; labelKey: string; des
 
 const EditorPermissionsSettings: React.FC = () => {
   const { t } = useTranslation()
+  const role = useContext(RoleContext)
+  const readOnly = role === 'admin_viewer'
   const [capabilities, setCapabilities] = useState<EditorCapabilities | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -68,6 +71,7 @@ const EditorPermissionsSettings: React.FC = () => {
                       id={`editor-cap-${key}`}
                       checked={capabilities[key]}
                       onChange={() => toggle(key)}
+                      disabled={readOnly}
                     />
                     <label className="form-check-label" htmlFor={`editor-cap-${key}`}>
                       <span className="fw-semibold d-block">{t(labelKey)}</span>
@@ -76,10 +80,12 @@ const EditorPermissionsSettings: React.FC = () => {
                   </div>
                 ))}
 
+                {!readOnly && (
                 <button className="fm-btn-primary btn-sm mt-2" onClick={handleSave} disabled={saving}>
                   <FaSave />
                   {saving ? t('common.loading') : t('common.save')}
                 </button>
+                )}
               </>
             )}
           </div>

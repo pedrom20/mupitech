@@ -9,14 +9,15 @@ class ScopeSerializer(serializers.ModelSerializer):
     location_ids = serializers.PrimaryKeyRelatedField(source='locations', many=True, read_only=True)
     group_ids = serializers.PrimaryKeyRelatedField(source='groups', many=True, read_only=True)
     player_ids = serializers.PrimaryKeyRelatedField(source='players', many=True, read_only=True)
+    admin_player_ids = serializers.PrimaryKeyRelatedField(source='admin_players', many=True, read_only=True)
 
     class Meta:
         model = UserAccessScope
-        fields = ['location_ids', 'group_ids', 'player_ids']
+        fields = ['location_ids', 'group_ids', 'player_ids', 'admin_player_ids']
 
 
 def _apply_scope_updates(user, *, location_ids=None, group_ids=None, player_ids=None,
-                          receive_offline_alerts=None, can_delete_content=None,
+                          admin_player_ids=None, receive_offline_alerts=None, can_delete_content=None,
                           must_change_password=None, force_mfa_enroll=None):
     """Create/update the user's access scope from a batch of optional fields
     (None = leave that field unchanged). Deliberately a single get_or_create
@@ -28,6 +29,7 @@ def _apply_scope_updates(user, *, location_ids=None, group_ids=None, player_ids=
     though each write actually landed in the database correctly."""
     all_none = (
         location_ids is None and group_ids is None and player_ids is None
+        and admin_player_ids is None
         and receive_offline_alerts is None and can_delete_content is None
         and must_change_password is None and force_mfa_enroll is None
     )
@@ -41,6 +43,8 @@ def _apply_scope_updates(user, *, location_ids=None, group_ids=None, player_ids=
         scope.groups.set(group_ids)
     if player_ids is not None:
         scope.players.set(player_ids)
+    if admin_player_ids is not None:
+        scope.admin_players.set(admin_player_ids)
 
     update_fields = []
     if receive_offline_alerts is not None:
@@ -107,7 +111,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_scope(self, obj):
         scope = getattr(obj, 'access_scope', None)
         if not scope:
-            return {'location_ids': [], 'group_ids': [], 'player_ids': []}
+            return {'location_ids': [], 'group_ids': [], 'player_ids': [], 'admin_player_ids': []}
         return ScopeSerializer(scope).data
 
     def get_receive_offline_alerts(self, obj):
@@ -185,10 +189,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
     # ever use. Matching min_length only when non-blank is enforced there,
     # not here, since DRF's CharField(min_length=6) would also reject ''.
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin', 'superadmin'])
+    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin_viewer', 'admin', 'superadmin'])
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
+    admin_player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     receive_offline_alerts = serializers.BooleanField(required=False, write_only=True)
     can_delete_content = serializers.BooleanField(required=False, write_only=True)
     must_change_password = serializers.BooleanField(required=False, write_only=True)
@@ -197,7 +202,8 @@ class CreateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password', 'role',
-                  'location_ids', 'group_ids', 'player_ids', 'receive_offline_alerts', 'can_delete_content',
+                  'location_ids', 'group_ids', 'player_ids', 'admin_player_ids',
+                  'receive_offline_alerts', 'can_delete_content',
                   'must_change_password', 'force_mfa_enroll']
 
     def validate_role(self, value):
@@ -226,6 +232,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
         location_ids = validated_data.pop('location_ids', None)
         group_ids = validated_data.pop('group_ids', None)
         player_ids = validated_data.pop('player_ids', None)
+        admin_player_ids = validated_data.pop('admin_player_ids', None)
         receive_offline_alerts = validated_data.pop('receive_offline_alerts', None)
         can_delete_content = validated_data.pop('can_delete_content', None)
         must_change_password = validated_data.pop('must_change_password', None)
@@ -234,6 +241,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
         _assign_role(user, role)
         _apply_scope_updates(
             user, location_ids=location_ids, group_ids=group_ids, player_ids=player_ids,
+            admin_player_ids=admin_player_ids,
             receive_offline_alerts=receive_offline_alerts, can_delete_content=can_delete_content,
             must_change_password=must_change_password, force_mfa_enroll=force_mfa_enroll,
         )
@@ -242,10 +250,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 class UpdateUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=6)
-    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin', 'superadmin'], required=False)
+    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin_viewer', 'admin', 'superadmin'], required=False)
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
+    admin_player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     receive_offline_alerts = serializers.BooleanField(required=False, write_only=True)
     can_delete_content = serializers.BooleanField(required=False, write_only=True)
     must_change_password = serializers.BooleanField(required=False, write_only=True)
@@ -255,7 +264,7 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password',
                   'role', 'is_active', 'location_ids', 'group_ids', 'player_ids',
-                  'receive_offline_alerts', 'can_delete_content',
+                  'admin_player_ids', 'receive_offline_alerts', 'can_delete_content',
                   'must_change_password', 'force_mfa_enroll']
 
     def validate_role(self, value):
@@ -293,6 +302,11 @@ class UpdateUserSerializer(serializers.ModelSerializer):
             self._reject_self_privilege_edit('access scope')
         return value
 
+    def validate_admin_player_ids(self, value):
+        if self.instance and {str(v) for v in value} != self._current_scope_ids('admin_players'):
+            self._reject_self_privilege_edit('access scope')
+        return value
+
     def to_representation(self, instance):
         # Same reasoning as CreateUserSerializer.to_representation above —
         # `role` isn't a real User attribute.
@@ -321,6 +335,7 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         location_ids = validated_data.pop('location_ids', None)
         group_ids = validated_data.pop('group_ids', None)
         player_ids = validated_data.pop('player_ids', None)
+        admin_player_ids = validated_data.pop('admin_player_ids', None)
         receive_offline_alerts = validated_data.pop('receive_offline_alerts', None)
         can_delete_content = validated_data.pop('can_delete_content', None)
         must_change_password = validated_data.pop('must_change_password', None)
@@ -339,6 +354,7 @@ class UpdateUserSerializer(serializers.ModelSerializer):
 
         _apply_scope_updates(
             instance, location_ids=location_ids, group_ids=group_ids, player_ids=player_ids,
+            admin_player_ids=admin_player_ids,
             receive_offline_alerts=receive_offline_alerts, can_delete_content=can_delete_content,
             must_change_password=must_change_password, force_mfa_enroll=force_mfa_enroll,
         )

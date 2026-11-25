@@ -1,7 +1,11 @@
 """Resolve which locations/groups/players a user may see and control.
 
-Bypassed entirely for admins (superuser or 'admin' role group), same as
-the rest of the permission system in fleet_manager/permissions.py.
+Bypassed entirely for admins (superuser, 'admin' or 'admin_viewer' role
+group), same as the rest of the permission system in
+fleet_manager/permissions.py. admin_viewer's WRITE access is still
+restricted per-device — see fleet_manager/permissions.py::
+has_granted_device_access — but that's a separate, write-only check,
+not visibility, so it doesn't belong in is_restricted() here.
 """
 
 from fleet_manager.permissions import _user_role
@@ -14,7 +18,10 @@ def get_scope(user):
 
 
 def is_restricted(user):
-    if _user_role(user) in ('admin', 'superadmin'):
+    # admin_viewer's visibility is always global too, same as admin —
+    # only its WRITE access is ever device-scoped (see
+    # fleet_manager/permissions.py::has_granted_device_access).
+    if _user_role(user) in ('admin', 'superadmin', 'admin_viewer'):
         return False
     scope = get_scope(user)
     return bool(scope and scope.is_restricted())

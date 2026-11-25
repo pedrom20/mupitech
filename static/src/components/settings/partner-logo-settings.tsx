@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaBuilding, FaUpload, FaTrash } from 'react-icons/fa'
 import { system } from '@/services/api'
 import { showToast } from '@/utils/toast'
+import { RoleContext } from '@/components/app'
 
 // Distinct from BrandingSettings (device-facing splash/standby images):
 // this is the Fleet Manager's OWN navbar, showing an optional partner/
 // reseller logo next to the MupiTech wordmark ("MupiTech | [logo]").
 const PartnerLogoSettings: React.FC = () => {
   const { t } = useTranslation()
+  const role = useContext(RoleContext)
+  const readOnly = role === 'admin_viewer'
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -74,6 +77,8 @@ const PartnerLogoSettings: React.FC = () => {
                 <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('partnerLogo.none')}</span>
               )}
             </div>
+            {!readOnly && (
+            <>
             <input
               ref={inputRef}
               type="file"
@@ -98,6 +103,8 @@ const PartnerLogoSettings: React.FC = () => {
                 </button>
               )}
             </div>
+            </>
+            )}
           </div>
         )}
       </div>

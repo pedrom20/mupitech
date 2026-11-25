@@ -9,7 +9,7 @@ from qrcode.image.pil import PilImage
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, _user_role
+from fleet_manager.permissions import IsAdmin, IsAdminOrAdminViewerReadOnly, _user_role
 
 from . import duo, email_otp, privacyidea, provider_config
 from .models import DuoEnrollment, EmailOTPDevice, MFAPolicy, PrivacyIDEAEnrollment, TOTPDevice
@@ -345,7 +345,7 @@ def privacyidea_confirm(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def provider_config_status(request):
     """Admin-only: current merged (DB override + env var fallback)
     config for every MFA provider that supports Settings-managed

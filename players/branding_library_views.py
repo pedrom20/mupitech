@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, IsSuperAdmin, user_can_delete_content
+from fleet_manager.permissions import IsAdminOrAdminViewerReadOnly, IsSuperAdmin, user_can_delete_content
 from history.logging import log_action
 
 from .models import BrandingImage
@@ -18,7 +18,7 @@ class BrandingImageViewSet(viewsets.ModelViewSet):
     queryset = BrandingImage.objects.all()
     serializer_class = BrandingImageSerializer
     pagination_class = None
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdminOrAdminViewerReadOnly]
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
     def get_queryset(self):

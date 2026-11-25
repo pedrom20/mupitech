@@ -14,7 +14,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from fleet_manager.permissions import IsAdmin, IsSuperAdmin
+from fleet_manager.permissions import IsAdmin, IsAdminOrAdminViewerReadOnly, IsSuperAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -507,7 +507,7 @@ def alert_settings(request):
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrAdminViewerReadOnly])
 def editor_permissions(request):
     """Get or update which device-management capability groups are opted
     back in for the editor role — see players/editor_capabilities.py for

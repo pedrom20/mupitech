@@ -10,6 +10,7 @@ import type { User, UserRole, Location, Group, Player, AuditLogEntry } from '@/t
 const ROLE_BADGE: Record<UserRole, string> = {
   superadmin: 'bg-dark',
   admin: 'bg-danger',
+  admin_viewer: 'bg-warning text-dark',
   editor: 'bg-primary',
   editor_simplificado: 'bg-info',
   viewer: 'bg-secondary',
@@ -74,6 +75,10 @@ const UsersSettings: React.FC = () => {
   const [scopeLocationIds, setScopeLocationIds] = useState<string[]>([])
   const [scopeGroupIds, setScopeGroupIds] = useState<string[]>([])
   const [scopePlayerIds, setScopePlayerIds] = useState<string[]>([])
+  // admin_viewer only — devices where this user gets full admin-equivalent
+  // control (separate from the visibility scope above, which admin_viewer
+  // always ignores, same as admin — see access/scoping.py::is_restricted).
+  const [adminPlayerIds, setAdminPlayerIds] = useState<string[]>([])
 
   const loadUsers = () => {
     usersApi.list().then(setUserList).catch(() => {}).finally(() => setLoading(false))
@@ -110,6 +115,7 @@ const UsersSettings: React.FC = () => {
     setScopeLocationIds([])
     setScopeGroupIds([])
     setScopePlayerIds([])
+    setAdminPlayerIds([])
     setEditUser(null)
   }
 
@@ -142,6 +148,7 @@ const UsersSettings: React.FC = () => {
     setScopeLocationIds(u.scope?.location_ids || [])
     setScopeGroupIds(u.scope?.group_ids || [])
     setScopePlayerIds(u.scope?.player_ids || [])
+    setAdminPlayerIds(u.scope?.admin_player_ids || [])
     setShowModal(true)
   }
 
@@ -168,6 +175,7 @@ const UsersSettings: React.FC = () => {
         location_ids: scopeLocationIds,
         group_ids: scopeGroupIds,
         player_ids: scopePlayerIds,
+        admin_player_ids: adminPlayerIds,
       }
       if (editUser) {
         const data: Record<string, unknown> = { username, email, first_name: firstName, last_name: lastName, role, receive_offline_alerts: receiveOfflineAlerts, can_delete_content: canDeleteContent, must_change_password: mustChangePassword, force_mfa_enroll: forceMfaEnroll, ...scopeData }
@@ -246,9 +254,11 @@ const UsersSettings: React.FC = () => {
           <FaUsers className="me-2" />
           {t('users.title')}
         </h5>
+        {currentRole !== 'admin_viewer' && (
         <button className="fm-btn-primary btn-sm" onClick={openCreate}>
           <FaPlus /> {t('users.addUser')}
         </button>
+        )}
       </div>
       <div className="fm-card-body py-3">
         {loading ? (
@@ -300,6 +310,11 @@ const UsersSettings: React.FC = () => {
                       ) : (
                         <span className="badge bg-light text-muted border">{t('users.fullAccess')}</span>
                       )}
+                      {u.role === 'admin_viewer' && (u.scope?.admin_player_ids.length || 0) > 0 && (
+                        <span className="badge bg-warning text-dark ms-1">
+                          {t('users.adminDevicesCount', { count: u.scope?.admin_player_ids.length || 0 })}
+                        </span>
+                      )}
                     </td>
                     <td style={{ fontSize: '0.8rem' }}>
                       {u.last_login ? new Date(u.last_login).toLocaleString() : '—'}
@@ -308,6 +323,8 @@ const UsersSettings: React.FC = () => {
                       <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => openView(u)} title={t('users.viewDetails')}>
                         <FaEye />
                       </button>
+                      {currentRole !== 'admin_viewer' && (
+                      <>
                       <button className="btn btn-sm btn-outline-primary me-1" onClick={() => openEdit(u)} title={t('common.edit')}>
                         <FaEdit />
                       </button>
@@ -321,6 +338,8 @@ const UsersSettings: React.FC = () => {
                         <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(u)} title={t('common.delete')}>
                           <FaTrash />
                         </button>
+                      )}
+                      </>
                       )}
                     </td>
                   </tr>
@@ -369,8 +388,46 @@ const UsersSettings: React.FC = () => {
                   {modalActiveTab === 'access' && role !== 'admin' && role !== 'superadmin' ? (
                     <fieldset disabled={isEditingSelf}>
                       <p className="text-muted mb-2" style={{ fontSize: '0.8rem' }}>
-                        {isEditingSelf ? t('users.ownAccessLocked') : t('users.scopeHint')}
+                        {isEditingSelf ? t('users.ownAccessLocked') : role === 'admin_viewer' ? t('users.adminDevicesHint') : t('users.scopeHint')}
                       </p>
+                      {role === 'admin_viewer' ? (
+                      <div className="mb-2">
+                        <div className="d-flex align-items-center justify-content-between">
+                          <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('players.title')}</label>
+                          {allPlayers.length > 0 && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0"
+                              style={{ fontSize: '0.75rem' }}
+                              onClick={() => setAdminPlayerIds(
+                                adminPlayerIds.length === allPlayers.length ? [] : allPlayers.map((p) => p.id),
+                              )}
+                            >
+                              {adminPlayerIds.length === allPlayers.length ? t('users.deselectAll') : t('users.selectAll')}
+                            </button>
+                          )}
+                        </div>
+                        <div className="border rounded p-2" style={{ maxHeight: '340px', overflowY: 'auto' }}>
+                          {allPlayers.length === 0 ? (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
+                          ) : allPlayers.map((p) => (
+                            <div className="form-check" key={p.id}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`admin-player-${p.id}`}
+                                checked={adminPlayerIds.includes(p.id)}
+                                onChange={() => toggleId(adminPlayerIds, setAdminPlayerIds, p.id)}
+                              />
+                              <label className="form-check-label" style={{ fontSize: '0.85rem' }} htmlFor={`admin-player-${p.id}`}>
+                                {p.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      ) : (
+                      <>
                       <div className="mb-2">
                         <div className="d-flex align-items-center justify-content-between">
                           <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
@@ -476,6 +533,8 @@ const UsersSettings: React.FC = () => {
                           ))}
                         </div>
                       </div>
+                      </>
+                      )}
                     </fieldset>
                   ) : (
                   <div className="row">
@@ -547,6 +606,7 @@ const UsersSettings: React.FC = () => {
                       <option value="viewer">{t('users.role_viewer')}</option>
                       <option value="editor_simplificado">{t('users.role_editor_simplificado')}</option>
                       <option value="editor">{t('users.role_editor')}</option>
+                      <option value="admin_viewer">{t('users.role_admin_viewer')}</option>
                       <option value="admin">{t('users.role_admin')}</option>
                       {isSuperAdminRole(currentRole) && (
                         <option value="superadmin">{t('users.role_superadmin')}</option>
@@ -702,6 +762,24 @@ const UsersSettings: React.FC = () => {
                   )
                 })()}
 
+                {viewUser.role === 'admin_viewer' && (
+                  <>
+                    <hr />
+                    <h6 className="mb-2">{t('users.adminDevices')}</h6>
+                    {(viewUser.scope?.admin_player_ids.length || 0) === 0 ? (
+                      <span className="badge bg-light text-muted border">{t('common.noResults')}</span>
+                    ) : (
+                      <div className="d-flex flex-wrap gap-1">
+                        {(viewUser.scope?.admin_player_ids || []).map((id) => (
+                          <span key={id} className="badge bg-warning text-dark">
+                            <FaDesktop className="me-1" />{allPlayers.find((p) => p.id === id)?.name || id}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <hr />
                 <h6 className="mb-2">{t('users.recentActivity')}</h6>
                 {viewActivityLoading ? (
@@ -742,6 +820,7 @@ const UsersSettings: React.FC = () => {
                 <button type="button" className="btn btn-sm btn-secondary" onClick={closeView}>
                   <FaTimes /> {t('common.close')}
                 </button>
+                {currentRole !== 'admin_viewer' && (
                 <button
                   type="button"
                   className="fm-btn-primary btn-sm"
@@ -749,6 +828,7 @@ const UsersSettings: React.FC = () => {
                 >
                   <FaEdit /> {t('common.edit')}
                 </button>
+                )}
               </div>
             </div>
           </div>

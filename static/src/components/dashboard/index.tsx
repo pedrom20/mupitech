@@ -14,7 +14,7 @@ import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { reports as reportsApi } from '@/services/api'
-import { RoleContext, isAdminRole } from '@/components/app'
+import { RoleContext, canViewAdminAreas } from '@/components/app'
 import ServerTelemetryCard from './server-telemetry'
 import FleetStatusPanel from './fleet-status'
 import StatusGauge from './status-gauge'
@@ -52,7 +52,7 @@ const Dashboard: React.FC = () => {
   }, [dispatch])
 
   useEffect(() => {
-    if (!isAdminRole(role)) return
+    if (!canViewAdminAreas(role)) return
     reportsApi.sla().then((res) => setFleetUptimePct(res.fleet_uptime_pct)).catch(() => {})
   }, [role])
 
@@ -78,7 +78,7 @@ const Dashboard: React.FC = () => {
       label: t('dashboard.locations'),
       to: '/locations',
     },
-    ...(isAdminRole(role) ? [{
+    ...(canViewAdminAreas(role) ? [{
       icon: <FaChartLine />,
       iconClass: slaIconClass(fleetUptimePct),
       value: fleetUptimePct === null ? '—' : `${fleetUptimePct}%`,

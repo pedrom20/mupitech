@@ -38,15 +38,34 @@ import { FeaturesProvider } from '@/context/features-context'
 import { applyTheme, watchSystemTheme, type ThemePreference } from '@/utils/theme'
 import type { User, EditorCapabilities } from '@/types'
 
-export type UserRole = 'viewer' | 'editor_simplificado' | 'editor' | 'admin' | 'superadmin' | null
+export type UserRole = 'viewer' | 'editor_simplificado' | 'editor' | 'admin_viewer' | 'admin' | 'superadmin' | null
 
 export const RoleContext = createContext<UserRole>(null)
 
-/** Admin-gated UI should show for both admin and superadmin — superadmin
- * is a strict superset (full access, including a few superadmin-only
- * areas like Tailscale settings, gated separately with isSuperAdminRole). */
+/** The devices (player ids) the current user has been granted full
+ * admin-equivalent control over — only meaningful for role admin_viewer
+ * (see access/models.py::UserAccessScope.admin_players on the backend).
+ * Populated from /api/users/me/'s scope.admin_player_ids, same place
+ * RoleContext's value comes from — kept as its own context rather than
+ * folded into RoleContext so every existing RoleContext consumer stays
+ * untouched. */
+export const GrantedDevicesContext = createContext<string[]>([])
+
+/** Admin-gated UI (write actions, and most admin-only pages) should show
+ * for both admin and superadmin — superadmin is a strict superset (full
+ * access, including a few superadmin-only areas like Tailscale settings,
+ * gated separately with isSuperAdminRole). Deliberately excludes
+ * admin_viewer: it sees the same pages (via canViewAdminAreas below) but
+ * must never see a write action gated by this helper. */
 export const isAdminRole = (role: UserRole): boolean => role === 'admin' || role === 'superadmin'
 export const isSuperAdminRole = (role: UserRole): boolean => role === 'superadmin'
+
+/** Page/menu-level visibility only (Reports, Users, Settings groups) —
+ * admin_viewer sees everything admin sees, but never gets write access
+ * (isAdminRole above stays admin/superadmin-only for that). Never use
+ * this to gate a button that edits/deletes/creates anything. */
+export const canViewAdminAreas = (role: UserRole): boolean =>
+  role === 'admin' || role === 'superadmin' || role === 'admin_viewer'
 
 /** editor_simplificado is a restricted variant of editor (see
  * playlists/serializers.py on the backend) — same role for every
@@ -60,7 +79,10 @@ export const isEditorRole = (role: UserRole): boolean => role === 'editor' || ro
  * this must mirror that gate, since it's UI-only convenience, not a
  * security boundary). Admin/superadmin always can; an editor (either
  * variant) only if their editor_capabilities (from AuthContext's user,
- * refreshed from /api/users/me/) has that group turned on. Content
+ * refreshed from /api/users/me/) has that group turned on; admin_viewer
+ * only if the device currently being viewed was explicitly granted to
+ * them (pass deviceGranted — from GrantedDevicesContext — at each call
+ * site, since this helper has no device of its own to check). Content
  * actions (asset assign/update/remove, clone content) aren't gated
  * here — editors always have those, same as the backend's
  * _CONTENT_ACTIONS. */
@@ -68,8 +90,10 @@ export const canEditorManage = (
   role: UserRole,
   capabilities: Partial<EditorCapabilities> | undefined,
   capability: keyof EditorCapabilities,
+  deviceGranted?: boolean,
 ): boolean => {
   if (isAdminRole(role)) return true
+  if (role === 'admin_viewer') return !!deviceGranted
   return isEditorRole(role) && !!capabilities?.[capability]
 }
 
@@ -279,6 +303,7 @@ const App: React.FC = () => {
   return (
     <AuthContext.Provider value={{ user, checked, refresh, clear }}>
       <RoleContext.Provider value={user?.role ?? null}>
+      <GrantedDevicesContext.Provider value={user?.scope?.admin_player_ids ?? []}>
         <ThemeContext.Provider value={{ pref: themePref, setPref: setThemePref, retro: retroTheme, dos: dosTheme }}>
         <SidebarNavContext.Provider value={{
           enabled: sidebarNavEnabled, setEnabled: setSidebarNavEnabled,
@@ -348,6 +373,7 @@ const App: React.FC = () => {
         </FeaturesProvider>
         </SidebarNavContext.Provider>
         </ThemeContext.Provider>
+      </GrantedDevicesContext.Provider>
       </RoleContext.Provider>
     </AuthContext.Provider>
   )

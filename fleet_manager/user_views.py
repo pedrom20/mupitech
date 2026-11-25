@@ -5,16 +5,20 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
-from .permissions import IsAdmin, _user_role
+from .permissions import IsAdminOrAdminViewerReadOnly, _user_role
 from .serializers import CreateUserSerializer, UpdateUserSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """Admin-only user management."""
+    """Admin-only user management — admin_viewer can also see the list/
+    detail (read), same as the rest of the admin-only read surface, but
+    every write action here (create/update/destroy/reset_mfa) stays
+    admin/superadmin-only, enforced by IsAdminOrAdminViewerReadOnly's
+    method check."""
     queryset = User.objects.all().order_by('-date_joined')
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdminOrAdminViewerReadOnly]
     pagination_class = None
 
     def get_serializer_class(self):

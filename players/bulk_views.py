@@ -26,8 +26,15 @@ class BulkProvisionTaskSerializer(serializers.ModelSerializer):
                            'discovered_ips', 'results']
 
 
-def _check_admin(request):
-    if _user_role(request.user) not in ('admin', 'superadmin'):
+def _check_admin(request, allow_read_only_admin=False):
+    """allow_read_only_admin lets admin_viewer through too — only for the
+    read endpoints below (bulk_list/bulk_detail); the actual provisioning
+    actions (bulk_scan/bulk_start) stay admin/superadmin-only, since they
+    act on an arbitrary IP list, not an existing device admin_viewer could
+    have been granted access to."""
+    role = _user_role(request.user)
+    allowed = ('admin', 'superadmin', 'admin_viewer') if allow_read_only_admin else ('admin', 'superadmin')
+    if role not in allowed:
         return Response(
             {'detail': 'Admin access required.'},
             status=status.HTTP_403_FORBIDDEN,
@@ -122,7 +129,7 @@ def bulk_start(request):
 @api_view(['GET'])
 def bulk_detail(request, task_id):
     """Get bulk provision task status."""
-    denied = _check_admin(request)
+    denied = _check_admin(request, allow_read_only_admin=True)
     if denied:
         return denied
 
@@ -138,7 +145,7 @@ def bulk_detail(request, task_id):
 @api_view(['GET'])
 def bulk_list(request):
     """List all bulk provision tasks."""
-    denied = _check_admin(request)
+    denied = _check_admin(request, allow_read_only_admin=True)
     if denied:
         return denied
 

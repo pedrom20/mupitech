@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FaFolder } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { folders as foldersApi, system as systemApi } from '@/services/api'
 import { showToast } from '@/utils/toast'
+import { RoleContext } from '@/components/app'
 import type { MediaFolder } from '@/types'
 
 /** Admin-only control for content/scoping.py's "common" flag — the one
@@ -14,6 +15,11 @@ import type { MediaFolder } from '@/types'
  * their own location/group access.model.UserAccessScope. */
 const ContentLibrarySettings: React.FC = () => {
   const { t } = useTranslation()
+  // admin_viewer sees this page (settings.tsx's canViewAdminAreas gate)
+  // but must never be able to write it — this page has no other role
+  // check of its own otherwise.
+  const role = useContext(RoleContext)
+  const readOnly = role === 'admin_viewer'
   const [folders, setFolders] = useState<MediaFolder[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -86,7 +92,7 @@ const ContentLibrarySettings: React.FC = () => {
                 role="switch"
                 id="content-root-visible"
                 checked={rootVisible}
-                disabled={savingRootVisible}
+                disabled={savingRootVisible || readOnly}
                 onChange={(e) => handleToggleRootVisible(e.target.checked)}
               />
               <label className="form-check-label" htmlFor="content-root-visible">
@@ -128,7 +134,7 @@ const ContentLibrarySettings: React.FC = () => {
                         type="checkbox"
                         role="switch"
                         checked={folder.is_common}
-                        disabled={busyId === folder.id}
+                        disabled={busyId === folder.id || readOnly}
                         onChange={(e) => handleToggle(folder, e.target.checked)}
                       />
                     </div>
