@@ -1456,6 +1456,8 @@
     "role_viewer": "Visualizador",
     "superadminRoleLocked": "Só um superadministrador pode alterar a função ou o estado da conta de outro superadministrador.",
     "ownAccessLocked": "Não pode alterar a sua própria função ou âmbito de acesso.",
+    "selectAll": "Selecionar todos",
+    "deselectAll": "Remover seleção",
     "lastLogin": "Última Sessão",
     "actions": "Ações",
     "created": "Utilizador criado",

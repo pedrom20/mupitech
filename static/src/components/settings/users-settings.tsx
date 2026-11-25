@@ -372,7 +372,21 @@ const UsersSettings: React.FC = () => {
                         {isEditingSelf ? t('users.ownAccessLocked') : t('users.scopeHint')}
                       </p>
                       <div className="mb-2">
-                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
+                        <div className="d-flex align-items-center justify-content-between">
+                          <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('locations.title')}</label>
+                          {allLocations.length > 0 && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0"
+                              style={{ fontSize: '0.75rem' }}
+                              onClick={() => setScopeLocationIds(
+                                scopeLocationIds.length === allLocations.length ? [] : allLocations.map((l) => l.id),
+                              )}
+                            >
+                              {scopeLocationIds.length === allLocations.length ? t('users.deselectAll') : t('users.selectAll')}
+                            </button>
+                          )}
+                        </div>
                         <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
                           {allLocations.length === 0 ? (
                             <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
@@ -393,7 +407,21 @@ const UsersSettings: React.FC = () => {
                         </div>
                       </div>
                       <div className="mb-2">
-                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('groups.title')}</label>
+                        <div className="d-flex align-items-center justify-content-between">
+                          <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('groups.title')}</label>
+                          {allGroups.length > 0 && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0"
+                              style={{ fontSize: '0.75rem' }}
+                              onClick={() => setScopeGroupIds(
+                                scopeGroupIds.length === allGroups.length ? [] : allGroups.map((g) => g.id),
+                              )}
+                            >
+                              {scopeGroupIds.length === allGroups.length ? t('users.deselectAll') : t('users.selectAll')}
+                            </button>
+                          )}
+                        </div>
                         <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
                           {allGroups.length === 0 ? (
                             <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>
@@ -414,7 +442,21 @@ const UsersSettings: React.FC = () => {
                         </div>
                       </div>
                       <div className="mb-2">
-                        <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('players.title')}</label>
+                        <div className="d-flex align-items-center justify-content-between">
+                          <label className="form-label mb-1 fw-semibold" style={{ fontSize: '0.85rem' }}>{t('players.title')}</label>
+                          {allPlayers.length > 0 && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0"
+                              style={{ fontSize: '0.75rem' }}
+                              onClick={() => setScopePlayerIds(
+                                scopePlayerIds.length === allPlayers.length ? [] : allPlayers.map((p) => p.id),
+                              )}
+                            >
+                              {scopePlayerIds.length === allPlayers.length ? t('users.deselectAll') : t('users.selectAll')}
+                            </button>
+                          )}
+                        </div>
                         <div className="border rounded p-2" style={{ maxHeight: '120px', overflowY: 'auto' }}>
                           {allPlayers.length === 0 ? (
                             <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('common.noResults')}</span>

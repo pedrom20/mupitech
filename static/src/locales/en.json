@@ -1456,6 +1456,8 @@
     "role_viewer": "Viewer",
     "superadminRoleLocked": "Only a superadmin can change another superadmin's role or account status.",
     "ownAccessLocked": "You cannot change your own role or access scope.",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
     "lastLogin": "Last Login",
     "actions": "Actions",
     "created": "User created",
