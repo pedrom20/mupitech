@@ -1,32 +1,49 @@
 """
 Custom DRF permission classes for role-based access control.
 
-Six roles: viewer (read-only), editor_simplificado (viewer + create/
+Seven roles: viewer (read-only), editor_simplificado (viewer + create/
 update, same as editor, but can't change which devices/groups/
-locations a playlist targets — see playlists/serializers.py), editor
-(full create/update), admin_viewer (sees everything an admin sees —
-reports, users, settings — but can only write to devices explicitly
-granted via access/models.py::UserAccessScope.admin_players; see
-has_granted_device_access below), admin (full access except
-superadmin-only areas, e.g. Tailscale), superadmin (full access to
-everything, backed by Django's is_superuser). Non-superadmin roles are
-stored as Django Group memberships.
+locations a playlist targets — see PLAYLIST_TARGET_RESTRICTED_ROLES
+below — and whose content-library visibility follows their
+access.models.UserAccessScope same as any other restricted role),
+editor_simplificado_full (identical to editor_simplificado in every
+respect except one: always sees the full content library — every
+folder and all root-level content — regardless of their own scope and
+regardless of Settings > Content Library's root-visibility toggle; see
+content/scoping.py), editor (full create/update), admin_viewer (sees
+everything an admin sees — reports, users, settings — but can only
+write to devices explicitly granted via access/models.py::
+UserAccessScope.admin_players; see has_granted_device_access below),
+admin (full access except superadmin-only areas, e.g. Tailscale),
+superadmin (full access to everything, backed by Django's
+is_superuser). Non-superadmin roles are stored as Django Group
+memberships.
 
-editor_simplificado is a restricted variant of editor, not a separate
-tier below it in capability — EDITOR_ROLES below is the tuple to use
-anywhere the old code just checked role == 'editor', so both count
-equally except at the one specific playlist-target check that exists
-to distinguish them.
+editor_simplificado (and editor_simplificado_full) are restricted
+variants of editor, not a separate tier below it in capability —
+EDITOR_ROLES below is the tuple to use anywhere the old code just
+checked role == 'editor', so all three count equally except at the
+playlist-target check (PLAYLIST_TARGET_RESTRICTED_ROLES) and content
+visibility (content/scoping.py), which exist to distinguish them.
 """
 
 from rest_framework.permissions import BasePermission
 
-EDITOR_ROLES = ('editor', 'editor_simplificado')
+EDITOR_ROLES = ('editor', 'editor_simplificado', 'editor_simplificado_full')
+
+# The one behaviour editor_simplificado and editor_simplificado_full
+# share with each other but not with plain 'editor' — see
+# playlists/views.py::remove_from_devices, playlists/serializers.py,
+# content/serializers.py and footer_messages/serializers.py, the four
+# places that block changing which devices/groups/locations something
+# targets.
+PLAYLIST_TARGET_RESTRICTED_ROLES = ('editor_simplificado', 'editor_simplificado_full')
 
 
 def _user_role(user):
     """Return the highest role for a user: superadmin > admin >
-    admin_viewer > editor > editor_simplificado > viewer. None means no
+    admin_viewer > editor > editor_simplificado_full > editor_simplificado
+    > viewer. None means no
     access at all — either not authenticated, or a Microsoft 365
     first-login account still awaiting an admin to assign it a role
     (access/models.py::UserAccessScope.pending_approval) — unlike every
@@ -46,6 +63,8 @@ def _user_role(user):
         return 'admin_viewer'
     if 'editor' in groups:
         return 'editor'
+    if 'editor_simplificado_full' in groups:
+        return 'editor_simplificado_full'
     if 'editor_simplificado' in groups:
         return 'editor_simplificado'
     if 'viewer' in groups:

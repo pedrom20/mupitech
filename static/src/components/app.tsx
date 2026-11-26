@@ -38,7 +38,7 @@ import { FeaturesProvider } from '@/context/features-context'
 import { applyTheme, watchSystemTheme, type ThemePreference } from '@/utils/theme'
 import type { User, EditorCapabilities } from '@/types'
 
-export type UserRole = 'viewer' | 'editor_simplificado' | 'editor' | 'admin_viewer' | 'admin' | 'superadmin' | null
+export type UserRole = 'viewer' | 'editor_simplificado' | 'editor_simplificado_full' | 'editor' | 'admin_viewer' | 'admin' | 'superadmin' | null
 
 export const RoleContext = createContext<UserRole>(null)
 
@@ -67,12 +67,16 @@ export const isSuperAdminRole = (role: UserRole): boolean => role === 'superadmi
 export const canViewAdminAreas = (role: UserRole): boolean =>
   role === 'admin' || role === 'superadmin' || role === 'admin_viewer'
 
-/** editor_simplificado is a restricted variant of editor (see
+/** editor_simplificado (and editor_simplificado_full, identical except
+ * for always seeing the full content library — see content/scoping.py
+ * on the backend) are restricted variants of editor (see
  * playlists/serializers.py on the backend) — same role for every
  * purpose except the one specific "can this user change which devices
- * a playlist targets" check (canEditPlaylistTargets below). Everywhere
- * else that used to check role === 'editor' should check this instead. */
-export const isEditorRole = (role: UserRole): boolean => role === 'editor' || role === 'editor_simplificado'
+ * a playlist targets" check (canEditPlaylistTargets below, which both
+ * variants fail). Everywhere else that used to check role === 'editor'
+ * should check this instead. */
+export const isEditorRole = (role: UserRole): boolean =>
+  role === 'editor' || role === 'editor_simplificado' || role === 'editor_simplificado_full'
 
 /** Whether the current user can perform a given device-management
  * capability group (see players/editor_capabilities.py on the backend —

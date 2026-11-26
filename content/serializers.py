@@ -155,8 +155,8 @@ class ScheduledDeploymentSerializer(serializers.ModelSerializer):
             touches_targets = any(f in self.initial_data for f in target_fields)
             request = self.context.get('request')
             if request and touches_targets:
-                from fleet_manager.permissions import _user_role
-                if _user_role(request.user) == 'editor_simplificado':
+                from fleet_manager.permissions import PLAYLIST_TARGET_RESTRICTED_ROLES, _user_role
+                if _user_role(request.user) in PLAYLIST_TARGET_RESTRICTED_ROLES:
                     raise serializers.ValidationError(
                         'Only an admin can schedule this playlist to different devices '
                         'than its own configured targets.'

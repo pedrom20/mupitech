@@ -54,8 +54,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         from players.models import Player
         from players.services import AnthiasAPIClient, resolve_players_from_targets
 
-        from fleet_manager.permissions import _user_role
-        if _user_role(request.user) == 'editor_simplificado':
+        from fleet_manager.permissions import PLAYLIST_TARGET_RESTRICTED_ROLES, _user_role
+        if _user_role(request.user) in PLAYLIST_TARGET_RESTRICTED_ROLES:
             return Response(
                 {'error': 'Only an admin can change which devices this playlist targets.'}, status=403,
             )

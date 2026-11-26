@@ -39,8 +39,8 @@ class PlaylistSerializer(serializers.ModelSerializer):
         target_fields = ('target_players', 'target_groups', 'target_locations')
         touches_targets = any(f in self.initial_data for f in target_fields)
         if request and touches_targets:
-            from fleet_manager.permissions import _user_role
-            if _user_role(request.user) == 'editor_simplificado':
+            from fleet_manager.permissions import PLAYLIST_TARGET_RESTRICTED_ROLES, _user_role
+            if _user_role(request.user) in PLAYLIST_TARGET_RESTRICTED_ROLES:
                 raise serializers.ValidationError(
                     'Only an admin can change which devices this playlist targets. '
                     'You can still edit its content and deploy it.'

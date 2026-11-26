@@ -15,6 +15,12 @@ superadmins/viewers unconditionally, but to editors only if an admin
 has opted that in via ROOT_CONTENT_VISIBLE_KEY (Settings > Content
 Library) — defaults to hidden, since unorganized root content is
 usually meant for whoever uploaded it, not the whole editor pool.
+
+editor_simplificado_full is the one exception to all of the above: it
+always sees the entire content library (every folder, every root-level
+file), regardless of its own access.models.UserAccessScope and
+regardless of ROOT_CONTENT_VISIBLE_KEY — see fleet_manager/
+permissions.py's docstring for why this role exists.
 """
 from django.core.cache import cache
 from django.db.models import Q
@@ -35,6 +41,9 @@ def set_root_content_visible_to_editors(visible):
 def _visible_folder_ids(user):
     """None if unrestricted (caller should skip filtering entirely),
     otherwise the set of MediaFolder ids this user may see."""
+    from fleet_manager.permissions import _user_role
+    if _user_role(user) == 'editor_simplificado_full':
+        return None
     if not is_restricted(user):
         return None
 
@@ -78,7 +87,11 @@ def filter_folders(queryset, user):
 
 def filter_media_files(queryset, user):
     from fleet_manager.permissions import EDITOR_ROLES, _user_role
-    hide_root = _user_role(user) in EDITOR_ROLES and not is_root_content_visible_to_editors()
+    role = _user_role(user)
+    hide_root = (
+        role in EDITOR_ROLES and role != 'editor_simplificado_full'
+        and not is_root_content_visible_to_editors()
+    )
 
     ids = _visible_folder_ids(user)
     if ids is None:

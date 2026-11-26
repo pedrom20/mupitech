@@ -189,7 +189,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
     # ever use. Matching min_length only when non-blank is enforced there,
     # not here, since DRF's CharField(min_length=6) would also reject ''.
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin_viewer', 'admin', 'superadmin'])
+    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor_simplificado_full', 'editor', 'admin_viewer', 'admin', 'superadmin'])
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
@@ -250,7 +250,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 class UpdateUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=6)
-    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor', 'admin_viewer', 'admin', 'superadmin'], required=False)
+    role = serializers.ChoiceField(choices=['viewer', 'editor_simplificado', 'editor_simplificado_full', 'editor', 'admin_viewer', 'admin', 'superadmin'], required=False)
     location_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
     player_ids = serializers.ListField(child=serializers.UUIDField(), required=False, write_only=True)
