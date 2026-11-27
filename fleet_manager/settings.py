@@ -172,6 +172,11 @@ if ldap_configured():
 # Optional — Login com Microsoft 365 / Entra ID (fleet_manager/m365_backend.py).
 # Stays off until all three MICROSOFT_* env vars below are set — see that
 # module's docstring for the flow and .env.example for what each one is.
+# These four are only ever read as mfa/provider_config.py's env-var
+# fallback for the 'm365' provider (a value set in Definições > MFA
+# Providers > Microsoft 365 overrides these without a redeploy) — never
+# read directly elsewhere, so MICROSOFT_ENFORCE_SSO is kept as the same
+# 'true'/'' string convention that provider uses, not a Python bool.
 MICROSOFT_TENANT_ID = os.environ.get('MICROSOFT_TENANT_ID', '')
 MICROSOFT_CLIENT_ID = os.environ.get('MICROSOFT_CLIENT_ID', '')
 MICROSOFT_CLIENT_SECRET = os.environ.get('MICROSOFT_CLIENT_SECRET', '')
@@ -179,8 +184,9 @@ MICROSOFT_CLIENT_SECRET = os.environ.get('MICROSOFT_CLIENT_SECRET', '')
 # Microsoft" button as an extra option — password logins for everyone
 # keep working. Only flipping this ALSO to true (once M365 is confirmed
 # working end-to-end) disables password for non-admin/superadmin — see
-# fleet_manager/urls.py::auth_login.
-MICROSOFT_ENFORCE_SSO = os.environ.get('MICROSOFT_ENFORCE_SSO', 'false').lower() in ('true', '1')
+# fleet_manager/m365_backend.py::enforce_sso_enabled, fleet_manager/
+# urls.py::auth_login.
+MICROSOFT_ENFORCE_SSO = 'true' if os.environ.get('MICROSOFT_ENFORCE_SSO', 'false').lower() in ('true', '1') else ''
 
 # Internationalization
 LANGUAGE_CODE = os.environ.get('LANGUAGE_CODE', 'pt')
@@ -335,11 +341,14 @@ PLAYER_REGISTER_TOKEN = os.environ.get('PLAYER_REGISTER_TOKEN', '')
 # Feature flags — lets a deployment turn off functionality it doesn't need
 # (e.g. CCTV) without removing the code. Read by the frontend via
 # GET /api/system/features/.
-from fleet_manager.m365_backend import m365_configured  # noqa: E402
-
+#
+# 'microsoft_login' is deliberately NOT computed here: m365_configured()
+# now checks mfa/provider_config.py's DB-backed 'm365' provider, and an
+# ORM query at settings.py import time runs before the app registry (and
+# on a fresh install, the table itself) is ready. system_features in
+# fleet_manager/system_views.py computes it fresh per request instead.
 FEATURES = {
     'cctv': os.environ.get('FEATURE_CCTV_ENABLED', 'False').lower() in ('true', '1'),
-    'microsoft_login': m365_configured(),
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

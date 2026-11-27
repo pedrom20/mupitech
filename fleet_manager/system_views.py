@@ -98,8 +98,14 @@ def system_version(request):
 def system_features(request):
     """Return which optional features are enabled for this deployment.
     AllowAny: the login page (pre-auth) needs 'microsoft_login' to decide
-    whether to show the "Entrar com Microsoft" button."""
-    return Response(settings.FEATURES)
+    whether to show the "Entrar com Microsoft" button.
+
+    'microsoft_login' is computed fresh here (not read off settings.FEATURES)
+    since it now depends on mfa/provider_config.py's DB-backed 'm365'
+    provider, editable from Settings without a redeploy — see
+    fleet_manager/m365_backend.py::m365_configured."""
+    from fleet_manager.m365_backend import m365_configured
+    return Response({**settings.FEATURES, 'microsoft_login': m365_configured()})
 
 
 @api_view(['GET'])

@@ -1312,6 +1312,10 @@
     "privacyideaDescription": "TOTP 2FA via a self-hosted privacyIDEA server. Needs an admin account and a realm created on that server beforehand — env vars still work if set, values entered here take priority.",
     "piResolverHint": "Only needed if this is privacyIDEA's own \"internal\" resolver (pi-manage resolver create_internal) — each user then gets auto-created there on first enrolment. Leave blank for an external LDAP/SQL resolver that already has these users.",
     "authpointDescription": "WatchGuard AuthPoint push 2FA — credentials can be saved here for later, but this provider isn't wired up to a real integration yet, so it won't appear as a login option even once filled in.",
+    "m365Tab": "Microsoft 365",
+    "m365Description": "Login with Microsoft 365 / Entra ID — credentials from a Web \"App registration\" in Entra ID, with redirect URI {this app's base URL}/api/auth/m365/callback/. The MICROSOFT_* env vars still work if set, but values entered here take priority — no restart needed after saving.",
+    "m365EnforceSso": "Require Microsoft 365 to sign in",
+    "m365EnforceSsoHint": "Once you've confirmed Microsoft 365 actually works, this disables password login for everyone except admins (who always keep password as a fallback).",
     "dualPolicyTitle": "Dual MFA (two providers)",
     "dualPolicyDescription": "Users with one of the selected roles must pass two MFA challenges from different providers (e.g. Duo + an authenticator code) to log in, instead of just one. Only applies to users who already have 2+ confirmed methods — with just 1, login still uses that one alone."
   },

@@ -1251,7 +1251,7 @@ export const mfaProviders = {
     return apiRequest('GET', '/mfa/provider-config/')
   },
 
-  save(provider: 'duo' | 'privacyidea' | 'authpoint', fields: Record<string, string>): Promise<Record<string, unknown>> {
+  save(provider: 'duo' | 'privacyidea' | 'authpoint' | 'm365', fields: Record<string, string>): Promise<Record<string, unknown>> {
     return apiRequest('POST', `/mfa/provider-config/${provider}/`, fields)
   },
 }

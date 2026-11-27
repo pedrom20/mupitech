@@ -1,8 +1,8 @@
 """Login com Microsoft 365 / Entra ID — Authorization Code flow via msal,
 seguindo o mesmo padrão "pronto mas desligado" do fleet_manager/ldap_backend.py:
-inerte (msal nunca é importado) até as três env vars abaixo estarem definidas,
-para que uma instalação que não o configure não pague custo nenhum por isto
-existir.
+inerte (msal nunca é importado) até tenant_id/client_id/client_secret
+estarem definidos, para que uma instalação que não o configure não pague
+custo nenhum por isto existir.
 
 O Entra ID exige que o redirect URI registado na app seja https:// — ver
 nginx-entrypoint.sh/.env.example (WEB_SSL_PORT) para o certificado
@@ -16,14 +16,19 @@ auth_m365_login/auth_m365_callback em fleet_manager/urls.py — não há
 password nenhuma para o Django validar aqui, só um id_token já validado
 pela própria Microsoft.
 
-Env vars (as três juntas — ver .env.example):
-  MICROSOFT_TENANT_ID
-  MICROSOFT_CLIENT_ID
-  MICROSOFT_CLIENT_SECRET
-"""
+Credenciais — tenant_id/client_id/client_secret/enforce_sso — vêm de
+mfa/provider_config.py's 'm365' provider (editável em Definições >
+MFA Providers > Microsoft 365, sem precisar de redeploy): um valor
+gravado na BD tem prioridade sobre a env var correspondente
+(MICROSOFT_TENANT_ID/MICROSOFT_CLIENT_ID/MICROSOFT_CLIENT_SECRET/
+MICROSOFT_ENFORCE_SSO — ver .env.example), que continua a funcionar
+como estava para uma instalação que nunca abra essa página. Nunca
+chamar get_config('m365') durante o import de fleet_manager/settings.py
+— corre antes da app registry estar pronta; ver system_features em
+fleet_manager/system_views.py para onde o valor "configurado" é lido
+em runtime em vez disso."""
 
 import logging
-import os
 
 from django.conf import settings
 
@@ -32,21 +37,28 @@ logger = logging.getLogger(__name__)
 _SCOPES = ['User.Read', 'email']
 
 
+def _config():
+    from mfa.provider_config import get_config
+    return get_config('m365')
+
+
 def m365_configured():
-    return bool(
-        os.environ.get('MICROSOFT_TENANT_ID')
-        and os.environ.get('MICROSOFT_CLIENT_ID')
-        and os.environ.get('MICROSOFT_CLIENT_SECRET')
-    )
+    config = _config()
+    return bool(config['tenant_id'] and config['client_id'] and config['client_secret'])
+
+
+def enforce_sso_enabled():
+    return _config()['enforce_sso'] == 'true'
 
 
 def _msal_app():
     import msal
 
+    config = _config()
     return msal.ConfidentialClientApplication(
-        settings.MICROSOFT_CLIENT_ID,
-        client_credential=settings.MICROSOFT_CLIENT_SECRET,
-        authority=f'https://login.microsoftonline.com/{settings.MICROSOFT_TENANT_ID}',
+        config['client_id'],
+        client_credential=config['client_secret'],
+        authority=f'https://login.microsoftonline.com/{config["tenant_id"]}',
     )
 
 

@@ -5,6 +5,11 @@ the DB overrides the matching env var; a field left unset there still
 falls back to its env var, so an existing env-var-only deployment
 keeps working unchanged after this was added.
 
+Also reused for 'm365' (fleet_manager/m365_backend.py) — not an MFA
+provider, but the exact same shape (a handful of credential fields,
+one of them secret, each with an env var fallback) made this worth
+reusing rather than building a parallel mechanism just for it.
+
 Each provider's config is a small dict of string fields (declared in
 FIELDS below), stored as one Fernet-encrypted JSON blob per provider
 row (mfa.models.MFAProviderConfig) — same key as mfa/crypto.py's TOTP
@@ -22,23 +27,37 @@ from django.conf import settings
 from .crypto import decrypt_secret, encrypt_secret
 
 # (field name, is_secret, env var name or None if there's no env-var
-# fallback for that field/provider).
+# fallback for that field/provider, is_required). is_required defaults
+# to True for every existing field (unchanged behaviour) — only m365's
+# enforce_sso opts out, since it's a plain on/off switch that defaults
+# to off, not a credential whose absence means "not configured".
 FIELDS = {
     'duo': [
-        ('ikey', False, 'DUO_IKEY'),
-        ('skey', True, 'DUO_SKEY'),
-        ('host', False, 'DUO_HOST'),
+        ('ikey', False, 'DUO_IKEY', True),
+        ('skey', True, 'DUO_SKEY', True),
+        ('host', False, 'DUO_HOST', True),
     ],
     'privacyidea': [
-        ('url', False, 'PRIVACYIDEA_URL'),
-        ('admin_user', False, 'PRIVACYIDEA_ADMIN_USER'),
-        ('admin_password', True, 'PRIVACYIDEA_ADMIN_PASSWORD'),
-        ('realm', False, 'PRIVACYIDEA_REALM'),
-        ('resolver', False, 'PRIVACYIDEA_RESOLVER'),
+        ('url', False, 'PRIVACYIDEA_URL', True),
+        ('admin_user', False, 'PRIVACYIDEA_ADMIN_USER', True),
+        ('admin_password', True, 'PRIVACYIDEA_ADMIN_PASSWORD', True),
+        ('realm', False, 'PRIVACYIDEA_REALM', True),
+        ('resolver', False, 'PRIVACYIDEA_RESOLVER', True),
     ],
     'authpoint': [
-        ('client_id', False, None),
-        ('client_secret', True, None),
+        ('client_id', False, None, True),
+        ('client_secret', True, None, True),
+    ],
+    'm365': [
+        ('tenant_id', False, 'MICROSOFT_TENANT_ID', True),
+        ('client_id', False, 'MICROSOFT_CLIENT_ID', True),
+        ('client_secret', True, 'MICROSOFT_CLIENT_SECRET', True),
+        # Stored/returned as the string 'true' or '' — not a real
+        # secret, but kept in this same blob for one less moving part;
+        # fleet_manager/m365_backend.py::enforce_sso_enabled() is the
+        # only reader. Not required: defaults to off, doesn't mean
+        # "not configured".
+        ('enforce_sso', False, 'MICROSOFT_ENFORCE_SSO', False),
     ],
 }
 
@@ -62,7 +81,7 @@ def get_config(provider):
     os.environ directly."""
     stored = _stored(provider)
     config = {}
-    for name, _secret, env_var in FIELDS[provider]:
+    for name, _secret, env_var, _required in FIELDS[provider]:
         value = stored.get(name) or ''
         if not value and env_var:
             value = getattr(settings, env_var, '') or ''
@@ -72,7 +91,7 @@ def get_config(provider):
 
 def is_configured(provider):
     config = get_config(provider)
-    return all(config.get(name) for name, _secret, _env in FIELDS[provider])
+    return all(config.get(name) for name, _secret, _env, required in FIELDS[provider] if required)
 
 
 def status_for_ui(provider):
@@ -83,7 +102,7 @@ def status_for_ui(provider):
     stored = _stored(provider)
     merged = get_config(provider)
     result = {'configured': is_configured(provider)}
-    for name, secret, _env in FIELDS[provider]:
+    for name, secret, _env, _required in FIELDS[provider]:
         if secret:
             result[name] = {'set': bool(merged.get(name))}
         else:
@@ -99,7 +118,7 @@ def save_config(provider, submitted, updated_by=None):
     from .models import MFAProviderConfig
 
     stored = _stored(provider)
-    for name, secret, _env in FIELDS[provider]:
+    for name, secret, _env, _required in FIELDS[provider]:
         if name not in submitted:
             continue
         value = (submitted.get(name) or '').strip()

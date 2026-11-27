@@ -103,9 +103,9 @@ def auth_login(request):
         # button (auth_m365_login below). Checked here, before MFA, so a
         # non-admin never even sees a challenge for a method they're not
         # allowed to finish logging in with this way.
-        from fleet_manager.m365_backend import m365_configured
+        from fleet_manager.m365_backend import enforce_sso_enabled, m365_configured
 
-        if (m365_configured() and settings.MICROSOFT_ENFORCE_SSO
+        if (m365_configured() and enforce_sso_enabled()
                 and _user_role(user) not in ('admin', 'superadmin')):
             log_action(request, 'login_failed', 'session', target_name=user.username,
                        details={'reason': 'm365_required'})

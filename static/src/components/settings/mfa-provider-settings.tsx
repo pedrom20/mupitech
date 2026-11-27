@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FaSave, FaCheckCircle, FaTimesCircle, FaUserShield } from 'react-icons/fa'
+import { FaSave, FaCheckCircle, FaTimesCircle, FaUserShield, FaMicrosoft } from 'react-icons/fa'
 import Swal from 'sweetalert2'
 import { mfaProviders, dualMfa } from '@/services/api'
 import { showToast } from '@/utils/toast'
@@ -16,7 +16,7 @@ const SECRET_PLACEHOLDER_UNSET = ''
 
 const DUAL_MFA_ROLES = ['viewer', 'editor_simplificado', 'editor_simplificado_full', 'editor', 'admin', 'superadmin'] as const
 
-type ProviderTab = 'dual' | 'duo' | 'privacyidea' | 'authpoint'
+type ProviderTab = 'dual' | 'duo' | 'privacyidea' | 'authpoint' | 'm365'
 
 const MFAProviderSettings: React.FC = () => {
   const { t } = useTranslation()
@@ -44,6 +44,12 @@ const MFAProviderSettings: React.FC = () => {
   const [apClientSecret, setApClientSecret] = useState('')
   const [apSaving, setApSaving] = useState(false)
 
+  const [m365TenantId, setM365TenantId] = useState('')
+  const [m365ClientId, setM365ClientId] = useState('')
+  const [m365ClientSecret, setM365ClientSecret] = useState('')
+  const [m365EnforceSso, setM365EnforceSso] = useState(false)
+  const [m365Saving, setM365Saving] = useState(false)
+
   const load = () => {
     setLoading(true)
     mfaProviders.status().then((res) => {
@@ -55,6 +61,9 @@ const MFAProviderSettings: React.FC = () => {
       setPiRealm(res.privacyidea.realm)
       setPiResolver(res.privacyidea.resolver)
       setApClientId(res.authpoint.client_id)
+      setM365TenantId(res.m365.tenant_id)
+      setM365ClientId(res.m365.client_id)
+      setM365EnforceSso(res.m365.enforce_sso === 'true')
     }).catch(() => {}).finally(() => setLoading(false))
   }
 
@@ -116,6 +125,22 @@ const MFAProviderSettings: React.FC = () => {
     }).finally(() => setApSaving(false))
   }
 
+  const handleSaveM365 = () => {
+    setM365Saving(true)
+    mfaProviders.save('m365', {
+      tenant_id: m365TenantId,
+      client_id: m365ClientId,
+      client_secret: m365ClientSecret,
+      enforce_sso: m365EnforceSso ? 'true' : '',
+    }).then(() => {
+      setM365ClientSecret('')
+      showToast('success', t('common.success'))
+      load()
+    }).catch((err) => {
+      Swal.fire({ icon: 'error', title: t('common.error'), text: String(err) })
+    }).finally(() => setM365Saving(false))
+  }
+
   if (loading || !status) {
     return (
       <div className="fm-loading">
@@ -165,6 +190,16 @@ const MFAProviderSettings: React.FC = () => {
           >
             <AuthPointIcon className="me-1" />
             WatchGuard AuthPoint
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${activeTab === 'm365' ? 'active' : ''}`}
+            onClick={() => setActiveTab('m365')}
+          >
+            <FaMicrosoft className="me-1" />
+            {t('mfaProviders.m365Tab')}
           </button>
         </li>
       </ul>
@@ -351,6 +386,68 @@ const MFAProviderSettings: React.FC = () => {
             <button className="fm-btn-outline btn-sm" onClick={handleSaveAuthPoint} disabled={apSaving}>
               <FaSave />
               {apSaving ? t('common.loading') : t('common.save')}
+            </button>
+          </div>
+        </div>
+      </div>
+      </div>
+      )}
+
+      {activeTab === 'm365' && (
+      <div className="row g-3">
+      <div className="col-lg-8">
+        <div className="fm-card fm-card-accent h-100">
+          <div className="fm-card-header py-2 d-flex align-items-center justify-content-between">
+            <h5 className="card-title mb-0">
+              <FaMicrosoft className="me-2" />
+              {t('mfaProviders.m365Tab')}
+            </h5>
+            {status.m365.configured ? (
+              <span className="badge bg-success"><FaCheckCircle className="me-1" />{t('mfaProviders.configured')}</span>
+            ) : (
+              <span className="badge bg-secondary"><FaTimesCircle className="me-1" />{t('mfaProviders.notConfigured')}</span>
+            )}
+          </div>
+          <div className="fm-card-body py-3">
+            <p className="form-text mb-3" style={{ fontSize: '0.8rem' }}>{t('mfaProviders.m365Description')}</p>
+            <div className="mb-2">
+              <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>Tenant ID</label>
+              <input type="text" className="form-control form-control-sm" value={m365TenantId} onChange={(e) => setM365TenantId(e.target.value)} />
+            </div>
+            <div className="mb-2">
+              <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>Client ID</label>
+              <input type="text" className="form-control form-control-sm" value={m365ClientId} onChange={(e) => setM365ClientId(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.85rem' }}>Client Secret</label>
+              <input
+                type="password"
+                className="form-control form-control-sm"
+                value={m365ClientSecret}
+                onChange={(e) => setM365ClientSecret(e.target.value)}
+                placeholder={status.m365.client_secret.set ? SECRET_PLACEHOLDER_SET : SECRET_PLACEHOLDER_UNSET}
+              />
+              {status.m365.client_secret.set && (
+                <div className="form-text" style={{ fontSize: '0.75rem' }}>{t('mfaProviders.leaveBlankToKeep')}</div>
+              )}
+            </div>
+            <div className="form-check form-switch mb-3">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="m365-enforce-sso"
+                checked={m365EnforceSso}
+                onChange={(e) => setM365EnforceSso(e.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="m365-enforce-sso">
+                <span className="fw-semibold d-block">{t('mfaProviders.m365EnforceSso')}</span>
+                <span className="form-text" style={{ fontSize: '0.78rem' }}>{t('mfaProviders.m365EnforceSsoHint')}</span>
+              </label>
+            </div>
+            <button className="fm-btn-primary btn-sm" onClick={handleSaveM365} disabled={m365Saving}>
+              <FaSave />
+              {m365Saving ? t('common.loading') : t('common.save')}
             </button>
           </div>
         </div>

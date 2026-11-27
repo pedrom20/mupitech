@@ -310,9 +310,20 @@ export interface AuthPointProviderConfig {
   client_secret: { set: boolean }
 }
 
+// enforce_sso is the string 'true' or '' (empty), not a boolean — see
+// mfa/provider_config.py's FIELDS comment for why.
+export interface M365ProviderConfig {
+  configured: boolean
+  tenant_id: string
+  client_id: string
+  client_secret: { set: boolean }
+  enforce_sso: string
+}
+
 export interface MFAProviderConfigStatus {
   duo: DuoProviderConfig
   privacyidea: PrivacyIDEAProviderConfig
+  m365: M365ProviderConfig
   authpoint: AuthPointProviderConfig
 }
 
