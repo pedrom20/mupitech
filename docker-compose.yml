@@ -167,6 +167,24 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/project:ro
 
+  # Interface web tipo phpMyAdmin para a base de dados Postgres deste
+  # stack (login próprio do Adminer, pede sempre utilizador/password da
+  # BD) — útil para inspecionar/corrigir dados diretamente. Opt-in: só
+  # arranca com `--profile adminer`. Dá acesso total à base de dados —
+  # trata a porta como trataste a do próprio Fleet Manager (firewall/
+  # rede interna), não a deixes acessível de fora sem precisar mesmo.
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "${ADMINER_PORT:-8081}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+    profiles:
+      - adminer
+
   # Local mirror of the MupiTech player images (server/viewer/redis, per
   # architecture) — lets devices on a LAN with slow/no internet pull from
   # here instead of GHCR. Opt-in: only starts with `--profile registry`,
