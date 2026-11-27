@@ -1802,7 +1802,20 @@ const PlayerDetail: React.FC = () => {
           onChange={() => toggleAssetSelection(asset.asset_id)}
         />
       </td>
-      <td>{renderAssetThumbnail(asset)}</td>
+      <td
+        style={{ cursor: 'pointer' }}
+        onClick={() => setPreviewAsset(asset)}
+        onMouseEnter={(e) => {
+          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+          setHoveredAsset(asset)
+          setHoverRect(e.currentTarget.getBoundingClientRect())
+        }}
+        onMouseLeave={() => {
+          hoverTimeoutRef.current = setTimeout(() => setHoveredAsset(null), 200)
+        }}
+      >
+        {renderAssetThumbnail(asset)}
+      </td>
       <td>
         <div
           style={{ overflow: 'hidden', cursor: 'pointer' }}

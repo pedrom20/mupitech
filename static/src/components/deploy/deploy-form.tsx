@@ -7,7 +7,6 @@ import {
   FaImage,
   FaVideo,
   FaGlobe,
-  FaFile,
   FaCheck,
   FaTimes,
   FaCloudUploadAlt,
@@ -41,17 +40,10 @@ import { useAppDispatch, useAppSelector } from '@/store/index'
 import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
-import { FileTypeIcon, FilePreview, getDomain, isImageUrl } from '@/components/shared/media-preview'
+import { FileTypeIcon, FilePreview, getDomain, isImageUrl, formatFileSize, PreviewModal, FileHoverPreview } from '@/components/shared/media-preview'
 import { showToast } from '@/utils/toast'
 import { RoleContext, isAdminRole, isSuperAdminRole } from '@/components/app'
 import type { MediaFile, MediaFolder, CctvConfig } from '@/types'
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
-}
 
 function baseName(name: string): string {
   const dot = name.lastIndexOf('.')
@@ -65,151 +57,6 @@ function formatPlaybackDuration(seconds: number): string {
   if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
   if (m > 0) return `${m}m`
   return `${s}s`
-}
-
-/* ===== Preview Modal ===== */
-
-function PreviewModal({
-  file,
-  onClose,
-}: {
-  file: MediaFile | null
-  onClose: () => void
-}) {
-  const { t } = useTranslation()
-
-  // Stop CCTV stream when preview modal closes
-  useEffect(() => {
-    if (!file || file.file_type !== 'cctv' || !file.cctv_config) return
-    const configId = file.cctv_config.id
-    return () => {
-      cctvApi.stop(configId).catch(() => {})
-    }
-  }, [file])
-
-  if (!file) return null
-
-  return (
-    <div
-      className="modal d-block"
-      tabIndex={-1}
-      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
-      onClick={onClose}
-    >
-      <div
-        className={`modal-dialog modal-dialog-centered ${file.file_type === 'cctv' ? 'modal-xl' : 'modal-lg'}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-content" style={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <div className="modal-header py-2 px-3">
-            <h6 className="modal-title d-flex align-items-center gap-2 mb-0">
-              <FileTypeIcon type={file.file_type} />
-              <span className="text-truncate" style={{ maxWidth: '400px' }}>
-                {file.name}
-              </span>
-            </h6>
-            <div className="d-flex align-items-center gap-2">
-              {file.source_url && file.file_type !== 'cctv' && (
-                <a
-                  href={file.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-sm btn-outline-primary py-0"
-                  title={t('content.openUrl')}
-                >
-                  <FaExternalLinkAlt style={{ fontSize: '0.7rem' }} />
-                </a>
-              )}
-              <button type="button" className="btn-close" onClick={onClose} />
-            </div>
-          </div>
-          <div
-            className="modal-body p-0 d-flex align-items-center justify-content-center"
-            style={{ minHeight: '300px', maxHeight: '75vh', backgroundColor: '#1a1a1a' }}
-          >
-            {file.file_type === 'image' && file.url && (
-              <img
-                src={file.url}
-                alt={file.name}
-                style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }}
-              />
-            )}
-            {file.file_type === 'video' && file.url && (
-              <video
-                src={file.url}
-                controls
-                autoPlay
-                style={{ maxWidth: '100%', maxHeight: '75vh' }}
-              />
-            )}
-            {file.file_type === 'web' && file.source_url && (
-              isImageUrl(file.source_url) ? (
-                <img
-                  src={file.source_url}
-                  alt={file.name}
-                  style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }}
-                />
-              ) : (
-                <iframe
-                  src={file.source_url}
-                  title={file.name}
-                  style={{
-                    width: '100%',
-                    height: '75vh',
-                    border: 'none',
-                    backgroundColor: '#fff',
-                  }}
-                />
-              )
-            )}
-            {file.file_type === 'cctv' && file.source_url && (
-              <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', backgroundColor: '#000' }}>
-                <iframe
-                  src={file.source_url}
-                  title={file.name}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                  }}
-                  allow="autoplay"
-                />
-              </div>
-            )}
-            {file.file_type === 'other' && (
-              <div className="text-center text-white p-5">
-                <FaFile size={64} className="mb-3" style={{ opacity: 0.5 }} />
-                <p>{t('content.noPreview')}</p>
-                {file.url && (
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-outline-light btn-sm"
-                  >
-                    {t('content.download')}
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="modal-footer py-2 px-3">
-            <small className="text-muted me-auto">
-              {file.file_size > 0 && formatFileSize(file.file_size)}
-              {file.file_size > 0 && ' · '}
-              {file.file_type.toUpperCase()}
-            </small>
-            <button type="button" className="btn btn-sm btn-secondary" onClick={onClose}>
-              {t('common.close')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 /* ===== Add Content Modal ===== */
@@ -1482,134 +1329,7 @@ const ContentPage: React.FC = () => {
               </table>
 
               {/* Hover preview popup */}
-              {hoveredFile && hoverRect && (() => {
-                const f = hoveredFile
-                return (
-                  <div
-                    style={{
-                      position: 'fixed',
-                      left: Math.min(hoverRect.left, window.innerWidth - 320),
-                      top: hoverRect.bottom + 8 + 230 > window.innerHeight
-                        ? hoverRect.top - 8 - 240
-                        : hoverRect.bottom + 8,
-                      zIndex: 10000,
-                      width: '300px',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <div
-                      className="shadow-lg"
-                      style={{
-                        background: 'var(--bs-body-bg, #fff)',
-                        border: '1px solid var(--bs-border-color, #dee2e6)',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {/* Preview content */}
-                      {f.file_type === 'video' && f.file ? (
-                        f.thumbnail_file_url ? (
-                          <img
-                            src={f.thumbnail_file_url}
-                            alt={f.name}
-                            style={{ width: '100%', height: '170px', objectFit: 'cover', display: 'block', background: '#000' }}
-                          />
-                        ) : (
-                          <video
-                            src={f.url}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            style={{ width: '100%', height: '170px', objectFit: 'cover', display: 'block', background: '#000' }}
-                          />
-                        )
-                      ) : f.file_type === 'image' && f.file ? (
-                        <img
-                          src={f.thumbnail_file_url || f.url}
-                          alt={f.name}
-                          style={{ width: '100%', height: '170px', objectFit: 'cover', display: 'block', background: '#000' }}
-                        />
-                      ) : f.file_type === 'web' && f.source_url ? (
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '170px',
-                            background: 'linear-gradient(135deg, #e8f4fd 0%, #d0e8f7 100%)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {f.thumbnail_url ? (
-                            <img src={f.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <>
-                              <img
-                                src={`https://www.google.com/s2/favicons?domain=${getDomain(f.source_url)}&sz=64`}
-                                alt=""
-                                style={{ width: '48px', height: '48px', marginBottom: '8px' }}
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                              />
-                              <small className="text-muted px-3 text-center" style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>
-                                {getDomain(f.source_url)}
-                              </small>
-                            </>
-                          )}
-                        </div>
-                      ) : f.file_type === 'cctv' ? (
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '170px',
-                            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {f.thumbnail_file_url ? (
-                            <img src={f.thumbnail_file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <FaVideo style={{ fontSize: '2.5rem', color: '#dc3545' }} />
-                          )}
-                        </div>
-                      ) : (
-                        <div
-                          className="d-flex flex-column align-items-center justify-content-center"
-                          style={{
-                            width: '100%',
-                            height: '170px',
-                            background: 'var(--bs-gray-200, #e9ecef)',
-                            color: 'var(--bs-gray-500, #adb5bd)',
-                            fontSize: '2.5rem',
-                          }}
-                        >
-                          <FileTypeIcon type={f.file_type} />
-                          <small className="mt-2" style={{ fontSize: '0.7rem' }}>
-                            {t('content.noPreview')}
-                          </small>
-                        </div>
-                      )}
-                      {/* Info footer */}
-                      <div className="p-2">
-                        <div className="fw-semibold mb-1" style={{ fontSize: '0.85rem', wordBreak: 'break-word' }}>
-                          {f.name}
-                        </div>
-                        <div className="d-flex gap-3 text-muted" style={{ fontSize: '0.75rem' }}>
-                          <span className="d-inline-flex align-items-center gap-1">
-                            <FileTypeIcon type={f.file_type} />
-                            {f.file_type.charAt(0).toUpperCase() + f.file_type.slice(1)}
-                          </span>
-                          {f.file_size > 0 && <span>{formatFileSize(f.file_size)}</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
+              {hoveredFile && hoverRect && <FileHoverPreview file={hoveredFile} rect={hoverRect} />}
             </div>
           ) : (
             /* ===== GRID VIEW ===== */

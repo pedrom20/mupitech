@@ -24,7 +24,7 @@ import { fetchPlayers } from '@/store/playersSlice'
 import { fetchGroups } from '@/store/groupsSlice'
 import { fetchLocations } from '@/store/locationsSlice'
 import { media as mediaApi, playlists as playlistsApi } from '@/services/api'
-import { FilePreview } from '@/components/shared/media-preview'
+import { FilePreview, FileHoverPreview, PreviewModal } from '@/components/shared/media-preview'
 import UploadMediaModal from '@/components/shared/upload-media-modal'
 import { showToast } from '@/utils/toast'
 import { RoleContext, canEditPlaylistTargets } from '@/components/app'
@@ -68,6 +68,15 @@ const PlaylistList: React.FC = () => {
   const [contentSearch, setContentSearch] = useState('')
   const [saving, setSaving] = useState(false)
   const [deployingId, setDeployingId] = useState<string | null>(null)
+
+  // Bigger click-through preview + hover popup for a playlist item —
+  // same pattern as the Content page and a device's own asset list
+  // (static/src/components/deploy/deploy-form.tsx, static/src/
+  // components/shared/media-preview.tsx).
+  const [previewFile, setPreviewFile] = useState<MediaFile | null>(null)
+  const [hoveredFile, setHoveredFile] = useState<MediaFile | null>(null)
+  const [hoverRect, setHoverRect] = useState<DOMRect | null>(null)
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Upload-from-here (shared/upload-media-modal.tsx) — lets a new file be
   // added without leaving the playlist form to go to the Content page
@@ -519,12 +528,40 @@ const PlaylistList: React.FC = () => {
                           return (
                             <li key={`${item.media_file}-${index}`} className="list-group-item d-flex align-items-center gap-2">
                               <span className="text-muted" style={{ fontSize: '0.8rem', width: '18px' }}>{index + 1}.</span>
-                              <div className="rounded overflow-hidden border flex-shrink-0" style={{ width: '56px' }}>
+                              <div
+                                className="rounded overflow-hidden border flex-shrink-0"
+                                style={{ width: '56px', cursor: file ? 'pointer' : undefined }}
+                                onClick={() => { if (file) setPreviewFile(file) }}
+                                onMouseEnter={(e) => {
+                                  if (!file) return
+                                  if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                                  setHoveredFile(file)
+                                  setHoverRect(e.currentTarget.getBoundingClientRect())
+                                }}
+                                onMouseLeave={() => {
+                                  hoverTimeoutRef.current = setTimeout(() => setHoveredFile(null), 200)
+                                }}
+                              >
                                 {file ? <FilePreview file={file} /> : (
                                   <div style={{ width: '56px', aspectRatio: '16/9', background: 'var(--bs-gray-200)' }} />
                                 )}
                               </div>
-                              <span className="flex-grow-1 text-truncate">{file?.name || item.media_file}</span>
+                              <span
+                                className="flex-grow-1 text-truncate"
+                                style={{ cursor: file ? 'pointer' : undefined }}
+                                onClick={() => { if (file) setPreviewFile(file) }}
+                                onMouseEnter={(e) => {
+                                  if (!file) return
+                                  if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                                  setHoveredFile(file)
+                                  setHoverRect(e.currentTarget.getBoundingClientRect())
+                                }}
+                                onMouseLeave={() => {
+                                  hoverTimeoutRef.current = setTimeout(() => setHoveredFile(null), 200)
+                                }}
+                              >
+                                {file?.name || item.media_file}
+                              </span>
                               <input
                                 type="number"
                                 className="form-control form-control-sm"
@@ -645,6 +682,9 @@ const PlaylistList: React.FC = () => {
         onClose={() => setShowUploadModal(false)}
         onUpload={handleUploadContent}
       />
+
+      {hoveredFile && hoverRect && <FileHoverPreview file={hoveredFile} rect={hoverRect} />}
+      <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
     </div>
   )
 }
